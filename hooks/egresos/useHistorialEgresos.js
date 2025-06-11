@@ -5,7 +5,7 @@ import { useEgresos } from '../../context/EgresosContext';
 
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useHistorialEgresos() {
   const {
@@ -42,7 +42,7 @@ export function useHistorialEgresos() {
       if (filtrosAUsar.cuenta !== 'todas') params.append('cuenta', filtrosAUsar.cuenta);
       if (filtrosAUsar.busqueda) params.append('busqueda', filtrosAUsar.busqueda);
       
-      const response = await axios.get(`${apiUrl}/finanzas/egresos/historial?${params.toString()}`);
+      const response = await axiosAuth.get(`/finanzas/egresos/historial?${params.toString()}`);
       
       if (response.data.success) {
         setEgresos(response.data.data);

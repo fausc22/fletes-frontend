@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { axiosAuth, fetchAuth } from '../utils/apiClient'; 
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  
+
 
 export function useClienteSearch() {
   const [busqueda, setBusqueda] = useState('');
@@ -15,11 +15,8 @@ export function useClienteSearch() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/pedidos/filtrar-cliente?search=${encodeURIComponent(busqueda)}`);
-
-      if (!res.ok) throw new Error('Respuesta no OK del servidor');
       
-      const data = await res.json();
+      const data = await fetchAuth(`/pedidos/filtrar-cliente?search=${encodeURIComponent(busqueda)}`);
       setResultados(data.data);
       setMostrarModal(true);
     } catch (error) {
@@ -47,4 +44,3 @@ export function useClienteSearch() {
     limpiarBusqueda
   };
 }
-

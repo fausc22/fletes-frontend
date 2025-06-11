@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import axios from 'axios';
 import useAuth from './useAuth';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../utils/apiClient';
 
 export const useEmpleados = () => {
   const [loading, setLoading] = useState(false);
@@ -55,13 +55,13 @@ export const useEmpleados = () => {
       console.log('🚀 Creando empleado...');
       console.log('Datos:', empleadoData);
       console.log('Usuario logueado:', user);
-      console.log('Endpoint:', `${apiUrl}/empleados/crear-empleado`);
+      console.log('Endpoint:', `/empleados/crear-empleado`);
       
       const headers = getAuthHeaders();
       console.log('Headers:', headers);
 
-      const response = await axios.post(
-        `${apiUrl}/empleados/crear-empleado`,
+      const response = await axiosAuth.post(
+        `/empleados/crear-empleado`,
         empleadoData,
         headers
       );
@@ -131,8 +131,8 @@ export const useEmpleados = () => {
 
       console.log('🔄 Actualizando empleado:', dataToSend);
 
-      const response = await axios.put(
-        `${apiUrl}/empleados/actualizar-empleado`,
+      const response = await axiosAuth.put(
+        `/empleados/actualizar-empleado`,
         dataToSend,
         getAuthHeaders()
       );
@@ -181,8 +181,8 @@ export const useEmpleados = () => {
     try {
       console.log('🔍 Buscando empleados:', query);
       
-      const response = await axios.get(
-        `${apiUrl}/empleados/buscar-empleado?q=${encodeURIComponent(query)}`,
+      const response = await axiosAuth.get(
+        `/empleados/buscar-empleado?q=${encodeURIComponent(query)}`,
         getAuthHeaders()
       );
 
@@ -215,8 +215,8 @@ export const useEmpleados = () => {
 
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${apiUrl}/empleados/listar`,
+      const response = await axiosAuth.get(
+        `/empleados/listar`,
         getAuthHeaders()
       );
 
@@ -239,8 +239,8 @@ export const useEmpleados = () => {
 
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${apiUrl}/empleados/${id}`,
+      const response = await axiosAuth.get(
+        `/empleados/${id}`,
         getAuthHeaders()
       );
 
@@ -263,8 +263,8 @@ export const useEmpleados = () => {
 
     setLoading(true);
     try {
-      const response = await axios.delete(
-        `${apiUrl}/empleados/${id}`,
+      const response = await axiosAuth.delete(
+        `/empleados/${id}`,
         getAuthHeaders()
       );
 

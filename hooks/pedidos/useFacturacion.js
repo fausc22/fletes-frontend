@@ -3,7 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useFacturacion() {
   const [loading, setLoading] = useState(false);
@@ -14,7 +14,7 @@ export function useFacturacion() {
   const cargarCuentasFondos = async () => {
     setLoadingCuentas(true);
     try {
-      const response = await axios.get(`${apiUrl}/finanzas/cuentas`);
+      const response = await axiosAuth.get(`/finanzas/obtener-cuentas`);
       
       if (response.data.success) {
         setCuentas(response.data.data);
@@ -38,7 +38,7 @@ export function useFacturacion() {
     try {
       console.log('🧾 Enviando datos de facturación:', datosFacturacion);
       
-      const response = await axios.post(`${apiUrl}/ventas/facturar-pedido`, datosFacturacion);
+      const response = await axiosAuth.post(`/ventas/facturar-pedido`, datosFacturacion);
       
       if (response.data.success) {
         toast.success('¡Pedido facturado exitosamente!');
@@ -69,7 +69,7 @@ export function useFacturacion() {
   // Obtener movimientos de una cuenta
   const obtenerMovimientosCuenta = async (cuentaId) => {
     try {
-      const response = await axios.get(`${apiUrl}/ventas/movimientos-cuenta/${cuentaId}`);
+      const response = await axiosAuth.get(`/ventas/movimientos-cuenta/${cuentaId}`);
       
       if (response.data.success) {
         return response.data.data;

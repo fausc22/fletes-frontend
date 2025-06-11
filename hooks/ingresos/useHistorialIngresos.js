@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useIngresos } from '../../context/IngresosContext';
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useHistorialIngresos() {
   const {
@@ -41,7 +41,7 @@ export function useHistorialIngresos() {
       if (filtrosAUsar.cuenta !== 'todas') params.append('cuenta', filtrosAUsar.cuenta);
       if (filtrosAUsar.busqueda) params.append('busqueda', filtrosAUsar.busqueda);
       
-      const response = await axios.get(`${apiUrl}/finanzas/ingresos/historial?${params.toString()}`);
+      const response = await axiosAuth.get(`/finanzas/ingresos/historial?${params.toString()}`);
       
       if (response.data.success) {
         setIngresos(response.data.data);

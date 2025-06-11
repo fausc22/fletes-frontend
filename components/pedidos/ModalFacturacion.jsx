@@ -2,20 +2,20 @@
 import { useState, useEffect } from 'react';
 
 // Modal para aplicar descuentos
-export function ModalDescuentos({ // <--- ADD export HERE
+export function ModalDescuentos({
   mostrar, 
   onClose, 
   onAplicarDescuento, 
-  subtotalSinIva, 
-  ivaTotal, 
-  totalConIva 
+  subtotalSinIva = 0, 
+  ivaTotal = 0, 
+  totalConIva = 0 
 }) {
   const [tipoDescuento, setTipoDescuento] = useState('numerico'); // 'numerico' o 'porcentaje'
   const [valorDescuento, setValorDescuento] = useState('');
   const [descuentoCalculado, setDescuentoCalculado] = useState(0);
 
   useEffect(() => {
-    if (!valorDescuento) {
+    if (!valorDescuento || valorDescuento === '') {
       setDescuentoCalculado(0);
       return;
     }
@@ -24,13 +24,13 @@ export function ModalDescuentos({ // <--- ADD export HERE
     
     if (tipoDescuento === 'numerico') {
       // Descuento directo sobre el total con IVA
-      setDescuentoCalculado(Math.min(valor, totalConIva));
+      setDescuentoCalculado(Math.min(valor, totalConIva || 0));
     } else {
-      // Porcentaje sobre el IVA total
+      // Porcentaje sobre el SUBTOTAL (sin IVA)
       const porcentaje = Math.min(Math.max(valor, 0), 100);
-      setDescuentoCalculado((ivaTotal * porcentaje) / 100);
+      setDescuentoCalculado(((subtotalSinIva || 0) * porcentaje) / 100);
     }
-  }, [valorDescuento, tipoDescuento, ivaTotal, totalConIva]);
+  }, [valorDescuento, tipoDescuento, subtotalSinIva, totalConIva]);
 
   const handleAplicar = () => {
     onAplicarDescuento({
@@ -54,7 +54,7 @@ export function ModalDescuentos({ // <--- ADD export HERE
 
   if (!mostrar) return null;
 
-  const nuevoTotal = totalConIva - descuentoCalculado;
+  const nuevoTotal = (totalConIva || 0) - descuentoCalculado;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-[60] p-2 sm:p-4">
@@ -105,7 +105,7 @@ export function ModalDescuentos({ // <--- ADD export HERE
                 value={valorDescuento}
                 onChange={(e) => setValorDescuento(e.target.value)}
                 min="0"
-                max={tipoDescuento === 'numerico' ? totalConIva : 100}
+                max={tipoDescuento === 'numerico' ? (totalConIva || 0) : 100}
                 step={tipoDescuento === 'numerico' ? '0.01' : '1'}
                 className="border p-2 rounded w-full text-sm"
                 placeholder={tipoDescuento === 'numerico' ? '0.00' : '0'}
@@ -114,7 +114,7 @@ export function ModalDescuentos({ // <--- ADD export HERE
             </div>
             {tipoDescuento === 'porcentaje' && (
               <p className="text-xs text-gray-500 mt-1">
-                Se aplicará sobre el IVA total: ${ivaTotal.toFixed(2)}
+                Se aplicará sobre el IVA total: ${(ivaTotal || 0).toFixed(2)}
               </p>
             )}
           </div>
@@ -126,7 +126,7 @@ export function ModalDescuentos({ // <--- ADD export HERE
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span>Total original:</span>
-                  <span>${totalConIva.toFixed(2)}</span>
+                  <span>${(totalConIva || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-red-600">
                   <span>Descuento:</span>
@@ -144,7 +144,7 @@ export function ModalDescuentos({ // <--- ADD export HERE
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={handleAplicar}
-              disabled={!valorDescuento || descuentoCalculado <= 0}
+             disabled={!valorDescuento || valorDescuento === '' || parseFloat(valorDescuento) < 0}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors text-sm w-full sm:w-auto"
             >
               ✅ Aplicar Descuento
@@ -192,7 +192,7 @@ export default function ModalFacturacion({
   useEffect(() => {
     if (mostrar && productos && productos.length > 0) {
       const subtotal = productos.reduce((acc, prod) => acc + (Number(prod.subtotal) || 0), 0);
-      const iva = products.reduce((acc, prod) => acc + (Number(prod.iva) || 0), 0);
+      const iva = productos.reduce((acc, prod) => acc + (Number(prod.iva) || 0), 0);
       const total = subtotal + iva;
 
       setSubtotalSinIva(subtotal);
@@ -356,7 +356,7 @@ export default function ModalFacturacion({
                   <span className="font-medium">Estado:</span> {pedido?.estado}
                 </div>
                 <div>
-                  <span className="font-medium">Productos:</span> {products?.length || 0}
+                  <span className="font-medium">Productos:</span> {productos?.length || 0}
                 </div>
               </div>
             </div>

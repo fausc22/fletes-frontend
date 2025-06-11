@@ -1,5 +1,4 @@
-// pages/HistorialPedidos.jsx - Versión con filtrado por rol
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
 import useAuth from '../../hooks/useAuth';
@@ -8,7 +7,8 @@ import useAuth from '../../hooks/useAuth';
 import { useHistorialPedidos } from '../../hooks/pedidos/useHistorialPedidos';
 import { usePaginacion } from '../../hooks/usePaginacion';
 import { useEditarPedido } from '../../hooks/pedidos/useEditarPedido';
-import { useGenerarPDFPedido } from 'hooks/pedidos/useGenerarPdfPedido';
+import { useGenerarPDFPedido } from 'hooks/pedidos/useGenerarPdfPedido'; // HOOK ACTUALIZADO
+import { useAnularPedido } from '../../hooks/pedidos/useAnularPedido';
 
 // Componentes
 import TablaPedidos from '../../components/pedidos/TablaPedidos';
@@ -19,43 +19,48 @@ import {
   ModalEliminarProductoPedido, 
   ModalAgregarProductoPedido 
 } from '../../components/pedidos/ModalesHistorialPedidos';
-import { ModalConfirmacionSalidaPedidos } from '../../components/pedidos/ModalesConfirmacion';
-import { BotonAccionesPedidos } from '../../components/pedidos/BotonAccionesPedidos';
+import { 
+  ModalConfirmacionSalidaPedidos,
+  ModalConfirmacionAnularPedidoIndividual
+} from '../../components/pedidos/ModalesConfirmacion';
+import { BotonAccionesPedidos } from '../../components/pedidos/BotonAccionesPedidos'; // COMPONENTE ACTUALIZADO
+import { axiosAuth } from '../../utils/apiClient';
 
 function HistorialPedidosContent() {
-  // Estados para modales
+  // Estados para modales existentes (SIN CAMBIOS)
   const [mostrarModalDetalle, setMostrarModalDetalle] = useState(false);
   const [mostrarModalAgregarProducto, setMostrarModalAgregarProducto] = useState(false);
   const [mostrarModalEditarProducto, setMostrarModalEditarProducto] = useState(false);
   const [mostrarModalEliminarProducto, setMostrarModalEliminarProducto] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
-  // NEW: State for the Facturacion Modal
   const [mostrarModalFacturacion, setMostrarModalFacturacion] = useState(false);
 
-  // Estados para productos en edición
+  // Estados para anulación individual (SIN CAMBIOS)
+  const [mostrarModalAnularPedido, setMostrarModalAnularPedido] = useState(false);
+  const [pedidoParaAnular, setPedidoParaAnular] = useState(null);
+
+  // Estados para productos en edición (SIN CAMBIOS)
   const [productoEditando, setProductoEditando] = useState(null);
   const [productoEliminando, setProductoEliminando] = useState(null);
 
-  // Hook de autenticación
+  // Hook de autenticación (SIN CAMBIOS)
   const { user, loading: authLoading } = useAuth();
 
-  const {
-      generandoPDF,
-      generarPDFPedido
-    } = useGenerarPDFPedido();
+  // Hook para anular pedidos (SIN CAMBIOS)
+  const { loading: loadingAnular, anularPedido } = useAnularPedido();
 
-  // Determinar si debe filtrar por empleado
-  // Solo los GERENTES pueden ver todos los pedidos, los demás solo ven los suyos
+  // HOOK ACTUALIZADO para generar PDFs
+  const {
+    generandoPDF,
+    generandoPDFMultiple, // NUEVO ESTADO
+    generarPDFPedido,
+    generarPDFsPedidosMultiples // NUEVA FUNCIÓN
+  } = useGenerarPDFPedido();
+
+  // Determinar si debe filtrar por empleado (SIN CAMBIOS)
   const filtroEmpleado = user && user.rol !== 'GERENTE' ? user.id : null;
 
-  console.log('🔍 Filtro aplicado:', {
-    usuario: user?.nombre,
-    rol: user?.rol,
-    filtroEmpleado: filtroEmpleado,
-    verTodos: user?.rol === 'GERENTE'
-  });
-
-  // Hooks personalizados
+  // Hooks personalizados (SIN CAMBIOS)
   const { 
     pedidos, 
     selectedPedidos, 
@@ -65,9 +70,25 @@ function HistorialPedidosContent() {
     clearSelection,
     cambiarEstadoMultiple,
     eliminarMultiple,
-    getEstadisticas
-  } = useHistorialPedidos(filtroEmpleado); // Aquí pasamos el filtro
+    cargarPedidos 
+  } = useHistorialPedidos(filtroEmpleado);
+
+  // Effect para cargar pedidos (SIN CAMBIOS)
+  useEffect(() => {
+    if (!authLoading && user) {
+      console.log('🔄 Usuario cargado, forzando recarga de pedidos:', {
+        usuario: user.nombre,
+        rol: user.rol,
+        filtroCalculado: user.rol !== 'GERENTE' ? user.id : null
+      });
+      
+      setTimeout(() => {
+        cargarPedidos();
+      }, 100);
+    }
+  }, [user, authLoading]);
   
+  // Hook de paginación (SIN CAMBIOS)
   const {
     datosActuales: pedidosActuales,
     paginaActual,
@@ -79,6 +100,7 @@ function HistorialPedidosContent() {
     cambiarRegistrosPorPagina
   } = usePaginacion(pedidos, 10);
 
+  // Hook para editar pedidos (SIN CAMBIOS)
   const {
     selectedPedido,
     productos,
@@ -90,16 +112,69 @@ function HistorialPedidosContent() {
     cerrarEdicion
   } = useEditarPedido();
 
-  // Handlers para eventos de la tabla
-  const handleRowDoubleClick = async (pedido) => {
+  // FUNCIONES para anular pedidos (SIN CAMBIOS)
+  const handleMostrarConfirmacionAnular = (pedido, productosDelPedido) => {
+    setPedidoParaAnular({
+      ...pedido,
+      productos: productosDelPedido || productos
+    });
+    setMostrarModalAnularPedido(true);
+  };
+
+  const handleAnularPedidoIndividual = async () => {
+    if (!pedidoParaAnular) {
+      toast.error('No hay pedido para anular');
+      return;
+    }
+
+    const resultado = await anularPedido(pedidoParaAnular.id);
     
+    if (resultado.success) {
+      setMostrarModalAnularPedido(false);
+      setMostrarModalDetalle(false);
+      setPedidoParaAnular(null);
+      cerrarEdicion();
+      await cargarPedidos();
+    }
+  };
+
+  // FUNCIÓN para cambiar estado de pedido (SIN CAMBIOS)
+  const handleCambiarEstadoPedido = async (nuevoEstado) => {
+    if (!selectedPedido) {
+      toast.error("No hay pedido seleccionado");
+      return;
+    }
+
+    if (nuevoEstado === 'Anulado') {
+      handleMostrarConfirmacionAnular(selectedPedido, productos);
+      return;
+    }
+
     try {
-      
+      const response = await axiosAuth.put(`/pedidos/actualizar-estado/${selectedPedido.id}`, {
+        estado: nuevoEstado
+      });
+
+      if (response.data.success) {
+        toast.success(`Pedido #${selectedPedido.id} marcado como ${nuevoEstado}`);
+        setMostrarModalDetalle(false);
+        cerrarEdicion();
+        await cargarPedidos();
+      } else {
+        toast.error(response.data.message || 'Error al cambiar estado del pedido');
+      }
+    } catch (error) {
+      console.error('Error al cambiar estado:', error);
+      toast.error('Error al cambiar estado del pedido');
+    }
+  };
+
+  // Handlers para eventos de la tabla (SIN CAMBIOS)
+  const handleRowDoubleClick = async (pedido) => {
+    try {
       await cargarProductosPedido(pedido);
-      
       setMostrarModalDetalle(true);
     } catch (error) {
-      
       toast.error('Error al cargar detalles del pedido');
     }
   };
@@ -109,7 +184,7 @@ function HistorialPedidosContent() {
     cerrarEdicion();
   };
 
-  // Handlers para productos
+  // Handlers para productos (SIN CAMBIOS)
   const handleAgregarProducto = () => {
     setMostrarModalDetalle(false);
     setTimeout(() => setMostrarModalAgregarProducto(true), 300);
@@ -127,7 +202,7 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalEliminarProducto(true), 300);
   };
 
-  // Handlers para modales de productos
+  // Handlers para modales de productos (SIN CAMBIOS)
   const handleCloseModalAgregarProducto = () => {
     setMostrarModalAgregarProducto(false);
     setTimeout(() => setMostrarModalDetalle(true), 300);
@@ -145,7 +220,7 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalDetalle(true), 300);
   };
 
-  // Handlers para acciones de productos
+  // Handlers para acciones de productos (SIN CAMBIOS)
   const handleConfirmarAgregarProducto = async (producto, cantidad) => {
     const exito = await agregarProducto(producto, cantidad);
     if (exito) {
@@ -172,6 +247,7 @@ function HistorialPedidosContent() {
     }
   };
 
+  // FUNCIÓN ACTUALIZADA para generar PDF individual
   const handleGenerarPDF = async () => {
     if (!selectedPedido || productos.length === 0) {
       toast.error("Seleccione un pedido con productos");
@@ -181,33 +257,25 @@ function HistorialPedidosContent() {
     await generarPDFPedido(selectedPedido, productos);
   };
 
-  // Handler para cambiar estado del pedido individual (desde el modal detalle)
-  const handleCambiarEstadoPedido = async (nuevoEstado) => {
-    if (!selectedPedido) {
-      toast.error("No hay pedido seleccionado");
+  // NUEVA FUNCIÓN para generar PDFs múltiples
+  const handleImprimirMultiple = async () => {
+    if (selectedPedidos.length === 0) {
+      toast.error('Seleccione al menos un pedido para imprimir');
       return;
     }
 
-    try {
-      // Temporalmente seleccionar este pedido para la operación
-      const pedidoAnterior = selectedPedidos;
-      handleSelectPedido(selectedPedido.id); // This will add the selectedPedido to selectedPedidos
-      
-      const exito = await cambiarEstadoMultiple(nuevoEstado);
-      if (exito) {
-        setMostrarModalDetalle(false);
-        toast.success(`Pedido #${selectedPedido.id} marcado como ${nuevoEstado}`);
-        // Restore previous selection
-        clearSelection();
-        pedidoAnterior.forEach(id => handleSelectPedido(id)); // This might re-select the original ones
-      }
-    } catch (error) {
-      console.error('Error al cambiar estado:', error);
-      toast.error('Error al cambiar estado del pedido');
+    console.log('🖨️ Iniciando impresión múltiple de pedidos:', selectedPedidos);
+    
+    const exito = await generarPDFsPedidosMultiples(selectedPedidos);
+    
+    if (exito) {
+      // Limpiar selección después de la impresión exitosa
+      clearSelection();
+      toast.success('PDFs generados correctamente');
     }
   };
 
-  // Handlers para navegación
+  // Handlers para navegación (SIN CAMBIOS)
   const handleConfirmarSalida = () => {
     setMostrarConfirmacionSalida(true);
   };
@@ -216,7 +284,8 @@ function HistorialPedidosContent() {
     window.location.href = '/';
   };
 
-  // Handler para cambio de estado múltiple
+  // FUNCIONES COMENTADAS - Ya no se usan con el nuevo diseño
+  /*
   const handleCambiarEstadoMultiple = async (nuevoEstado) => {
     if (selectedPedidos.length === 0) {
       toast.error('Seleccione al menos un pedido');
@@ -229,7 +298,6 @@ function HistorialPedidosContent() {
     }
   };
 
-  // Handler para eliminar múltiples
   const handleEliminarMultiple = async () => {
     if (selectedPedidos.length === 0) {
       toast.error('Seleccione al menos un pedido para eliminar');
@@ -244,7 +312,6 @@ function HistorialPedidosContent() {
     }
   };
 
-  // Handler para exportar pedidos seleccionados
   const handleExportarPedidos = async () => {
     if (selectedPedidos.length === 0) {
       toast.error('Seleccione al menos un pedido para exportar');
@@ -252,13 +319,11 @@ function HistorialPedidosContent() {
     }
     
     toast.info('Generando exportación de pedidos...');
-    // Aquí implementarías la lógica de exportación
     console.log('Pedidos seleccionados para exportar:', selectedPedidos);
   };
+  */
 
-  const estadisticas = getEstadisticas();
-
-  // Mostrar loading mientras se autentica
+  // Mostrar loading mientras se autentica (SIN CAMBIOS)
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -270,7 +335,7 @@ function HistorialPedidosContent() {
     );
   }
 
-  // Función para obtener el título dinámico
+  // Función para obtener el título dinámico (SIN CAMBIOS)
   const getTitulo = () => {
     if (user?.rol === 'GERENTE') {
       return 'HISTORIAL DE PEDIDOS - TODOS LOS PEDIDOS';
@@ -286,11 +351,9 @@ function HistorialPedidosContent() {
       </Head>
       
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
-        <h1 className="text-3xl font-bold mb-2 text-center text-gray-800">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
           {getTitulo()}
         </h1>
-        
-        
         
         <TablaPedidos
           pedidos={pedidosActuales}
@@ -314,21 +377,18 @@ function HistorialPedidosContent() {
           onCambiarRegistrosPorPagina={cambiarRegistrosPorPagina}
         />
         
-        {/* BOTONES CORREGIDOS */}
+        {/* COMPONENTE ACTUALIZADO - Ahora solo pasa onImprimirMultiple */}
         <BotonAccionesPedidos
           contexto="historial"
           selectedPedidos={selectedPedidos}
-          onCambiarEstado={handleCambiarEstadoMultiple}
-          onEliminarMultiple={handleEliminarMultiple}
-          onExportarPedidos={handleExportarPedidos}
+          onImprimirMultiple={handleImprimirMultiple} // NUEVA PROP
           onVolverMenu={handleConfirmarSalida}
-          loading={loading}
-          mostrarEstadisticas={true}
-          estadisticas={estadisticas}
+          loading={generandoPDFMultiple || loading} // ESTADO ACTUALIZADO
+          mostrarEstadisticas={false}
         />
       </div>
       
-      {/* Modal de detalles de pedido */}
+      {/* MODALES (SIN CAMBIOS) */}
       <ModalDetallePedido
         pedido={selectedPedido}
         productos={productos}
@@ -340,20 +400,18 @@ function HistorialPedidosContent() {
         onCambiarEstado={handleCambiarEstadoPedido}
         onGenerarPDF={handleGenerarPDF}
         generandoPDF={generandoPDF}
-        // PASAR LOS ESTADOS Y FUNCIONES PARA EL MODAL DE FACTURACIÓN
         mostrarModalFacturacion={mostrarModalFacturacion}
         setMostrarModalFacturacion={setMostrarModalFacturacion}
         isPedidoFacturado={selectedPedido?.estado === 'Facturado'}
+        isPedidoAnulado={selectedPedido?.estado === 'Anulado'}
       />
 
-      {/* Modal agregar producto */}
       <ModalAgregarProductoPedido
         mostrar={mostrarModalAgregarProducto}
         onClose={handleCloseModalAgregarProducto}
         onAgregarProducto={handleConfirmarAgregarProducto}
       />
 
-      {/* Modal editar producto */}
       <ModalEditarProductoPedido
         producto={productoEditando}
         onClose={handleCloseModalEditarProducto}
@@ -361,18 +419,28 @@ function HistorialPedidosContent() {
         onChange={setProductoEditando}
       />
 
-      {/* Modal eliminar producto */}
       <ModalEliminarProductoPedido
         producto={productoEliminando}
         onClose={handleCloseModalEliminarProducto}
         onConfirmar={handleConfirmarEliminarProducto}
       />
 
-      {/* Modal confirmación salida */}
       <ModalConfirmacionSalidaPedidos
         mostrar={mostrarConfirmacionSalida}
         onConfirmar={handleSalir}
         onCancelar={() => setMostrarConfirmacionSalida(false)}
+      />
+
+      <ModalConfirmacionAnularPedidoIndividual
+        mostrar={mostrarModalAnularPedido}
+        pedido={pedidoParaAnular}
+        productos={productos}
+        onConfirmar={handleAnularPedidoIndividual}
+        onCancelar={() => {
+          setMostrarModalAnularPedido(false);
+          setPedidoParaAnular(null);
+        }}
+        loading={loadingAnular}
       />
     </div>
   );

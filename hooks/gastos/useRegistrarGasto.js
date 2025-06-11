@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useRegistrarGasto() {
   const [loading, setLoading] = useState(false);
@@ -20,8 +20,8 @@ export function useRegistrarGasto() {
     try {
       // Paso 1: Registrar el gasto sin el comprobante
       // Se envía como JSON para que el backend lo parsea correctamente
-      const gastoResponse = await axios.post(
-        `${apiUrl}/compras/nuevo-gasto`,
+      const gastoResponse = await axiosAuth.post(
+        `/compras/nuevo-gasto`,
         {
           descripcion: formData.descripcion,
           monto: formData.monto,
@@ -52,8 +52,8 @@ export function useRegistrarGasto() {
         const comprobanteFormData = new FormData();
         comprobanteFormData.append("comprobante", formData.comprobante); // 'comprobante' es el nombre esperado por Multer
 
-        const comprobanteResponse = await axios.post(
-          `${apiUrl}/compras/guardarComprobanteGasto/${gastoId}`, // Usar el ID del gasto en la URL
+        const comprobanteResponse = await axiosAuth.post(
+          `/compras/guardarComprobanteGasto/${gastoId}`, // Usar el ID del gasto en la URL
           comprobanteFormData,
           {
             headers: {

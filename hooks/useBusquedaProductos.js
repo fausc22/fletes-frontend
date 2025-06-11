@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../utils/apiClient';
   
 export function useProductoSearch() {
   const [busqueda, setBusqueda] = useState('');
@@ -16,10 +16,10 @@ export function useProductoSearch() {
 
     setLoading(true);
     try {
-      const res =  await fetch(`${apiUrl}/pedidos/filtrar-producto?search=${encodeURIComponent(busqueda)}`);
-      if (!res.ok) throw new Error('Respuesta no OK del servidor');
+      const data =  await fetchAuth(`/pedidos/filtrar-producto?search=${encodeURIComponent(busqueda)}`);
+      
 
-      const data = await res.json();
+      
       setResultados(data.data);
       setMostrarModal(true);
     } catch (error) {

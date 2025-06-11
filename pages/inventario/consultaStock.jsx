@@ -5,7 +5,9 @@ import Head from 'next/head';
 import useAuth from '../../hooks/useAuth';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  
+import { axiosAuth, fetchAuth } from '../../utils/apiClient'; 
+
+
 export default function ConsultaStock() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -18,7 +20,7 @@ export default function ConsultaStock() {
   const handleSearch = async () => {
     if (searchQuery.length >= 3) {
       try {
-        const response = await axios.get(`${apiUrl}/productos/buscar-producto?search=${searchQuery}`);
+        const response = await axiosAuth.get(`/productos/buscar-producto?search=${searchQuery}`);
         setSearchResults(response.data.data);
         setModalIsOpen(true);
       } catch (error) {

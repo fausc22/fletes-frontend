@@ -118,10 +118,11 @@ export default function Inicio() {
             </div>
             <p className="text-gray-600 mb-4">Gestión de notas de pedido y facturación</p>
             <div className="space-y-2">
-              <a href="/ventas/RegistrarVenta" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Nota de Pedido</a>
-              <a href="/ventas/HistorialVentas" className="block text-blue-600 hover:text-blue-800 text-sm">• Historial de Ventas</a>
+              <a href="/ventas/RegistrarPedido" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Nota de Pedido</a>
+              <a href="/ventas/HistorialPedidos" className="block text-blue-600 hover:text-blue-800 text-sm">• Historial de Pedidos</a>
               {empleado?.rol === 'GERENTE' && (
-                <a href="/ventas/ListaPrecios" className="block text-blue-600 hover:text-blue-800 text-sm">• Lista de Precios</a>
+                <><a href="/ventas/ListaPrecios" className="block text-blue-600 hover:text-blue-800 text-sm">• Lista de Precios</a><a href="/ventas/Facturacion" className="block text-blue-600 hover:text-blue-800 text-sm">• Facturacion</a></>
+
               )}
             </div>
           </div>
@@ -141,7 +142,7 @@ export default function Inicio() {
             <p className="text-gray-600 mb-4">Control de stock y productos</p>
             <div className="space-y-2">
               {empleado?.rol === 'GERENTE' && (
-                <a href="/inventario/Productos" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Productos</a>
+                <><a href="/inventario/Productos" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Productos</a><a href="/compras/RegistrarCompra" className="block text-blue-600 hover:text-blue-800 text-sm">• Compra Proveedores</a></>
               )}
               <a href="/inventario/consultaStock" className="block text-blue-600 hover:text-blue-800 text-sm">• Consulta de Stock</a>
               <a href="/inventario/Remitos" className="block text-blue-600 hover:text-blue-800 text-sm">• Remitos</a>
@@ -165,12 +166,43 @@ export default function Inicio() {
             <div className="space-y-2">
               <a href="/edicion/Empleados" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Empleados</a>
               <a href="/edicion/Clientes" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Clientes</a>
-              <a href="/compras/HistorialCompras" className="block text-blue-600 hover:text-blue-800 text-sm">• Compras</a>
-              <a href="/finanzas/reportes" className="block text-blue-600 hover:text-blue-800 text-sm">• Finanzas</a>
+              <a href="/edicion/Proveedores" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Proveedores</a>
+              
+              <a href="/finanzas/fondos" className="block text-blue-600 hover:text-blue-800 text-sm">• Tesoreria</a>
+              <a href="/finanzas/reportes" className="block text-blue-600 hover:text-blue-800 text-sm">• Reportes Financieros</a>
             </div>
           </div>
         )}
+
+
+          {empleado?.rol === 'VENDEDOR' && (
+          <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div className="flex items-center mb-4">
+              <div className="bg-purple-100 p-3 rounded-full">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-800 ml-3">Administración</h3>
+            </div>
+            <p className="text-gray-600 mb-4">Ingreso de Gastos y Edición de Clientes</p>
+            <div className="space-y-2">
+              
+              <a href="/compras/RegistrarGasto" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Gasto</a>
+              <a href="/edicion/Clientes" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Clientes</a>
+
+              
+            </div>
+          </div>
+        )}
+
+
       </div>
+
+      
+
+      
 
       {/* Información adicional */}
       <div className="mt-8 bg-gray-50 rounded-lg p-6">

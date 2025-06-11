@@ -2,7 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useEditarPedido() {
   const [selectedPedido, setSelectedPedido] = useState(null);
@@ -15,7 +15,7 @@ export function useEditarPedido() {
     setLoading(true);
     
     try {
-      const response = await axios.get(`${apiUrl}/pedidos/productos/${pedido.id}`);
+      const response = await axiosAuth.get(`/pedidos/productos/${pedido.id}`);
       
       if (response.data.success) {
         setProductos(response.data.data);
@@ -54,7 +54,7 @@ export function useEditarPedido() {
     };
 
     try {
-      const response = await axios.post(`${apiUrl}/pedidos/agregar-producto/${selectedPedido.id}`, newProduct);
+      const response = await axiosAuth.post(`/pedidos/agregar-producto/${selectedPedido.id}`, newProduct);
       
       if (response.data.success) {
         toast.success(`Producto agregado: ${cantidad} x ${producto.nombre}`);
@@ -80,7 +80,7 @@ export function useEditarPedido() {
     }
 
     try {
-      const response = await axios.delete(`${apiUrl}/pedidos/eliminar-producto/${producto.id}`);
+      const response = await axiosAuth.delete(`/pedidos/eliminar-producto/${producto.id}`);
       
       if (response.data.success) {
         toast.success(`Producto eliminado: ${producto.producto_nombre}`);
@@ -122,8 +122,8 @@ export function useEditarPedido() {
     };
 
     try {
-      const response = await axios.put(
-        `${apiUrl}/pedidos/actualizar-producto/${producto.id}`,
+      const response = await axiosAuth.put(
+        `/pedidos/actualizar-producto/${producto.id}`,
         updatedProduct
       );
 
@@ -159,7 +159,7 @@ export function useEditarPedido() {
     };
 
     try {
-      const response = await axios.put(`${apiUrl}/pedidos/actualizar-totales/${selectedPedido.id}`, totalesActualizados);
+      const response = await axiosAuth.put(`/pedidos/actualizar-totales/${selectedPedido.id}`, totalesActualizados);
 
       if (response.data.success) {
         setSelectedPedido(prev => ({ 
@@ -180,7 +180,7 @@ export function useEditarPedido() {
     if (!selectedPedido) return false;
 
     try {
-      const response = await axios.put(`${apiUrl}/pedidos/actualizar-observaciones/${selectedPedido.id}`, {
+      const response = await axiosAuth.put(`/pedidos/actualizar-observaciones/${selectedPedido.id}`, {
         observaciones: nuevasObservaciones || 'sin observaciones'
       });
 

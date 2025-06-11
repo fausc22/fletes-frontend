@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  
+  import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useGenerarPDFsVentas() {
   const [generandoPDF, setGenerandoPDF] = useState(false);
@@ -18,8 +18,8 @@ export function useGenerarPDFsVentas() {
     setGenerandoPDF(true);
 
     try {
-      const response = await axios.post(
-        `${apiUrl}/ventas/generarpdf-factura`,
+      const response = await axiosAuth.post(
+        `/ventas/generarpdf-factura`,
         {
           venta,
           productos,
@@ -56,8 +56,8 @@ export function useGenerarPDFsVentas() {
     setImprimiendoMultiple(true);
 
     try {
-      const response = await axios.post(
-        `${apiUrl}/ventas/generarpdf-facturas-multiples`,
+      const response = await axiosAuth.post(
+        `/ventas/generarpdf-facturas-multiples`,
         { ventasIds },
         { responseType: "blob" }
       );

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   
 export function useEditarVenta() {
@@ -17,7 +19,7 @@ export function useEditarVenta() {
     setLoading(true);
     
     try {
-      const response = await axios.get(`${apiUrl}/ventas/obtener-productos-venta/${venta.id}`);
+      const response = await axiosAuth.get(`/ventas/obtener-productos-venta/${venta.id}`);
       setProductos(response.data);
     } catch (error) {
       console.error("Error al obtener productos:", error);
@@ -32,7 +34,7 @@ export function useEditarVenta() {
     
 
     try {
-      const response = await axios.get(`${apiUrl}/finanzas/cuentas/${venta.cuenta_id}`);
+      const response = await axiosAuth.get(`/finanzas/cuentas/${venta.cuenta_id}`);
       if (response.data.success) {
         setCuentas(response.data.data);
         console.log("Cuenta cargada:", response.data.data);

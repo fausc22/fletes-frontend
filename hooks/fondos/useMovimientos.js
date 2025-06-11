@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useFondos } from '../../context/FondosContext';
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useMovimientos() {
   const { 
@@ -42,7 +42,7 @@ export function useMovimientos() {
       if (filtrosAUsar.hasta) params.append('hasta', filtrosAUsar.hasta);
       if (filtrosAUsar.busqueda) params.append('busqueda', filtrosAUsar.busqueda);
 
-      const response = await axios.get(`${apiUrl}/finanzas/movimientos?${params.toString()}`);
+      const response = await axiosAuth.get(`/finanzas/movimientos?${params.toString()}`);
       if (response.data.success) {
         setMovimientos(response.data.data);
       } else {
@@ -69,7 +69,7 @@ export function useMovimientos() {
 
     setLoading({ operacion: true });
     try {
-      const response = await axios.post(`${apiUrl}/finanzas/movimientos`, formData);
+      const response = await axiosAuth.post(`/finanzas/movimientos`, formData);
       if (response.data.success) {
         toast.success(`${formData.tipo === 'INGRESO' ? 'Ingreso' : 'Egreso'} registrado exitosamente`);
         await cargarMovimientos();

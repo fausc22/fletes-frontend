@@ -3,7 +3,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function usePedidos() {
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export function usePedidos() {
     }
 
     try {
-      const response = await axios.get(`${apiUrl}/pedidos/filtrar-cliente?q=${encodeURIComponent(query)}`);
+      const response = await axiosAuth.get(`/pedidos/filtrar-cliente?q=${encodeURIComponent(query)}`);
       return response.data.success ? response.data.data : [];
     } catch (error) {
       console.error('Error buscando clientes:', error);
@@ -32,7 +32,7 @@ export function usePedidos() {
     }
 
     try {
-      const response = await axios.get(`${apiUrl}/pedidos/filtrar-producto?q=${encodeURIComponent(query)}`);
+      const response = await axiosAuth.get(`/pedidos/filtrar-producto?q=${encodeURIComponent(query)}`);
       return response.data.success ? response.data.data : [];
     } catch (error) {
       console.error('Error buscando productos:', error);
@@ -88,7 +88,7 @@ export function usePedidos() {
     try {
       console.log('🔍 Datos del pedido a enviar:', pedidoData); // Debug para verificar estructura
       
-      const response = await axios.post(`${apiUrl}/pedidos/registrar-pedido`, pedidoData);
+      const response = await axiosAuth.post(`/pedidos/registrar-pedido`, pedidoData);
       
       if (response.data.success) {
         return { success: true, pedidoId: response.data.pedidoId };
@@ -109,7 +109,7 @@ export function usePedidos() {
   const cargarPedidos = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/pedidos/obtener-pedidos`);
+      const response = await axiosAuth.get(`/pedidos/obtener-pedidos`);
       
       if (response.data.success) {
         setPedidos(response.data.data);
@@ -130,7 +130,7 @@ export function usePedidos() {
   const obtenerDetallePedido = async (pedidoId) => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/pedidos/detalle-pedido/${pedidoId}`);
+      const response = await axiosAuth.get(`/pedidos/detalle-pedido/${pedidoId}`);
       
       if (response.data.success) {
         return response.data.data;
@@ -150,7 +150,7 @@ export function usePedidos() {
   const actualizarEstadoPedido = async (pedidoId, nuevoEstado) => {
     setLoading(true);
     try {
-      const response = await axios.put(`${apiUrl}/pedidos/actualizar-estado/${pedidoId}`, {
+      const response = await axiosAuth.put(`/pedidos/actualizar-estado/${pedidoId}`, {
         estado: nuevoEstado
       });
       
@@ -173,7 +173,7 @@ export function usePedidos() {
   const eliminarPedido = async (pedidoId) => {
     setLoading(true);
     try {
-      const response = await axios.delete(`${apiUrl}/pedidos/eliminar-pedido/${pedidoId}`);
+      const response = await axiosAuth.delete(`/pedidos/eliminar-pedido/${pedidoId}`);
       
       if (response.data.success) {
         toast.success('Pedido eliminado correctamente');

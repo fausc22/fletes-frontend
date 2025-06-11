@@ -6,6 +6,7 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
+// Modal de confirmación simple (legacy - mantener para compatibilidad)
 export function ModalConfirmacionCompra({ 
   mostrar, 
   proveedor, 
@@ -26,6 +27,9 @@ export function ModalConfirmacionCompra({
             <span className="font-bold">{proveedor?.nombre}</span> por un total de{' '}
             <span className="font-bold text-green-700">{formatCurrency(total)}</span>?
           </p>
+          <div className="text-sm text-yellow-700 bg-yellow-50 p-2 rounded mt-2">
+            ⚠️ Versión básica - Sin integración de cuentas de fondos
+          </div>
         </div>
         <div className="flex justify-center gap-4">
           <button
@@ -48,6 +52,7 @@ export function ModalConfirmacionCompra({
   );
 }
 
+// Modal de confirmación de salida
 export function ModalConfirmacionSalidaCompra({ mostrar, onConfirmar, onCancelar }) {
   if (!mostrar) return null;
 
@@ -78,3 +83,6 @@ export function ModalConfirmacionSalidaCompra({ mostrar, onConfirmar, onCancelar
     </div>
   );
 }
+
+// Exportar también el modal completo (se importa desde archivo separado)
+export { ModalConfirmacionCompraCompleto } from './ModalConfirmacionCompraCompleto';

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  
+  import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useGenerarPDF() {
   const [loading, setLoading] = useState(false);
@@ -39,8 +39,8 @@ export function useGenerarPDF() {
       };
 
       // Realizar la solicitud para generar el PDF
-      const response = await axios({
-        url: `${apiUrl}/ventas/generarpdf-listaprecio`,
+      const response = await axiosAuth({
+        url: `/ventas/generarpdf-listaprecio`,
         method: 'POST',
         data: datosListaPrecios,
         responseType: 'blob' // Importante para recibir datos binarios
@@ -85,7 +85,7 @@ export function useGenerarPDF() {
       // Verificar si el navegador soporta Web Share API
       if (navigator.share) {
         // Convertir la URL del blob a un archivo
-        const response = await fetch(pdfURL);
+        const response = await fetchAuth(pdfURL);
         const blob = await response.blob();
         const file = new File([blob], `Lista_Precios_${nombreCliente || 'Cliente'}.pdf`, { type: 'application/pdf' });
         

@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useEgresos } from '../../context/EgresosContext';
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useNuevoEgreso() {
   const { setModal, setLoading } = useEgresos();
@@ -31,7 +31,7 @@ export function useNuevoEgreso() {
     
     setLoading({ operacion: true });
     try {
-      const response = await axios.post(`${apiUrl}/finanzas/egresos/registrar`, formData);
+      const response = await axiosAuth.post(`/finanzas/egresos/registrar`, formData);
       
       if (response.data.success) {
         toast.success("Egreso registrado exitosamente");

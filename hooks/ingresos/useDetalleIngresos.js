@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useIngresos } from '../../context/IngresosContext';
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useDetalleIngresos() {
   const {
@@ -27,9 +27,9 @@ export function useDetalleIngresos() {
       let response;
 
       if (tipo === 'Venta') {
-        response = await axios.get(`${apiUrl}/ingresos/detalle-venta/${id}`);
+        response = await axiosAuth.get(`/ingresos/detalle-venta/${id}`);
       } else {
-        response = await axios.get(`${apiUrl}/ingresos/detalle-ingreso/${id}`);
+        response = await axiosAuth.get(`/ingresos/detalle-ingreso/${id}`);
       }
       
       if (response.data.success) {

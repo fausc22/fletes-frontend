@@ -1,4 +1,4 @@
-// components/pedidos/BotonAccionesPedidos.jsx - Componente unificado
+// components/pedidos/BotonAccionesPedidos.jsx - Componente actualizado para mostrar solo IMPRIMIR en historial
 import { useState } from 'react';
 
 export function BotonAccionesPedidos({ 
@@ -11,7 +11,7 @@ export function BotonAccionesPedidos({
   onCambiarEstado,
   onEliminarMultiple,
   onExportarPedidos,
-  onImprimirMultiple,
+  onImprimirMultiple, // NUEVA PROP para imprimir múltiples pedidos
   
   // Props para nuevo pedido
   onConfirmarPedido,
@@ -41,6 +41,7 @@ export function BotonAccionesPedidos({
     eliminar: 'ELIMINAR',
     procesando: 'PROCESANDO...',
     guardando: 'Guardando...',
+    imprimiendo: 'Generando PDFs...',
     ...textosPersonalizados
   };
 
@@ -51,13 +52,43 @@ export function BotonAccionesPedidos({
     setMostrarMenuEstados(false);
   };
 
-  // Componente para operaciones múltiples (historial)
+  // Componente MODIFICADO para operaciones múltiples (historial)
+  // Ahora solo muestra el botón de IMPRIMIR cuando hay pedidos seleccionados
   const AccionesMultiples = () => {
     if (selectedPedidos.length === 0) return null;
 
     return (
       <div className="flex flex-wrap gap-2">
-        {/* Cambiar Estado */}
+        {/* ÚNICO BOTÓN: Imprimir Múltiples Pedidos */}
+        {onImprimirMultiple && (
+          <button 
+            className={`px-6 py-3 rounded text-white font-semibold flex items-center gap-2 ${
+              loading 
+                ? "bg-gray-500 cursor-not-allowed" 
+                : "bg-blue-600 hover:bg-blue-700"
+            }`}
+            onClick={onImprimirMultiple}
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="flex items-center justify-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {textos.imprimiendo}
+              </div>
+            ) : (
+              <>
+                🖨️ {textos.imprimir} ({selectedPedidos.length})
+              </>
+            )}
+          </button>
+        )}
+
+        {/* COMENTADO: Botones originales que ya no se necesitan */}
+        {/* 
+        // Cambiar Estado
         {onCambiarEstado && (
           <div className="relative">
             <button 
@@ -72,7 +103,7 @@ export function BotonAccionesPedidos({
               🔄 {textos.cambiarEstado} ({selectedPedidos.length})
             </button>
             
-            {/* Dropdown de estados */}
+            // Dropdown de estados
             {mostrarMenuEstados && (
               <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 min-w-40">
                 <button
@@ -98,32 +129,22 @@ export function BotonAccionesPedidos({
           </div>
         )}
 
-        {/* Exportar/Imprimir Pedidos */}
-        {(onExportarPedidos || onImprimirMultiple) && (
+        // Exportar Pedidos  
+        {onExportarPedidos && (
           <button 
             className={`px-4 py-2 rounded text-white font-semibold ${
               loading 
                 ? "bg-gray-500 cursor-not-allowed" 
                 : "bg-purple-600 hover:bg-purple-700"
             }`}
-            onClick={onExportarPedidos || onImprimirMultiple}
+            onClick={onExportarPedidos}
             disabled={loading}
           >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {textos.procesando}
-              </div>
-            ) : (
-              `📄 ${onExportarPedidos ? textos.exportar : textos.imprimir} (${selectedPedidos.length})`
-            )}
+            📄 {textos.exportar} ({selectedPedidos.length})
           </button>
         )}
 
-        {/* Eliminar Múltiple */}
+        // Eliminar Múltiple
         {onEliminarMultiple && (
           <button 
             className={`px-4 py-2 rounded text-white font-semibold ${
@@ -137,11 +158,12 @@ export function BotonAccionesPedidos({
             🗑️ {textos.eliminar} ({selectedPedidos.length})
           </button>
         )}
+        */}
       </div>
     );
   };
 
-  // Componente para nuevo pedido
+  // Componente para nuevo pedido (SIN CAMBIOS)
   const AccionesNuevoPedido = () => {
     const totalProductos = productos.reduce((acc, prod) => acc + (prod.cantidad || 0), 0);
     const hayDatos = cliente || productos.length > 0;
@@ -200,7 +222,7 @@ export function BotonAccionesPedidos({
     );
   };
 
-  // Componente para estadísticas rápidas (opcional)
+  // Componente para estadísticas rápidas (SIN CAMBIOS)
   const EstadisticasRapidas = () => {
     if (!mostrarEstadisticas || !estadisticas) return null;
 
@@ -258,7 +280,7 @@ export function BotonAccionesPedidos({
   );
 }
 
-// Componente simplificado para casos específicos
+// Componentes simplificados para casos específicos (SIN CAMBIOS)
 export function BotonesNuevoPedido(props) {
   return (
     <BotonAccionesPedidos 

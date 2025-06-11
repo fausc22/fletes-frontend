@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
+
 
 export function useHistorialPedidos(filtroEmpleado = null) {
   const [pedidos, setPedidos] = useState([]);
@@ -13,7 +15,7 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     fechaHasta: ''
   });
   
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  
 
   useEffect(() => {
     cargarPedidos();
@@ -23,24 +25,31 @@ export function useHistorialPedidos(filtroEmpleado = null) {
   const cargarPedidos = async () => {
     setLoading(true);
     try {
-      let url = `${apiUrl}/pedidos/obtener-pedidos`;
+      let url = `/pedidos/obtener-pedidos`;
       
       // Si se especifica un filtro de empleado (para vendedores), agregarlo a la URL
       if (filtroEmpleado) {
         url += `?empleado_id=${filtroEmpleado}`;
       }
       
-      const response = await axios.get(url);
+      
+      const response = await axiosAuth.get(url);
       
       if (response.data.success) {
         setPedidos(response.data.data);
-        console.log(`📋 Cargados ${response.data.data.length} pedidos para ${filtroEmpleado ? 'vendedor' : 'todos'}`);
+        
       } else {
         toast.error(response.data.message || 'Error al cargar pedidos');
         setPedidos([]);
       }
     } catch (error) {
-      console.error("Error al obtener pedidos:", error);
+      console.error("❌ Error completo al obtener pedidos:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        fullUrl: error.config?.baseURL + error.config?.url
+      });
       toast.error("No se pudieron cargar los pedidos");
       setPedidos([]);
     } finally {
@@ -161,7 +170,7 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     try {
       for (const pedidoId of selectedPedidos) {
         try {
-          const response = await axios.put(`${apiUrl}/pedidos/actualizar-estado/${pedidoId}`, {
+          const response = await axiosAuth.put(`/pedidos/actualizar-estado/${pedidoId}`, {
             estado: nuevoEstado
           });
           
@@ -210,7 +219,7 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     try {
       for (const pedidoId of selectedPedidos) {
         try {
-          const response = await axios.delete(`${apiUrl}/pedidos/eliminar-pedido/${pedidoId}`);
+          const response = await axiosAuth.delete(`/pedidos/eliminar-pedido/${pedidoId}`);
           
           if (response.data.success) {
             exitosos++;

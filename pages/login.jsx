@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import Head from 'next/head';
-
+import { apiClient, axiosAuth, fetchAuth } from '../utils/apiClient';
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -56,57 +56,49 @@ export default function Login() {
     }
   };
 
-  const handleLogin = async () => {
-    // Validar formulario antes de enviar
-    if (!validateForm()) {
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      // Configurar axios siguiendo el mismo patrón que tus otros hooks
-      const response = await axios.post(`${apiUrl}/auth/login`, {
-        username: username.trim(),
-        password,
-        remember
-      });
-
-      // Axios automáticamente parsea el JSON
-      const { token, empleado } = response.data;
-      
-      // Guardar datos en localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('role', empleado.rol);
-      localStorage.setItem('empleado', JSON.stringify(empleado));
-      
-      // Mensaje personalizado con nombre del empleado
-      toast.success(`¡Bienvenido ${empleado.nombre} ${empleado.apellido}!`);
-      
-      router.push('/inicio');
-
-    } catch (error) {
-      console.error('Error en :', error);
-
-      // Manejo simplificado de errores siguiendo tu patrón
-      if (error.response) {
-        // El servidor respondió con un código de error
-        const status = error.response.status;
-        const message = error.response.data?.message || 'Error desconocido';
-
-        if (status === 401) {
-          toast.error('Usuario o contraseña incorrectos');
-        } else {
-          toast.error(message || 'Error del servidor');
-        }
-      } else {
-        // Error de red o conexión
-        toast.error('No se puede conectar con el servidor. Verifique que esté ejecutándose.');
+      const handleLogin = async () => {
+      // Validar formulario antes de enviar
+      if (!validateForm()) {
+        return;
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      setLoading(true);
+      
+      try {
+        // Usar la función de login específica que no tiene interceptores
+        const result = await apiClient.login({
+          username: username.trim(),
+          password,
+          remember
+        });
+
+        if (result.success) {
+          const { token, empleado } = result.data;
+          
+          // Guardar datos en localStorage
+          localStorage.setItem('token', token);
+          localStorage.setItem('role', empleado.rol);
+          localStorage.setItem('empleado', JSON.stringify(empleado));
+          
+          // Mensaje personalizado con nombre del empleado
+          toast.success(`¡Bienvenido ${empleado.nombre} ${empleado.apellido}!`);
+          
+          router.push('/inicio');
+        } else {
+          // Mostrar error sin lanzar excepción
+          toast.error(result.error);
+        }
+
+      } catch (error) {
+        // Solo para errores inesperados (red, etc.)
+        console.error('Error inesperado en login:', error);
+        toast.error('Error inesperado. Inténtelo nuevamente.');
+        
+      } finally {
+        setLoading(false);
+      }
+    };
+
 
   // Manejar envío con Enter
   const handleKeyPress = (e) => {
@@ -122,7 +114,7 @@ export default function Login() {
   const probarConexion = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${apiUrl}/test`);
+      const response = await axiosAuth.get(`/test`);
       toast.success('✅ Conexión exitosa: ' + response.data.message);
     } catch (error) {
       console.error('Error de conexión:', error);

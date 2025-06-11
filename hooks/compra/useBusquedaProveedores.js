@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useProveedorSearch() {
   const [busqueda, setBusqueda] = useState('');
@@ -18,10 +18,9 @@ export function useProveedorSearch() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${apiUrl}/personas/buscar-proveedor?search=${encodeURIComponent(busqueda)}`);
-      if (!res.ok) throw new Error('Respuesta no OK del servidor');
+      const  data = await fetchAuth(`/personas/buscar-proveedor?search=${encodeURIComponent(busqueda)}`);
       
-      const data = await res.json();
+      
       
       if (data.success) {
         setResultados(data.data);

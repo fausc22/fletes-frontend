@@ -2,8 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useComprobantes() {
   const [comprobante, setComprobante] = useState(null);
@@ -13,7 +13,7 @@ export function useComprobantes() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   const verificarComprobanteExistente = async (ventaId) => {
     try {
-      await axios.get(`${apiUrl}/ventas/cargarComprobante/${ventaId}`, {
+      await axiosAuth.get(`/ventas/cargarComprobante/${ventaId}`, {
         responseType: 'blob'
       });
       setComprobanteExistente(true);
@@ -60,8 +60,8 @@ export function useComprobantes() {
       const formData = new FormData();
       formData.append("comprobante", comprobante);
 
-      const response = await axios.post(
-        `http://localhost:3001/ventas/guardarComprobante/${ventaId}`,
+      const response = await axiosAuth.post(
+        `/ventas/guardarComprobante/${ventaId}`,
         formData,
         {
           headers: {
@@ -88,7 +88,7 @@ export function useComprobantes() {
   };
 
   const viewComprobante = (ventaId) => {
-    window.open(`http://localhost:3001/ventas/cargarComprobante/${ventaId}`, '_blank');
+    window.open(`${apiUrl}/ventas/cargarComprobante/${ventaId}`, '_blank');
   };
 
   const limpiarComprobante = () => {

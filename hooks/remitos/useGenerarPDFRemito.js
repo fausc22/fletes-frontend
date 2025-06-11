@@ -4,7 +4,7 @@ import { toast } from 'react-hot-toast';
 
 
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useGenerarPDFRemito() {
   const [generandoPDF, setGenerandoPDF] = useState(false);
@@ -18,8 +18,8 @@ export function useGenerarPDFRemito() {
     setGenerandoPDF(true);
 
     try {
-      const response = await axios.post(
-        `${apiUrl}/productos/generarpdf-remito`,
+      const response = await axiosAuth.post(
+        `/productos/generarpdf-remito`,
         {
           remito,
           productos,

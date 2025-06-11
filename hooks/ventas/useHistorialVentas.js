@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
+
 
 export function useHistorialVentas() {
   const [ventas, setVentas] = useState([]);
@@ -18,7 +20,7 @@ export function useHistorialVentas() {
   const cargarVentas = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${apiUrl}/ventas/obtener-ventas`);
+      const response = await axiosAuth.get(`/ventas/obtener-ventas`);
       setVentas(response.data);
     } catch (error) {
       console.error("Error al obtener ventas:", error);
