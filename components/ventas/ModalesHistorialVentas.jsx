@@ -55,7 +55,7 @@ function InformacionCliente({ venta, expandido, onToggleExpansion }) {
 function InformacionAdicional({ venta, cuenta }) {
   return (
     <div className="bg-gray-100 p-4 rounded-lg mb-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Observaciones</h3>
           <p className="text-lg text-gray-700">
@@ -71,15 +71,43 @@ function InformacionAdicional({ venta, cuenta }) {
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Cuenta Destino</h3>
           <p className="text-lg font-semibold text-blue-600">
-            {cuenta.nombre || 'No especificado'}
+            {cuenta?.nombre || 'No especificado'}
           </p>
+        </div>
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Tipo Documento</h3>
+          <p className="text-lg font-semibold text-green-600">
+            {venta.tipo_doc || 'No especificado'}
+          </p>
+        </div>
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Tipo Fiscal</h3>
+          <p className="text-lg font-semibold text-purple-600">
+            {venta.tipo_f || 'No especificado'}
+          </p>
+        </div>
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Estado CAE</h3>
+          <div className="flex items-center gap-2">
+            {venta.cae_id ? (
+              <>
+                <span className="text-green-600 text-lg">✅</span>
+                <span className="text-lg font-semibold text-green-600">Aprobado</span>
+              </>
+            ) : (
+              <>
+                <span className="text-red-600 text-lg">❌</span>
+                <span className="text-lg font-semibold text-red-600">Pendiente</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function TablaProductosEscritorio({ productos, onEditarProducto, onEliminarProducto }) {
+function TablaProductosEscritorio({ productos }) {
   return (
     <div className="hidden lg:block overflow-x-auto bg-white rounded shadow">
       <table className="w-full text-sm">
@@ -92,7 +120,6 @@ function TablaProductosEscritorio({ productos, onEditarProducto, onEliminarProdu
             <th className="p-2 text-right">Precio</th>
             <th className="p-2 text-right">IVA</th>
             <th className="p-2 text-right">Subtotal</th>
-            
           </tr>
         </thead>
         <tbody>
@@ -103,9 +130,7 @@ function TablaProductosEscritorio({ productos, onEditarProducto, onEliminarProdu
             const subtotalSinIva = cantidad * precio;
             
             return (
-              <tr key={producto.id} 
-                  className="hover:bg-gray-100 cursor-pointer border-b">
-                  
+              <tr key={producto.id} className="hover:bg-gray-100 border-b">
                 <td className="p-2 font-mono text-xs">{producto.producto_id}</td>
                 <td className="p-2 font-medium">{producto.producto_nombre}</td>
                 <td className="p-2 text-center">{producto.producto_um}</td>
@@ -113,7 +138,6 @@ function TablaProductosEscritorio({ productos, onEditarProducto, onEliminarProdu
                 <td className="p-2 text-right">${precio.toFixed(2)}</td>
                 <td className="p-2 text-right">${ivaValue.toFixed(2)}</td>
                 <td className="p-2 text-right font-semibold">${subtotalSinIva.toFixed(2)}</td>
-
               </tr>
             );
           })}
@@ -123,7 +147,7 @@ function TablaProductosEscritorio({ productos, onEditarProducto, onEliminarProdu
   );
 }
 
-function TarjetasProductosMovil({ productos, onEditarProducto, onEliminarProducto }) {
+function TarjetasProductosMovil({ productos }) {
   return (
     <div className="lg:hidden space-y-3">
       {productos.map((producto) => {
@@ -139,7 +163,6 @@ function TarjetasProductosMovil({ productos, onEditarProducto, onEliminarProduct
                 <h4 className="font-semibold text-gray-800 text-sm">{producto.producto_nombre}</h4>
                 <p className="text-xs text-gray-500">Código: {producto.producto_id}</p>
               </div>
-              
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-xs">
@@ -167,8 +190,6 @@ function TarjetasProductosMovil({ productos, onEditarProducto, onEliminarProduct
                 <span className="font-semibold text-green-600">${subtotalSinIva.toFixed(2)}</span>
               </div>
             </div>
-            
-            
           </div>
         );
       })}
@@ -176,7 +197,7 @@ function TarjetasProductosMovil({ productos, onEditarProducto, onEliminarProduct
   );
 }
 
-function TablaProductos({ productos, onEditarProducto, onEliminarProducto, loading }) {
+function TablaProductos({ productos, loading }) {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-32">
@@ -190,43 +211,33 @@ function TablaProductos({ productos, onEditarProducto, onEliminarProducto, loadi
     return (
       <div className="bg-white rounded shadow p-8 text-center text-gray-500">
         <div className="text-4xl mb-2">📦</div>
-        <div className="font-medium">No hay productos en este pedido</div>
+        <div className="font-medium">No hay productos en esta venta</div>
       </div>
     );
   }
 
   return (
     <>
-      <TablaProductosEscritorio
-        productos={productos}
-        onEditarProducto={onEditarProducto}
-        onEliminarProducto={onEliminarProducto}
-      />
-      <TarjetasProductosMovil
-        productos={productos}
-        onEditarProducto={onEditarProducto}
-        onEliminarProducto={onEliminarProducto}
-      />
+      <TablaProductosEscritorio productos={productos} />
+      <TarjetasProductosMovil productos={productos} />
     </>
   );
 }
 
-function ResumenTotales({ productos }) {
-  // Calcular subtotal neto (suma de todos los subtotales sin IVA)
-  const subtotalNeto = productos.reduce((acc, prod) => {
+function ResumenTotales({ productos, venta }) {
+  // Usar totales de la venta si están disponibles, sino calcular
+  const subtotalNeto = venta?.subtotal ? Number(venta.subtotal) : productos.reduce((acc, prod) => {
     const precio = Number(prod.precio) || 0;
     const cantidad = Number(prod.cantidad) || 0;
     return acc + (cantidad * precio);
   }, 0);
 
-  // Calcular IVA total (suma de todos los IVAs)
-  const ivaTotal = productos.reduce((acc, prod) => {
+  const ivaTotal = venta?.iva_total ? Number(venta.iva_total) : productos.reduce((acc, prod) => {
     const ivaValue = Number(prod.iva) || 0;
     return acc + ivaValue;
   }, 0);
 
-  // Total final
-  const totalFinal = subtotalNeto + ivaTotal;
+  const totalFinal = venta?.total ? Number(venta.total) : subtotalNeto + ivaTotal;
 
   if (productos.length === 0) return null;
 
@@ -243,8 +254,8 @@ function ResumenTotales({ productos }) {
           <span className="font-semibold text-red-600">${ivaTotal.toFixed(2)}</span>
         </div>
         
-        <div className="flex justify-between items-center py-2 bg-yellow-300 rounded-lg px-3 border-2 border-yellow-400">
-          <span className="text-black font-bold">TOTAL:</span>
+        <div className="flex justify-between items-center py-2 bg-green-300 rounded-lg px-3 border-2 border-green-400">
+          <span className="text-black font-bold">TOTAL FACTURADO:</span>
           <span className="text-black text-lg font-bold">${totalFinal.toFixed(2)}</span>
         </div>
       </div>
@@ -258,9 +269,8 @@ export function ModalDetalleVenta({
   loading,
   onClose,
   onImprimirFacturaIndividual,
-  onAnularVenta,
-  cuenta 
-  
+  cuenta,
+  generandoPDF = false
 }) {
   const [clienteExpandido, setClienteExpandido] = useState(false);
 
@@ -270,21 +280,16 @@ export function ModalDetalleVenta({
     setClienteExpandido(!clienteExpandido);
   };
 
-  
-
-  
-
-  
   const handleSolicitarCAEDetalle = () => {
-    toast.error('Funcionalidad por implementar.');
-  };
-
-  const handleAnularVenta = () => {
+    if (venta.cae_id) {
+      toast.error('Esta factura ya tiene CAE asignado.');
+      return;
+    }
     toast.error('Funcionalidad por implementar.');
   };
 
   const handleCerrarModal = () => {
-    onClose(); // Llama a la función onClose para cerrar el modal
+    onClose();
   };
 
   return (
@@ -293,7 +298,7 @@ export function ModalDetalleVenta({
         <div className="p-4 md:p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Detalles del Pedido</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Detalles de la Venta</h2>
             <button 
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -302,11 +307,17 @@ export function ModalDetalleVenta({
             </button>
           </div>
 
-          {/* Fecha */}
-          <div className="mb-4">
+          {/* Fecha y Estado */}
+          <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <h4 className="text-lg font-semibold text-gray-700">
               <strong>Fecha:</strong> {venta.fecha}
             </h4>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Estado:</span>
+              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                {venta.estado || 'Facturada'}
+              </span>
+            </div>
           </div>
           
           {/* Información del Cliente (colapsable) */}
@@ -322,51 +333,52 @@ export function ModalDetalleVenta({
           {/* Sección de productos */}
           <div className="mt-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800">Productos del Pedido</h3>
-              
+              <h3 className="text-lg md:text-xl font-bold text-gray-800">Productos de la Venta</h3>
             </div>
             
             <TablaProductos
               productos={productos}
-              
               loading={loading}
             />
 
-            <ResumenTotales productos={productos} />
+            <ResumenTotales productos={productos} venta={venta} />
           </div>
           
-          {/* Nuevos botones de acción */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
-          <button
-            onClick={onImprimirFacturaIndividual}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded order-1 sm:order-1"
-          >
-            Imprimir
-          </button>
-          <button
-            onClick={handleSolicitarCAEDetalle}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded order-2 sm:order-2"
-          >
-            Solicitar CAE
-          </button>
-          <button
-            onClick={onAnularVenta}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded order-3 sm:order-3"
-          >
-            Anular Venta
-          </button>
-          <button
-            onClick={handleCerrarModal}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded order-4 sm:order-4"
-          >
-            Cerrar
-          </button>
-        </div>
+          {/* Botones de acción - SIN BOTÓN ANULAR */}
+          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+            <button
+              onClick={onImprimirFacturaIndividual}
+              disabled={generandoPDF}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded flex items-center justify-center gap-2"
+            >
+              {generandoPDF ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
+                  Generando...
+                </>
+              ) : (
+                'Imprimir Factura'
+              )}
+            </button>
+            
+            {!venta.cae_id && (
+              <button
+                onClick={handleSolicitarCAEDetalle}
+                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded"
+              >
+                Solicitar CAE
+              </button>
+            )}
+            
+            <button
+              onClick={handleCerrarModal}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
-
-

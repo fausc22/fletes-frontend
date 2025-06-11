@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  import { axiosAuth, fetchAuth } from '../../utils/apiClient';
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useGenerarPDFsVentas() {
   const [generandoPDF, setGenerandoPDF] = useState(false);
@@ -47,8 +47,8 @@ export function useGenerarPDFsVentas() {
     }
   };
 
-  const generarPDFsMultiples = async (ventasIds) => {
-    if (ventasIds.length === 0) {
+  const generarPDFsMultiples = async (ventasSeleccionadas) => {
+    if (!ventasSeleccionadas || ventasSeleccionadas.length === 0) {
       toast.error("Seleccione al menos una venta para imprimir");
       return false;
     }
@@ -56,9 +56,26 @@ export function useGenerarPDFsVentas() {
     setImprimiendoMultiple(true);
 
     try {
+      // 🔧 CORRECCIÓN: Extraer solo los IDs de las ventas seleccionadas
+      const ventasIds = ventasSeleccionadas.map(venta => {
+        // Si es un objeto, extraer el ID
+        if (typeof venta === 'object' && venta !== null) {
+          return venta.id;
+        }
+        // Si ya es un ID, devolverlo tal como está
+        return venta;
+      }).filter(id => id && !isNaN(parseInt(id))); // Filtrar IDs válidos
+
+      console.log('📋 IDs de ventas para imprimir:', ventasIds);
+
+      if (ventasIds.length === 0) {
+        toast.error("No se encontraron IDs válidos de ventas");
+        return false;
+      }
+
       const response = await axiosAuth.post(
         `/ventas/generarpdf-facturas-multiples`,
-        { ventasIds },
+        { ventasIds }, // Solo enviar IDs, no objetos completos
         { responseType: "blob" }
       );
 
@@ -75,7 +92,7 @@ export function useGenerarPDFsVentas() {
       return true;
     } catch (error) {
       console.error("Error al generar múltiples PDFs:", error);
-      toast.error("Error al generar las facturas");
+      toast.error(`Error al generar las facturas: ${error.response?.data?.error || error.message}`);
       return false;
     } finally {
       setImprimiendoMultiple(false);

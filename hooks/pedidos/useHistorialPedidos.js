@@ -1,22 +1,21 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
+// hooks/pedidos/useHistorialPedidos.js - VERSIÓN COMPLETA ACTUALIZADA
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
-import { axiosAuth, fetchAuth } from '../../utils/apiClient';
-
+import { axiosAuth } from '../../utils/apiClient';
 
 export function useHistorialPedidos(filtroEmpleado = null) {
-  const [pedidos, setPedidos] = useState([]);
+  const [pedidosOriginales, setPedidosOriginales] = useState([]); // NUEVO: Pedidos sin filtrar
   const [selectedPedidos, setSelectedPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtros, setFiltros] = useState({
     estado: '',
     cliente: '',
+    ciudad: '',
+    empleado: '',
     fechaDesde: '',
     fechaHasta: ''
   });
   
-  
-
   useEffect(() => {
     cargarPedidos();
   }, [filtroEmpleado]); // Recargar cuando cambie el filtro de empleado
@@ -32,15 +31,14 @@ export function useHistorialPedidos(filtroEmpleado = null) {
         url += `?empleado_id=${filtroEmpleado}`;
       }
       
-      
       const response = await axiosAuth.get(url);
       
       if (response.data.success) {
-        setPedidos(response.data.data);
-        
+        setPedidosOriginales(response.data.data); // Guardar pedidos originales
+        console.log(`📋 ${response.data.data.length} pedidos cargados`);
       } else {
         toast.error(response.data.message || 'Error al cargar pedidos');
-        setPedidos([]);
+        setPedidosOriginales([]);
       }
     } catch (error) {
       console.error("❌ Error completo al obtener pedidos:", {
@@ -51,11 +49,83 @@ export function useHistorialPedidos(filtroEmpleado = null) {
         fullUrl: error.config?.baseURL + error.config?.url
       });
       toast.error("No se pudieron cargar los pedidos");
-      setPedidos([]);
+      setPedidosOriginales([]);
     } finally {
       setLoading(false);
     }
   };
+
+  // Función mejorada para aplicar filtros usando useMemo
+  const pedidosFiltrados = useMemo(() => {
+    if (!pedidosOriginales.length) return [];
+
+    let resultado = [...pedidosOriginales];
+
+    // Filtro por estado
+    if (filtros.estado) {
+      resultado = resultado.filter(pedido => 
+        pedido.estado === filtros.estado
+      );
+    }
+
+    // Filtro por cliente (búsqueda parcial, insensible a mayúsculas)
+    if (filtros.cliente) {
+      const clienteBusqueda = filtros.cliente.toLowerCase().trim();
+      resultado = resultado.filter(pedido => 
+        pedido.cliente_nombre?.toLowerCase().includes(clienteBusqueda)
+      );
+    }
+
+    // Filtro por ciudad (búsqueda parcial, insensible a mayúsculas)
+    if (filtros.ciudad) {
+      const ciudadBusqueda = filtros.ciudad.toLowerCase().trim();
+      resultado = resultado.filter(pedido => 
+        pedido.cliente_ciudad?.toLowerCase().includes(ciudadBusqueda)
+      );
+    }
+
+    // Filtro por empleado (búsqueda exacta)
+    if (filtros.empleado) {
+      resultado = resultado.filter(pedido => 
+        pedido.empleado_nombre === filtros.empleado
+      );
+    }
+
+    // Filtro por rango de fechas
+    if (filtros.fechaDesde || filtros.fechaHasta) {
+      resultado = resultado.filter(pedido => {
+        if (!pedido.fecha) return false;
+        
+        // Convertir fecha del pedido a Date
+        const fechaPedido = new Date(pedido.fecha);
+        const fechaDesde = filtros.fechaDesde ? new Date(filtros.fechaDesde) : null;
+        const fechaHasta = filtros.fechaHasta ? new Date(filtros.fechaHasta) : null;
+
+        // Ajustar fechaHasta para incluir todo el día
+        if (fechaHasta) {
+          fechaHasta.setHours(23, 59, 59, 999);
+        }
+
+        // Ajustar fechaDesde para empezar desde el inicio del día
+        if (fechaDesde) {
+          fechaDesde.setHours(0, 0, 0, 0);
+        }
+
+        if (fechaDesde && fechaHasta) {
+          return fechaPedido >= fechaDesde && fechaPedido <= fechaHasta;
+        } else if (fechaDesde) {
+          return fechaPedido >= fechaDesde;
+        } else if (fechaHasta) {
+          return fechaPedido <= fechaHasta;
+        }
+
+        return true;
+      });
+    }
+
+    console.log(`🔍 Filtros aplicados: ${resultado.length} de ${pedidosOriginales.length} pedidos`);
+    return resultado;
+  }, [pedidosOriginales, filtros]);
 
   // Seleccionar/deseleccionar un pedido individual
   const handleSelectPedido = (pedidoId) => {
@@ -85,65 +155,11 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     setSelectedPedidos([]);
   };
 
-  // Filtrar pedidos por estado
-  const filtrarPorEstado = (estado) => {
-    if (!estado) return pedidos;
-    return pedidos.filter(pedido => pedido.estado === estado);
-  };
-
-  // Filtrar pedidos por cliente
-  const filtrarPorCliente = (nombreCliente) => {
-    if (!nombreCliente) return pedidos;
-    return pedidos.filter(pedido => 
-      pedido.cliente_nombre.toLowerCase().includes(nombreCliente.toLowerCase())
-    );
-  };
-
-  // Filtrar pedidos por rango de fechas
-  const filtrarPorFecha = (fechaDesde, fechaHasta) => {
-    if (!fechaDesde && !fechaHasta) return pedidos;
-    
-    return pedidos.filter(pedido => {
-      const fechaPedido = new Date(pedido.fecha);
-      const desde = fechaDesde ? new Date(fechaDesde) : null;
-      const hasta = fechaHasta ? new Date(fechaHasta) : null;
-      
-      if (desde && hasta) {
-        return fechaPedido >= desde && fechaPedido <= hasta;
-      } else if (desde) {
-        return fechaPedido >= desde;
-      } else if (hasta) {
-        return fechaPedido <= hasta;
-      }
-      return true;
-    });
-  };
-
-  // Aplicar todos los filtros
-  const aplicarFiltros = (pedidosBase = pedidos) => {
-    let pedidosFiltrados = pedidosBase;
-
-    if (filtros.estado) {
-      pedidosFiltrados = filtrarPorEstado(filtros.estado);
-    }
-    
-    if (filtros.cliente) {
-      pedidosFiltrados = filtrarPorCliente(filtros.cliente);
-    }
-    
-    if (filtros.fechaDesde || filtros.fechaHasta) {
-      pedidosFiltrados = filtrarPorFecha(filtros.fechaDesde, filtros.fechaHasta);
-    }
-
-    return pedidosFiltrados;
-  };
-
   // Actualizar filtros
-  const actualizarFiltro = (campo, valor) => {
-    setFiltros(prev => ({
-      ...prev,
-      [campo]: valor
-    }));
+  const actualizarFiltros = (nuevosFiltros) => {
+    setFiltros(nuevosFiltros);
+    // Limpiar selección cuando se cambian los filtros
+    clearSelection();
   };
 
   // Limpiar filtros
@@ -151,9 +167,12 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     setFiltros({
       estado: '',
       cliente: '',
+      ciudad: '',
+      empleado: '',
       fechaDesde: '',
       fechaHasta: ''
     });
+    clearSelection();
   };
 
   // Cambiar estado de múltiples pedidos
@@ -254,14 +273,16 @@ export function useHistorialPedidos(filtroEmpleado = null) {
 
   // Obtener estadísticas rápidas
   const getEstadisticas = () => {
-    const total = pedidos.length;
-    const exportados = pedidos.filter(p => p.estado === 'Exportado').length;
-    const facturados = pedidos.filter(p => p.estado === 'Facturado').length;
-    const anulados = pedidos.filter(p => p.estado === 'Anulado').length;
-    const totalMonto = pedidos.reduce((acc, p) => acc + parseFloat(p.total || 0), 0);
+    const total = pedidosOriginales.length;
+    const filtrado = pedidosFiltrados.length;
+    const exportados = pedidosFiltrados.filter(p => p.estado === 'Exportado').length;
+    const facturados = pedidosFiltrados.filter(p => p.estado === 'Facturado').length;
+    const anulados = pedidosFiltrados.filter(p => p.estado === 'Anulado').length;
+    const totalMonto = pedidosFiltrados.reduce((acc, p) => acc + parseFloat(p.total || 0), 0);
 
     return {
       total,
+      filtrado,
       exportados,
       facturados,
       anulados,
@@ -270,9 +291,15 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     };
   };
 
+  // Función para verificar si hay filtros activos
+  const hayFiltrosActivos = () => {
+    return Object.values(filtros).some(valor => valor && valor !== '');
+  };
+
   return {
     // Estado principal
-    pedidos,
+    pedidos: pedidosFiltrados, // Ahora devolvemos los pedidos ya filtrados
+    pedidosOriginales, // NUEVO: Pedidos sin filtrar para estadísticas y empleados
     selectedPedidos,
     loading,
     filtros,
@@ -286,12 +313,9 @@ export function useHistorialPedidos(filtroEmpleado = null) {
     clearSelection,
     
     // Funciones de filtrado
-    aplicarFiltros,
-    actualizarFiltro,
+    actualizarFiltros,
     limpiarFiltros,
-    filtrarPorEstado,
-    filtrarPorCliente,
-    filtrarPorFecha,
+    hayFiltrosActivos,
     
     // Operaciones múltiples
     cambiarEstadoMultiple,

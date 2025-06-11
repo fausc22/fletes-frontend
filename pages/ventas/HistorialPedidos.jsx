@@ -1,3 +1,4 @@
+// pages/pedidos/HistorialPedidos.jsx - VERSIÓN COMPLETA CON FILTROS Y SOLUCIÓN 1
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -7,11 +8,12 @@ import useAuth from '../../hooks/useAuth';
 import { useHistorialPedidos } from '../../hooks/pedidos/useHistorialPedidos';
 import { usePaginacion } from '../../hooks/usePaginacion';
 import { useEditarPedido } from '../../hooks/pedidos/useEditarPedido';
-import { useGenerarPDFPedido } from 'hooks/pedidos/useGenerarPdfPedido'; // HOOK ACTUALIZADO
+import { useGenerarPDFPedido } from 'hooks/pedidos/useGenerarPdfPedido';
 import { useAnularPedido } from '../../hooks/pedidos/useAnularPedido';
 
 // Componentes
 import TablaPedidos from '../../components/pedidos/TablaPedidos';
+import FiltrosHistorialPedidos from '../../components/pedidos/FiltrosHistorialPedidos'; // COMPONENTE DE FILTROS
 import { Paginacion } from '../../components/Paginacion';
 import { 
   ModalDetallePedido, 
@@ -23,11 +25,11 @@ import {
   ModalConfirmacionSalidaPedidos,
   ModalConfirmacionAnularPedidoIndividual
 } from '../../components/pedidos/ModalesConfirmacion';
-import { BotonAccionesPedidos } from '../../components/pedidos/BotonAccionesPedidos'; // COMPONENTE ACTUALIZADO
+import { BotonAccionesPedidos } from '../../components/pedidos/BotonAccionesPedidos';
 import { axiosAuth } from '../../utils/apiClient';
 
 function HistorialPedidosContent() {
-  // Estados para modales existentes (SIN CAMBIOS)
+  // Estados para modales existentes
   const [mostrarModalDetalle, setMostrarModalDetalle] = useState(false);
   const [mostrarModalAgregarProducto, setMostrarModalAgregarProducto] = useState(false);
   const [mostrarModalEditarProducto, setMostrarModalEditarProducto] = useState(false);
@@ -35,45 +37,50 @@ function HistorialPedidosContent() {
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
   const [mostrarModalFacturacion, setMostrarModalFacturacion] = useState(false);
 
-  // Estados para anulación individual (SIN CAMBIOS)
+  // Estados para anulación individual
   const [mostrarModalAnularPedido, setMostrarModalAnularPedido] = useState(false);
   const [pedidoParaAnular, setPedidoParaAnular] = useState(null);
 
-  // Estados para productos en edición (SIN CAMBIOS)
+  // Estados para productos en edición
   const [productoEditando, setProductoEditando] = useState(null);
   const [productoEliminando, setProductoEliminando] = useState(null);
 
-  // Hook de autenticación (SIN CAMBIOS)
+  // Hook de autenticación
   const { user, loading: authLoading } = useAuth();
 
-  // Hook para anular pedidos (SIN CAMBIOS)
+  // Hook para anular pedidos
   const { loading: loadingAnular, anularPedido } = useAnularPedido();
 
-  // HOOK ACTUALIZADO para generar PDFs
+  // Hook para generar PDFs
   const {
     generandoPDF,
-    generandoPDFMultiple, // NUEVO ESTADO
+    generandoPDFMultiple,
     generarPDFPedido,
-    generarPDFsPedidosMultiples // NUEVA FUNCIÓN
+    generarPDFsPedidosMultiples
   } = useGenerarPDFPedido();
 
-  // Determinar si debe filtrar por empleado (SIN CAMBIOS)
+  // Determinar si debe filtrar por empleado
   const filtroEmpleado = user && user.rol !== 'GERENTE' ? user.id : null;
 
-  // Hooks personalizados (SIN CAMBIOS)
+  // Hook ACTUALIZADO para historial de pedidos
   const { 
-    pedidos, 
+    pedidos, // Ahora estos ya vienen filtrados
+    pedidosOriginales, // NUEVO: Pedidos sin filtrar para estadísticas y empleados
     selectedPedidos, 
     loading, 
+    filtros, // Estado de filtros
     handleSelectPedido, 
     handleSelectAllPedidos, 
     clearSelection,
     cambiarEstadoMultiple,
     eliminarMultiple,
-    cargarPedidos 
+    cargarPedidos,
+    actualizarFiltros, // Función para actualizar filtros
+    limpiarFiltros, // Función para limpiar filtros
+    getEstadisticas // Función para estadísticas
   } = useHistorialPedidos(filtroEmpleado);
 
-  // Effect para cargar pedidos (SIN CAMBIOS)
+  // Effect para cargar pedidos
   useEffect(() => {
     if (!authLoading && user) {
       console.log('🔄 Usuario cargado, forzando recarga de pedidos:', {
@@ -88,7 +95,7 @@ function HistorialPedidosContent() {
     }
   }, [user, authLoading]);
   
-  // Hook de paginación (SIN CAMBIOS)
+  // Hook de paginación - Usa pedidos filtrados
   const {
     datosActuales: pedidosActuales,
     paginaActual,
@@ -98,9 +105,9 @@ function HistorialPedidosContent() {
     indexOfUltimo,
     cambiarPagina,
     cambiarRegistrosPorPagina
-  } = usePaginacion(pedidos, 10);
+  } = usePaginacion(pedidos, 10); // Usa pedidos ya filtrados
 
-  // Hook para editar pedidos (SIN CAMBIOS)
+  // Hook para editar pedidos
   const {
     selectedPedido,
     productos,
@@ -112,7 +119,7 @@ function HistorialPedidosContent() {
     cerrarEdicion
   } = useEditarPedido();
 
-  // FUNCIONES para anular pedidos (SIN CAMBIOS)
+  // FUNCIONES para anular pedidos
   const handleMostrarConfirmacionAnular = (pedido, productosDelPedido) => {
     setPedidoParaAnular({
       ...pedido,
@@ -138,7 +145,7 @@ function HistorialPedidosContent() {
     }
   };
 
-  // FUNCIÓN para cambiar estado de pedido (SIN CAMBIOS)
+  // FUNCIÓN para cambiar estado de pedido
   const handleCambiarEstadoPedido = async (nuevoEstado) => {
     if (!selectedPedido) {
       toast.error("No hay pedido seleccionado");
@@ -169,7 +176,7 @@ function HistorialPedidosContent() {
     }
   };
 
-  // Handlers para eventos de la tabla (SIN CAMBIOS)
+  // Handlers para eventos de la tabla
   const handleRowDoubleClick = async (pedido) => {
     try {
       await cargarProductosPedido(pedido);
@@ -184,7 +191,7 @@ function HistorialPedidosContent() {
     cerrarEdicion();
   };
 
-  // Handlers para productos (SIN CAMBIOS)
+  // Handlers para productos
   const handleAgregarProducto = () => {
     setMostrarModalDetalle(false);
     setTimeout(() => setMostrarModalAgregarProducto(true), 300);
@@ -202,7 +209,7 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalEliminarProducto(true), 300);
   };
 
-  // Handlers para modales de productos (SIN CAMBIOS)
+  // Handlers para modales de productos
   const handleCloseModalAgregarProducto = () => {
     setMostrarModalAgregarProducto(false);
     setTimeout(() => setMostrarModalDetalle(true), 300);
@@ -220,7 +227,7 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalDetalle(true), 300);
   };
 
-  // Handlers para acciones de productos (SIN CAMBIOS)
+  // Handlers para acciones de productos
   const handleConfirmarAgregarProducto = async (producto, cantidad) => {
     const exito = await agregarProducto(producto, cantidad);
     if (exito) {
@@ -247,7 +254,7 @@ function HistorialPedidosContent() {
     }
   };
 
-  // FUNCIÓN ACTUALIZADA para generar PDF individual
+  // Función para generar PDF individual
   const handleGenerarPDF = async () => {
     if (!selectedPedido || productos.length === 0) {
       toast.error("Seleccione un pedido con productos");
@@ -257,7 +264,7 @@ function HistorialPedidosContent() {
     await generarPDFPedido(selectedPedido, productos);
   };
 
-  // NUEVA FUNCIÓN para generar PDFs múltiples
+  // Función para generar PDFs múltiples
   const handleImprimirMultiple = async () => {
     if (selectedPedidos.length === 0) {
       toast.error('Seleccione al menos un pedido para imprimir');
@@ -269,13 +276,12 @@ function HistorialPedidosContent() {
     const exito = await generarPDFsPedidosMultiples(selectedPedidos);
     
     if (exito) {
-      // Limpiar selección después de la impresión exitosa
       clearSelection();
       toast.success('PDFs generados correctamente');
     }
   };
 
-  // Handlers para navegación (SIN CAMBIOS)
+  // Handlers para navegación
   const handleConfirmarSalida = () => {
     setMostrarConfirmacionSalida(true);
   };
@@ -284,46 +290,23 @@ function HistorialPedidosContent() {
     window.location.href = '/';
   };
 
-  // FUNCIONES COMENTADAS - Ya no se usan con el nuevo diseño
-  /*
-  const handleCambiarEstadoMultiple = async (nuevoEstado) => {
-    if (selectedPedidos.length === 0) {
-      toast.error('Seleccione al menos un pedido');
-      return;
-    }
-    
-    const exito = await cambiarEstadoMultiple(nuevoEstado);
-    if (exito) {
-      clearSelection();
-    }
+  // NUEVAS FUNCIONES para manejar filtros
+  const handleFiltrosChange = (nuevosFiltros) => {
+    actualizarFiltros(nuevosFiltros);
+    // Reset a primera página cuando se cambian filtros
+    cambiarPagina(1);
   };
 
-  const handleEliminarMultiple = async () => {
-    if (selectedPedidos.length === 0) {
-      toast.error('Seleccione al menos un pedido para eliminar');
-      return;
-    }
-
-    if (window.confirm(`¿Está seguro de eliminar ${selectedPedidos.length} pedidos? Esta acción no se puede deshacer.`)) {
-      const exito = await eliminarMultiple();
-      if (exito) {
-        clearSelection();
-      }
-    }
+  const handleLimpiarFiltros = () => {
+    limpiarFiltros();
+    // Reset a primera página cuando se limpian filtros
+    cambiarPagina(1);
   };
 
-  const handleExportarPedidos = async () => {
-    if (selectedPedidos.length === 0) {
-      toast.error('Seleccione al menos un pedido para exportar');
-      return;
-    }
-    
-    toast.info('Generando exportación de pedidos...');
-    console.log('Pedidos seleccionados para exportar:', selectedPedidos);
-  };
-  */
+  // Obtener estadísticas para mostrar en filtros
+  const estadisticas = getEstadisticas();
 
-  // Mostrar loading mientras se autentica (SIN CAMBIOS)
+  // Mostrar loading mientras se autentica
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -335,7 +318,7 @@ function HistorialPedidosContent() {
     );
   }
 
-  // Función para obtener el título dinámico (SIN CAMBIOS)
+  // Función para obtener el título dinámico
   const getTitulo = () => {
     if (user?.rol === 'GERENTE') {
       return 'HISTORIAL DE PEDIDOS - TODOS LOS PEDIDOS';
@@ -355,6 +338,17 @@ function HistorialPedidosContent() {
           {getTitulo()}
         </h1>
         
+        {/* COMPONENTE DE FILTROS CON SOLUCIÓN 1 */}
+        <FiltrosHistorialPedidos
+          filtros={filtros}
+          onFiltrosChange={handleFiltrosChange}
+          onLimpiarFiltros={handleLimpiarFiltros}
+          user={user}
+          totalPedidos={estadisticas.total}
+          pedidosFiltrados={estadisticas.filtrado}
+          pedidosOriginales={pedidosOriginales} // PROP NUEVA - para extraer empleados
+        />
+        
         <TablaPedidos
           pedidos={pedidosActuales}
           selectedPedidos={selectedPedidos}
@@ -367,7 +361,7 @@ function HistorialPedidosContent() {
         />
         
         <Paginacion
-          datosOriginales={pedidos}
+          datosOriginales={pedidos} // Usa los pedidos filtrados
           paginaActual={paginaActual}
           registrosPorPagina={registrosPorPagina}
           totalPaginas={totalPaginas}
@@ -377,18 +371,17 @@ function HistorialPedidosContent() {
           onCambiarRegistrosPorPagina={cambiarRegistrosPorPagina}
         />
         
-        {/* COMPONENTE ACTUALIZADO - Ahora solo pasa onImprimirMultiple */}
         <BotonAccionesPedidos
           contexto="historial"
           selectedPedidos={selectedPedidos}
-          onImprimirMultiple={handleImprimirMultiple} // NUEVA PROP
+          onImprimirMultiple={handleImprimirMultiple}
           onVolverMenu={handleConfirmarSalida}
-          loading={generandoPDFMultiple || loading} // ESTADO ACTUALIZADO
+          loading={generandoPDFMultiple || loading}
           mostrarEstadisticas={false}
         />
       </div>
       
-      {/* MODALES (SIN CAMBIOS) */}
+      {/* MODALES */}
       <ModalDetallePedido
         pedido={selectedPedido}
         productos={productos}

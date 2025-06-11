@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -6,34 +5,34 @@ import useAuth from '../../hooks/useAuth';
 
 // Hooks personalizados
 import { useHistorialVentas } from '../../hooks/ventas/useHistorialVentas';
+import { useFiltrosVentas } from '../../hooks/ventas/useFiltrosVentas';
 import { usePaginacion } from '../../hooks/usePaginacion';
 import { useEditarVenta } from '../../hooks/ventas/useEditarVenta';
 import { useComprobantes } from '../../hooks/ventas/useComprobantes';
 import { useGenerarPDFsVentas } from '../../hooks/ventas/useGenerarPDFsVentas';
 
 // Componentes
+import FiltrosHistorialVentas from '../../components/ventas/FiltrosHistorialVentas';
 import TablaVentas from '../../components/ventas/TablaVentas';
 import { Paginacion } from '../../components/Paginacion';
 import { ModalDetalleVenta } from '../../components/ventas/ModalesHistorialVentas';
 import { ModalComprobantesVenta } from '../../components/ventas/ModalComprobantesVenta';
-import { ModalAnulacionVenta, ModalConfirmacionSalida } from '../../components/ventas/ModalesConfirmacion';
+import { ModalConfirmacionSalida } from '../../components/ventas/ModalesConfirmacion';
 import { BotonAcciones } from '../../components/ventas/BotonAcciones';
-import Modal from 'react-responsive-modal';
 
 function HistorialVentasContent() {
   // Estados para modales
   const [mostrarModalDetalle, setMostrarModalDetalle] = useState(false);
-  const [mostrarModalAnulacion, setMostrarModalAnulacion] = useState(false);
   const [mostrarModalComprobante, setMostrarModalComprobante] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
-  const [selectedCuenta, setSelectedCuenta] = useState(null);
 
-
-
-  useAuth();
+  const { user } = useAuth();
 
   // Hooks personalizados
   const { ventas, selectedVentas, loading, handleSelectVenta, handleSelectAllVentas, clearSelection } = useHistorialVentas();
+  
+  // 🆕 Hook de filtros para ventas
+  const { filtros, ventasFiltradas, handleFiltrosChange, limpiarFiltros } = useFiltrosVentas(ventas);
   
   const {
     datosActuales: ventasActuales,
@@ -44,7 +43,7 @@ function HistorialVentasContent() {
     indexOfUltimo,
     cambiarPagina,
     cambiarRegistrosPorPagina
-  } = usePaginacion(ventas, 10);
+  } = usePaginacion(ventasFiltradas, 10); // 🔄 Usar ventasFiltradas en lugar de ventas
 
   const {
     selectedVenta,
@@ -53,7 +52,6 @@ function HistorialVentasContent() {
     loading: loadingProductos,
     cargarProductosVenta,
     cargarCuenta,
-    
     cerrarEdicion
   } = useEditarVenta();
 
@@ -80,9 +78,6 @@ function HistorialVentasContent() {
   const handleRowDoubleClick = async (venta) => {
     await cargarProductosVenta(venta);
     await cargarCuenta(venta);
-
-    console.log("Cuenta cargada2:", cuenta.nombre);
-
     setMostrarModalDetalle(true);
   };
 
@@ -91,13 +86,10 @@ function HistorialVentasContent() {
     cerrarEdicion();
   };
 
-  
-  
-
   // Handlers para comprobantes
   const handleCargarComprobante = async () => {
     if (!selectedVenta) {
-      toast.default.error("Seleccione una venta primero");
+      toast.error("Seleccione una venta primero");
       return;
     }
     
@@ -132,15 +124,27 @@ function HistorialVentasContent() {
   // Handlers para PDFs
   const handleGenerarPDF = async () => {
     if (!selectedVenta || productos.length === 0) {
-      toast.default.error("Seleccione una venta con productos");
+      toast.error("Seleccione una venta con productos");
       return;
     }
 
     await generarPDFIndividual(selectedVenta, productos);
   };
 
+  // 🔧 CORREGIDO: Pasar las ventas completas seleccionadas
   const handleImprimirMultiple = async () => {
-    await generarPDFsMultiples(selectedVentas);
+    const ventasSeleccionadas = ventasFiltradas.filter(venta => 
+      selectedVentas.includes(venta.id)
+    );
+    
+    if (ventasSeleccionadas.length === 0) {
+      toast.error("Seleccione al menos una venta para imprimir");
+      return;
+    }
+
+    console.log('🖨️ Ventas seleccionadas para imprimir:', ventasSeleccionadas.map(v => ({ id: v.id, cliente: v.cliente_nombre })));
+    
+    await generarPDFsMultiples(ventasSeleccionadas);
   };
 
   // Handlers para navegación
@@ -152,17 +156,32 @@ function HistorialVentasContent() {
     }
   };
 
-  const handleAnularVenta = async () => {
-    setMostrarModalAnulacion(true);
-    toast.error('Funcionalidad por implementar.');
-  }
-
   const handleSalir = () => {
     window.location.href = '/';
   };
 
   const handleSolicitarCAE = () => {
+    const ventasSinCAE = ventasFiltradas.filter(venta => 
+      selectedVentas.includes(venta.id) && !venta.cae_id
+    );
+    
+    if (ventasSinCAE.length === 0) {
+      toast.error('Todas las ventas seleccionadas ya tienen CAE asignado');
+      return;
+    }
+    
     toast.error('Funcionalidad por implementar.');
+  };
+
+  // 🆕 Limpiar selección cuando cambian los filtros
+  const handleFiltrosChangeConLimpieza = (nuevosFiltros) => {
+    handleFiltrosChange(nuevosFiltros);
+    clearSelection(); // Limpiar selección al cambiar filtros
+  };
+
+  const handleLimpiarFiltrosConSeleccion = () => {
+    limpiarFiltros();
+    clearSelection(); // Limpiar selección al limpiar filtros
   };
 
   return (
@@ -172,20 +191,31 @@ function HistorialVentasContent() {
         <meta name="description" content="Historial de ventas en el sistema VERTIMAR" />
       </Head>
       
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
+      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-7xl">
         <h1 className="text-2xl font-bold mb-4 text-center">HISTORIAL DE VENTAS</h1>
+        
+        {/* 🆕 Componente de filtros */}
+        <FiltrosHistorialVentas
+          filtros={filtros}
+          onFiltrosChange={handleFiltrosChangeConLimpieza}
+          onLimpiarFiltros={handleLimpiarFiltrosConSeleccion}
+          user={user}
+          totalVentas={ventas.length}
+          ventasFiltradas={ventasFiltradas.length}
+          ventasOriginales={ventas}
+        />
         
         <TablaVentas
           ventas={ventasActuales}
           selectedVentas={selectedVentas}
-          onSelectVenta={handleSelectVenta}
+          onSelectVenta={(venta) => handleSelectVenta(venta.id)}
           onSelectAll={handleSelectAllVentas}
           onRowDoubleClick={handleRowDoubleClick}
           loading={loading}
         />
         
         <Paginacion
-          datosOriginales={ventas}
+          datosOriginales={ventasFiltradas} // 🔄 Usar ventasFiltradas
           paginaActual={paginaActual}
           registrosPorPagina={registrosPorPagina}
           totalPaginas={totalPaginas}
@@ -200,12 +230,12 @@ function HistorialVentasContent() {
           onImprimirMultiple={handleImprimirMultiple}
           imprimiendo={imprimiendoMultiple}
           onSolicitarCAE={handleSolicitarCAE}
+          solicitando={false}
           onVolverMenu={handleConfirmarSalida}
         />
-        
       </div>
       
-      {/* Modal de detalles de venta */}
+      {/* Modal de detalles de venta - SIN BOTÓN ANULAR */}
       <ModalDetalleVenta
         venta={selectedVenta}
         productos={productos}
@@ -213,16 +243,9 @@ function HistorialVentasContent() {
         onClose={handleCloseModalDetalle}
         onImprimirFacturaIndividual={handleGenerarPDF}
         onCargarComprobante={handleCargarComprobante}
-        onSolicitarCAE={handleSolicitarCAE}
         generandoPDF={generandoPDF}
-        onAnularVenta={handleAnularVenta}
         cuenta={cuenta}
       />
-
-      
-      
-
-      
 
       {/* Modal comprobantes */}
       <ModalComprobantesVenta
@@ -237,13 +260,6 @@ function HistorialVentasContent() {
         onUpload={handleUploadComprobante}
         onView={handleViewComprobante}
       />
-
-      <ModalAnulacionVenta
-              mostrar={mostrarModalAnulacion}
-              onConfirmar={handleAnularVenta}
-              onCancelar={() => setMostrarModalAnulacion(false)}
-              loading={loading}
-        />
 
       {/* Modal confirmación salida */}
       <ModalConfirmacionSalida
