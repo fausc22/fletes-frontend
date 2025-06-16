@@ -1,13 +1,10 @@
 {
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/components/*": ["./components/*"],
-      "@/hooks/*": ["./hooks/*"],
-      "@/context/*": ["./context/*"],
-      "@/utils/*": ["./utils/*"],
-      "@/pages/*": ["./pages/*"]
-    }
-  },
-  "exclude": ["node_modules"]
-}
+    "compilerOptions": {
+      "baseUrl": ".",
+      "paths": {
+        "@/components/*": ["./components/*"]
+      }
+    },
+    "exclude": ["node_modules"]
+  }
+  
