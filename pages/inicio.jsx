@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
 export default function Inicio() {
   const router = useRouter();
@@ -118,11 +119,13 @@ export default function Inicio() {
             </div>
             <p className="text-gray-600 mb-4">Gestión de notas de pedido y facturación</p>
             <div className="space-y-2">
-              <a href="/ventas/RegistrarPedido" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Nota de Pedido</a>
-              <a href="/ventas/HistorialPedidos" className="block text-blue-600 hover:text-blue-800 text-sm">• Historial de Pedidos</a>
+              <Link href="/ventas/RegistrarPedido" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Nota de Pedido</Link>
+              <Link href="/ventas/HistorialPedidos" className="block text-blue-600 hover:text-blue-800 text-sm">• Historial de Pedidos</Link>
               {empleado?.rol === 'GERENTE' && (
-                <><a href="/ventas/ListaPrecios" className="block text-blue-600 hover:text-blue-800 text-sm">• Lista de Precios</a><a href="/ventas/Facturacion" className="block text-blue-600 hover:text-blue-800 text-sm">• Facturacion</a></>
-
+                <>
+                  <Link href="/ventas/ListaPrecios" className="block text-blue-600 hover:text-blue-800 text-sm">• Lista de Precios</Link>
+                  <Link href="/ventas/Facturacion" className="block text-blue-600 hover:text-blue-800 text-sm">• Facturacion</Link>
+                </>
               )}
             </div>
           </div>
@@ -142,10 +145,13 @@ export default function Inicio() {
             <p className="text-gray-600 mb-4">Control de stock y productos</p>
             <div className="space-y-2">
               {empleado?.rol === 'GERENTE' && (
-                <><a href="/inventario/Productos" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Productos</a><a href="/compras/RegistrarCompra" className="block text-blue-600 hover:text-blue-800 text-sm">• Compra Proveedores</a></>
+                <>
+                  <Link href="/inventario/Productos" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Productos</Link>
+                  <Link href="/compras/RegistrarCompra" className="block text-blue-600 hover:text-blue-800 text-sm">• Compra Proveedores</Link>
+                </>
               )}
-              <a href="/inventario/consultaStock" className="block text-blue-600 hover:text-blue-800 text-sm">• Consulta de Stock</a>
-              <a href="/inventario/Remitos" className="block text-blue-600 hover:text-blue-800 text-sm">• Remitos</a>
+              <Link href="/inventario/consultaStock" className="block text-blue-600 hover:text-blue-800 text-sm">• Consulta de Stock</Link>
+              <Link href="/inventario/Remitos" className="block text-blue-600 hover:text-blue-800 text-sm">• Remitos</Link>
             </div>
           </div>
         )}
@@ -164,18 +170,16 @@ export default function Inicio() {
             </div>
             <p className="text-gray-600 mb-4">Gestión y configuración del sistema</p>
             <div className="space-y-2">
-              <a href="/edicion/Empleados" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Empleados</a>
-              <a href="/edicion/Clientes" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Clientes</a>
-              <a href="/edicion/Proveedores" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Proveedores</a>
-              
-              <a href="/finanzas/fondos" className="block text-blue-600 hover:text-blue-800 text-sm">• Tesoreria</a>
-              <a href="/finanzas/reportes" className="block text-blue-600 hover:text-blue-800 text-sm">• Reportes Financieros</a>
+              <Link href="/edicion/Empleados" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Empleados</Link>
+              <Link href="/edicion/Clientes" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Clientes</Link>
+              <Link href="/edicion/Proveedores" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Proveedores</Link>
+              <Link href="/finanzas/fondos" className="block text-blue-600 hover:text-blue-800 text-sm">• Tesoreria</Link>
+              <Link href="/finanzas/reportes" className="block text-blue-600 hover:text-blue-800 text-sm">• Reportes Financieros</Link>
             </div>
           </div>
         )}
 
-
-          {empleado?.rol === 'VENDEDOR' && (
+        {empleado?.rol === 'VENDEDOR' && (
           <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
             <div className="flex items-center mb-4">
               <div className="bg-purple-100 p-3 rounded-full">
@@ -188,21 +192,12 @@ export default function Inicio() {
             </div>
             <p className="text-gray-600 mb-4">Ingreso de Gastos y Edición de Clientes</p>
             <div className="space-y-2">
-              
-              <a href="/compras/RegistrarGasto" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Gasto</a>
-              <a href="/edicion/Clientes" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Clientes</a>
-
-              
+              <Link href="/compras/RegistrarGasto" className="block text-blue-600 hover:text-blue-800 text-sm">• Registrar Gasto</Link>
+              <Link href="/edicion/Clientes" className="block text-blue-600 hover:text-blue-800 text-sm">• Gestión de Clientes</Link>
             </div>
           </div>
         )}
-
-
       </div>
-
-      
-
-      
 
       {/* Información adicional */}
       <div className="mt-8 bg-gray-50 rounded-lg p-6">
