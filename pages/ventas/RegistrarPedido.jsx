@@ -13,7 +13,7 @@ import ObservacionesPedido from '../../components/pedidos/ObservacionesPedido';
 import { 
   ModalConfirmacionPedido, 
   ModalConfirmacionSalidaPedidos 
-} from '../../components/pedidos/ModalesConfirmacion';
+} from '@/components/pedidos/ModalesConfirmacion';
 
 function RegistrarPedidoContent() {
   const { 
