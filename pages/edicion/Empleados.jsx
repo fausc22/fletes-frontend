@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
 import useAuth from '../../hooks/useAuth';
-import CRUDMaestro from '../../components/crud/CRUDMaestro';
+import CRUDMaestro from '../../components/CRUD/CRUDMaestro';
 import { empleadosConfig } from '../../config/entitiesConfig';
 
 export default function Empleados() {
