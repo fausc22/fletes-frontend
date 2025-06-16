@@ -1,15 +1,16 @@
+
 import { useState } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
-import useAuth from '../../hooks/useAuth';
 
-import { PedidosProvider, usePedidosContext } from '../../context/PedidosContext';
-import { usePedidos } from '../../hooks/pedidos/usePedidos';
-
-import ClienteSelector from '../../components/pedidos/SelectorClientes';
-import ProductoSelector from '../../components/pedidos/SelectorProductos';
-import ProductosCarrito from '../../components/pedidos/ProductosCarrito';
-import ObservacionesPedido from '../../components/pedidos/ObservacionesPedido';
+// ✅ OPCIÓN 1: Imports absolutos (RECOMENDADO)
+import useAuth from '@/hooks/useAuth';
+import { PedidosProvider, usePedidosContext } from '@/context/PedidosContext';
+import { usePedidos } from '@/hooks/pedidos/usePedidos';
+import ClienteSelector from '@/components/pedidos/SelectorClientes';
+import ProductoSelector from '@/components/pedidos/SelectorProductos';
+import ProductosCarrito from '@/components/pedidos/ProductosCarrito';
+import ObservacionesPedido from '@/components/pedidos/ObservacionesPedido';
 import { 
   ModalConfirmacionPedido, 
   ModalConfirmacionSalidaPedidos 
