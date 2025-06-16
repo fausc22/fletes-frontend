@@ -1,44 +1,41 @@
+// hooks/remitos/useDetalleRemito.js - Versión actualizada
 import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
-
-
 import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useDetalleRemito() {
   const [selectedRemito, setSelectedRemito] = useState(null);
-  const [remitoProductos, setRemitoProductos] = useState([]);
-  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const cargarDetalleRemito = async (remito) => {
+  const cargarProductosRemito = async (remito) => {
     setSelectedRemito(remito);
-    setModalIsOpen(true);
     setLoading(true);
 
     try {
       const response = await axiosAuth.get(`/productos/obtener-productos-remito/${remito.id}`);
-      setRemitoProductos(response.data);
+      setProductos(response.data);
+      console.log('📦 Productos del remito cargados:', response.data.length);
     } catch (error) {
       console.error("Error al obtener productos del remito:", error);
       toast.error("No se pudieron cargar los productos del remito");
+      setProductos([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const cerrarModal = () => {
-    setModalIsOpen(false);
+  const cerrarDetalle = () => {
     setSelectedRemito(null);
-    setRemitoProductos([]);
+    setProductos([]);
   };
 
   return {
     selectedRemito,
-    remitoProductos,
-    modalIsOpen,
+    productos,
     loading,
-    cargarDetalleRemito,
-    cerrarModal
+    cargarProductosRemito,
+    cerrarDetalle
   };
 }

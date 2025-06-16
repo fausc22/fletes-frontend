@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { MdSearch, MdDeleteForever, MdRemoveRedEye, MdCloudUpload, MdAutorenew } from "react-icons/md";
-import axios from 'axios';
+import { axiosAuth, fetchAuth } from '../../utils/apiClient'; 
 import { toast, Toaster } from 'react-hot-toast';
 import Head from 'next/head';
 import useAuth from '../../hooks/useAuth';
@@ -8,6 +8,7 @@ import useAuth from '../../hooks/useAuth';
 export default function HistorialCompras() {
   // Estado para controlar las pestañas
   const [activeTab, setActiveTab] = useState('compras'); // 'compras', 'gastos', 'todos'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   
   // Estados para compras
   const [compras, setCompras] = useState([]);
@@ -32,6 +33,10 @@ export default function HistorialCompras() {
   const [tipoComprobante, setTipoComprobante] = useState(''); // 'compra' o 'gasto'
   const [idComprobante, setIdComprobante] = useState(null);
   
+  // Estados para carga
+  const [cargandoCompras, setCargandoCompras] = useState(true);
+  const [cargandoGastos, setCargandoGastos] = useState(true);
+  
   // Estados para paginación
   const [paginaActualCompras, setPaginaActualCompras] = useState(1);
   const [paginaActualGastos, setPaginaActualGastos] = useState(1);
@@ -54,44 +59,63 @@ export default function HistorialCompras() {
 
   // Función para cargar compras
   const cargarCompras = async () => {
+    setCargandoCompras(true);
     try {
-      const response = await axios.get('http://localhost:3001/compras/obtener-compras');
+      console.log('Cargando compras...');
+      const response = await axiosAuth.get('/compras/obtener-compras');
+      console.log('Respuesta compras:', response.data);
+      
       if (response.data.success) {
-        setCompras(response.data.data);
+        setCompras(response.data.data || []);
+        console.log('Compras cargadas:', response.data.data?.length || 0);
       } else {
+        console.error('Error en respuesta:', response.data.message);
         toast.error("Error al cargar las compras");
+        setCompras([]);
       }
     } catch (error) {
       console.error("Error al obtener compras:", error);
       toast.error("No se pudieron cargar las compras");
+      setCompras([]);
+    } finally {
+      setCargandoCompras(false);
     }
   };
 
   // Función para cargar gastos
   const cargarGastos = async () => {
+    setCargandoGastos(true);
     try {
-      const response = await axios.get('http://localhost:3001/compras/obtener-gastos');
+      console.log('Cargando gastos...');
+      const response = await axiosAuth.get('/compras/obtener-gastos');
+      console.log('Respuesta gastos:', response.data);
+      
       if (response.data.success) {
-        setGastos(response.data.data);
+        setGastos(response.data.data || []);
+        console.log('Gastos cargados:', response.data.data?.length || 0);
       } else {
+        console.error('Error en respuesta:', response.data.message);
         toast.error("Error al cargar los gastos");
+        setGastos([]);
       }
     } catch (error) {
       console.error("Error al obtener gastos:", error);
       toast.error("No se pudieron cargar los gastos");
+      setGastos([]);
+    } finally {
+      setCargandoGastos(false);
     }
   };
 
-  // Función para ver detalle de una compra (CORREGIDA)
+  // Función para ver detalle de una compra
   const handleVerDetalleCompra = async (compra) => {
     setSelectedCompra(compra);
     
     try {
       console.log('Solicitando productos para compra ID:', compra.id);
-      const response = await axios.get(`http://localhost:3001/compras/obtener-productos-compra/${compra.id}`);
+      const response = await axiosAuth.get(`/compras/obtener-productos-compra/${compra.id}`);
       console.log('Respuesta recibida:', response.data);
       
-      // Verificar y manejar la respuesta correctamente
       if (Array.isArray(response.data)) {
         setProductosCompra(response.data);
       } else {
@@ -102,7 +126,6 @@ export default function HistorialCompras() {
     } catch (error) {
       console.error("Error al obtener productos de la compra:", error);
       toast.error("No se pudieron cargar los productos de la compra");
-      // Mostramos el modal de todas formas pero con lista vacía
       setProductosCompra([]);
       setModalDetalleCompraOpen(true);
     }
@@ -114,22 +137,23 @@ export default function HistorialCompras() {
     setModalDetalleGastoOpen(true);
   };
 
-  // Función para verificar si existe un comprobante (CORREGIDA)
+  // FUNCIONES PARA COMPROBANTES
+
+  // Función para verificar si existe un comprobante
   const verificarComprobanteExistente = async (id, tipo) => {
     try {
-      let url = '';
-      if (tipo === 'compra') {
-        url = `http://localhost:3001/compras/verificarComprobante/${id}`;
-      } else if (tipo === 'gasto') {
-        url = `http://localhost:3001/compras/verificarComprobanteGasto/${id}`;
-      }
+      const response = await axiosAuth.get(`/comprobantes/verificar/${tipo}/${id}`);
       
-      const response = await axios.get(url);
-      setComprobanteExistente(response.data.exists);
-      return response.data.exists;
+      if (response.data.success) {
+        const existe = response.data.data.tieneComprobante && response.data.data.archivoExiste;
+        setComprobanteExistente(existe);
+        return existe;
+      } else {
+        setComprobanteExistente(false);
+        return false;
+      }
     } catch (error) {
       console.error(`Error al verificar comprobante de ${tipo}:`, error);
-      toast.error(`Error al verificar el comprobante de ${tipo}`);
       setComprobanteExistente(false);
       return false;
     }
@@ -137,7 +161,6 @@ export default function HistorialCompras() {
 
   // Función para abrir el modal de comprobantes
   const handleOpenComprobanteModal = async (id, tipo) => {
-    // Guardar el tipo y el ID para saber dónde guardar el comprobante
     setTipoComprobante(tipo);
     setIdComprobante(id);
     
@@ -148,7 +171,6 @@ export default function HistorialCompras() {
     // Verificar si hay un comprobante existente
     await verificarComprobanteExistente(id, tipo);
     
-    // Abrir el modal
     setMostrarModalComprobante(true);
   };
 
@@ -156,6 +178,21 @@ export default function HistorialCompras() {
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Validar tamaño del archivo (10MB máximo)
+      const maxSize = 10 * 1024 * 1024; // 10MB en bytes
+      if (file.size > maxSize) {
+        toast.error('El archivo es demasiado grande. Máximo 10MB permitido.');
+        return;
+      }
+      
+      // Validar tipo de archivo
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Tipo de archivo no válido. Solo se permiten: JPG, PNG, PDF, DOC, DOCX');
+        return;
+      }
+      
       setComprobante(file);
       
       // Generar preview si es una imagen
@@ -184,14 +221,7 @@ export default function HistorialCompras() {
       const formData = new FormData();
       formData.append("comprobante", comprobante);
 
-      let url = '';
-      if (tipoComprobante === 'compra') {
-        url = `http://localhost:3001/compras/guardarComprobante/${idComprobante}`;
-      } else if (tipoComprobante === 'gasto') {
-        url = `http://localhost:3001/compras/guardarComprobanteGasto/${idComprobante}`;
-      }
-
-      const response = await axios.post(url, formData, {
+      const response = await axiosAuth.post(`/comprobantes/subir/${tipoComprobante}/${idComprobante}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -210,7 +240,11 @@ export default function HistorialCompras() {
       }
     } catch (error) {
       console.error("Error al cargar el comprobante:", error);
-      toast.error("Error al cargar el comprobante");
+      if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Error al cargar el comprobante");
+      }
     } finally {
       setUploadingComprobante(false);
     }
@@ -218,17 +252,35 @@ export default function HistorialCompras() {
 
   // Función para ver el comprobante
   const handleViewComprobante = () => {
-    if (!idComprobante) return;
+    if (!idComprobante || !tipoComprobante) return;
     
-    // Abrir en una nueva pestaña
-    let url = '';
-    if (tipoComprobante === 'compra') {
-      url = `http://localhost:3001/compras/obtenerComprobante/${idComprobante}`;
-    } else if (tipoComprobante === 'gasto') {
-      url = `http://localhost:3001/compras/obtenerComprobanteGasto/${idComprobante}`;
+    // Abrir en una nueva pestaña usando el endpoint de descarga
+    const url = `${apiUrl}/comprobantes/obtener/${tipoComprobante}/${idComprobante}`;
+    window.open(url, '_blank');
+  };
+
+  // Función para eliminar comprobante
+  const handleEliminarComprobante = async () => {
+    if (!idComprobante || !tipoComprobante) return;
+    
+    if (!confirm('¿Está seguro de que desea eliminar este comprobante?')) {
+      return;
     }
     
-    window.open(url, '_blank');
+    try {
+      const response = await axiosAuth.delete(`/comprobantes/eliminar/${tipoComprobante}/${idComprobante}`);
+      
+      if (response.data.success) {
+        toast.success("Comprobante eliminado exitosamente");
+        setComprobanteExistente(false);
+        setMostrarModalComprobante(false);
+      } else {
+        toast.error(response.data.message || "Error al eliminar el comprobante");
+      }
+    } catch (error) {
+      console.error("Error al eliminar comprobante:", error);
+      toast.error("Error al eliminar el comprobante");
+    }
   };
 
   // Función para manejar selección de compras
@@ -314,8 +366,6 @@ export default function HistorialCompras() {
     });
   };
 
-  // ... Resto del código del componente React (incluyendo JSX) sin cambios
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
       <Head>
@@ -326,25 +376,39 @@ export default function HistorialCompras() {
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
         <h1 className="text-2xl font-bold mb-4 text-center">HISTORIAL DE COMPRAS Y GASTOS</h1>
         
+        {/* Botón de refrescar */}
+        <div className="flex justify-end mb-4">
+          <button 
+            onClick={() => {
+              cargarCompras();
+              cargarGastos();
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
+          >
+            <MdAutorenew size={20} />
+            Refrescar
+          </button>
+        </div>
+        
         {/* Pestañas de navegación */}
         <div className="flex border-b mb-6">
           <button 
             className={`py-2 px-4 font-medium ${activeTab === 'compras' ? 'border-b-2 border-green-500 text-green-600' : 'text-gray-500 hover:text-green-500'}`}
             onClick={() => setActiveTab('compras')}
           >
-            Compras a Proveedores
+            Compras a Proveedores ({compras.length})
           </button>
           <button 
             className={`py-2 px-4 font-medium ${activeTab === 'gastos' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500 hover:text-blue-500'}`}
             onClick={() => setActiveTab('gastos')}
           >
-            Gastos Generales
+            Gastos Generales ({gastos.length})
           </button>
           <button 
             className={`py-2 px-4 font-medium ${activeTab === 'todos' ? 'border-b-2 border-purple-500 text-purple-600' : 'text-gray-500 hover:text-purple-500'}`}
             onClick={() => setActiveTab('todos')}
           >
-            Todos los Egresos
+            Todos los Egresos ({compras.length + gastos.length})
           </button>
         </div>
         
@@ -355,33 +419,172 @@ export default function HistorialCompras() {
               <h2 className="text-xl font-semibold mb-4 text-green-700">Compras a Proveedores</h2>
             )}
             
-            {/* Vista de escritorio */}
-            <div className="hidden md:block overflow-x-auto bg-white rounded shadow text-black">
-              <table className="w-full">
-                <thead className="bg-green-100">
-                  <tr>
-                    <th className="p-2 w-10">
-                      <input 
-                        type="checkbox" 
-                        onChange={handleSelectAllCompras}
-                        checked={comprasActuales.length > 0 && comprasActuales.every(c => selectedCompras.includes(c.id))}
-                        className="w-4 h-4"
-                      />
-                    </th>
-                    <th className="p-2">ID</th>
-                    <th className="p-2">Fecha</th>
-                    <th className="p-2">Proveedor</th>
-                    <th className="p-2">CUIT</th>
-                    <th className="p-2">TOTAL ($)</th>
-                    <th className="p-2">Estado</th>
-                    <th className="p-2">Comprobante</th>
-                  </tr>
-                </thead>
-                <tbody>
+            {/* Estado de carga */}
+            {cargandoCompras ? (
+              <div className="text-center py-8">
+                <div className="animate-spin inline-block w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full"></div>
+                <p className="mt-2 text-gray-600">Cargando compras...</p>
+              </div>
+            ) : (
+              <>
+                {/* Vista de escritorio */}
+                <div className="hidden md:block overflow-x-auto bg-white rounded shadow text-black">
+                  <table className="w-full">
+                    <thead className="bg-green-100">
+                      <tr>
+                        <th className="p-2 w-10">
+                          <input 
+                            type="checkbox" 
+                            onChange={handleSelectAllCompras}
+                            checked={comprasActuales.length > 0 && comprasActuales.every(c => selectedCompras.includes(c.id))}
+                            className="w-4 h-4"
+                          />
+                        </th>
+                        <th className="p-2">ID</th>
+                        <th className="p-2">Fecha</th>
+                        <th className="p-2">Proveedor</th>
+                        <th className="p-2">CUIT</th>
+                        <th className="p-2">TOTAL ($)</th>
+                        <th className="p-2">Estado</th>
+                        <th className="p-2">Comprobante</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comprasActuales.length > 0 ? (
+                        comprasActuales.map((compra) => (
+                          <tr key={compra.id} className="hover:bg-gray-100 cursor-pointer">
+                            <td className="p-2 text-center">
+                              <input 
+                                type="checkbox"
+                                checked={selectedCompras.includes(compra.id)}
+                                onChange={() => handleSelectCompra(compra.id)}
+                                className="w-4 h-4"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </td>
+                            <td className="p-2 text-center" onClick={() => handleVerDetalleCompra(compra)}>{compra.id}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{formatDate(compra.fecha)}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{compra.proveedor_nombre}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{compra.proveedor_cuit}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{formatCurrency(compra.total)}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{compra.estado}</td>
+                            <td className="p-2 text-center">
+                              <button 
+                                onClick={() => handleOpenComprobanteModal(compra.id, 'compra')}
+                                className="bg-blue-500 text-white p-1 rounded"
+                                title="Ver/Cargar Comprobante"
+                              >
+                                <MdRemoveRedEye size={20} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="8" className="p-4 text-center text-gray-500">
+                            No hay compras registradas
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  
+                  {/* Paginador */}
+                  {compras.length > 0 && (
+                    <div className="flex items-center justify-between p-4 border-t">
+                      <div className="flex items-center">
+                        <span className="mr-2">Mostrar</span>
+                        <select 
+                          className="border rounded px-2 py-1"
+                          value={registrosPorPagina}
+                          onChange={(e) => {
+                            setRegistrosPorPagina(Number(e.target.value));
+                            setPaginaActualCompras(1);
+                          }}
+                        >
+                          <option value={5}>5</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                        </select>
+                        <span className="ml-2">registros por página</span>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <span className="mr-4">
+                          Mostrando {indexOfPrimerRegistroCompras + 1} a {Math.min(indexOfUltimoRegistroCompras, compras.length)} de {compras.length} registros
+                        </span>
+                        
+                        <div className="flex">
+                          <button 
+                            onClick={() => setPaginaActualCompras(1)}
+                            disabled={paginaActualCompras === 1}
+                            className={`px-3 py-1 border rounded-l ${paginaActualCompras === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟪
+                          </button>
+                          <button 
+                            onClick={() => setPaginaActualCompras(paginaActualCompras - 1)}
+                            disabled={paginaActualCompras === 1}
+                            className={`px-3 py-1 border-t border-b ${paginaActualCompras === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟨
+                          </button>
+                          
+                          {/* Botones de página */}
+                          {Array.from({ length: totalPaginasCompras }, (_, i) => i + 1)
+                            .filter(num => 
+                              num === 1 || 
+                              num === totalPaginasCompras || 
+                              (num >= paginaActualCompras - 1 && num <= paginaActualCompras + 1)
+                            )
+                            .map((numero, index, array) => {
+                              const mostrarPuntosSuspensivos = index > 0 && numero - array[index - 1] > 1;
+                              
+                              return (
+                                <Fragment key={numero}>
+                                  {mostrarPuntosSuspensivos && (
+                                    <span className="px-3 py-1 border-t border-b">...</span>
+                                  )}
+                                  <button 
+                                    onClick={() => setPaginaActualCompras(numero)}
+                                    className={`px-3 py-1 border-t border-b ${
+                                      paginaActualCompras === numero ? 'bg-green-500 text-white' : 'hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    {numero}
+                                  </button>
+                                </Fragment>
+                              );
+                            })
+                          }
+                          
+                          <button 
+                            onClick={() => setPaginaActualCompras(paginaActualCompras + 1)}
+                            disabled={paginaActualCompras === totalPaginasCompras}
+                            className={`px-3 py-1 border-t border-b ${paginaActualCompras === totalPaginasCompras ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟩
+                          </button>
+                          <button 
+                            onClick={() => setPaginaActualCompras(totalPaginasCompras)}
+                            disabled={paginaActualCompras === totalPaginasCompras}
+                            className={`px-3 py-1 border rounded-r ${paginaActualCompras === totalPaginasCompras ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟫
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Vista móvil para compras */}
+                <div className="md:hidden space-y-4">
                   {comprasActuales.length > 0 ? (
                     comprasActuales.map((compra) => (
-                      <tr key={compra.id} className="hover:bg-gray-100 cursor-pointer">
-                        <td className="p-2 text-center">
+                      <div key={compra.id} className="bg-white p-4 rounded shadow hover:bg-gray-50 cursor-pointer">
+                        <div className="flex justify-between items-center mb-2">
                           <input 
                             type="checkbox"
                             checked={selectedCompras.includes(compra.id)}
@@ -389,216 +592,87 @@ export default function HistorialCompras() {
                             className="w-4 h-4"
                             onClick={(e) => e.stopPropagation()}
                           />
-                        </td>
-                        <td className="p-2 text-center" onClick={() => handleVerDetalleCompra(compra)}>{compra.id}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{formatDate(compra.fecha)}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{compra.proveedor_nombre}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{compra.proveedor_cuit}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{formatCurrency(compra.total)}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleCompra(compra)}>{compra.estado}</td>
-                        <td className="p-2 text-center">
                           <button 
                             onClick={() => handleOpenComprobanteModal(compra.id, 'compra')}
                             className="bg-blue-500 text-white p-1 rounded"
-                            title="Ver/Cargar Comprobante"
                           >
                             <MdRemoveRedEye size={20} />
                           </button>
-                        </td>
-                      </tr>
+                        </div>
+                        <div onClick={() => handleVerDetalleCompra(compra)}>
+                          <div className="flex justify-between">
+                            <span className="font-bold">ID:</span>
+                            <span>{compra.id}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Fecha:</span>
+                            <span>{formatDate(compra.fecha)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Proveedor:</span>
+                            <span>{compra.proveedor_nombre}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Total:</span>
+                            <span>{formatCurrency(compra.total)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Estado:</span>
+                            <span>{compra.estado}</span>
+                          </div>
+                        </div>
+                      </div>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan="8" className="p-4 text-center text-gray-500">
-                        No hay compras registradas
-                      </td>
-                    </tr>
+                    <div className="p-4 text-center text-gray-500 bg-white rounded shadow">
+                      No hay compras registradas
+                    </div>
                   )}
-                </tbody>
-              </table>
-              
-              {/* Paginador */}
-              {compras.length > 0 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <div className="flex items-center">
-                    <span className="mr-2">Mostrar</span>
-                    <select 
-                      className="border rounded px-2 py-1"
-                      value={registrosPorPagina}
-                      onChange={(e) => {
-                        setRegistrosPorPagina(Number(e.target.value));
-                        setPaginaActualCompras(1);
-                      }}
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                    </select>
-                    <span className="ml-2">registros por página</span>
-                  </div>
                   
-                  <div className="flex items-center">
-                    <span className="mr-4">
-                      Mostrando {indexOfPrimerRegistroCompras + 1} a {Math.min(indexOfUltimoRegistroCompras, compras.length)} de {compras.length} registros
-                    </span>
-                    
-                    <div className="flex">
-                      <button 
-                        onClick={() => setPaginaActualCompras(1)}
-                        disabled={paginaActualCompras === 1}
-                        className={`px-3 py-1 border rounded-l ${paginaActualCompras === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟪
-                      </button>
-                      <button 
-                        onClick={() => setPaginaActualCompras(paginaActualCompras - 1)}
-                        disabled={paginaActualCompras === 1}
-                        className={`px-3 py-1 border-t border-b ${paginaActualCompras === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟨
-                      </button>
+                  {/* Paginador móvil para compras */}
+                  {compras.length > 0 && (
+                    <div className="bg-white p-4 rounded shadow">
+                      <div className="flex justify-between items-center">
+                        <button 
+                          onClick={() => setPaginaActualCompras(paginaActualCompras - 1)}
+                          disabled={paginaActualCompras === 1}
+                          className={`px-3 py-1 rounded ${paginaActualCompras === 1 ? 'bg-gray-100 text-gray-400' : 'bg-green-500 text-white'}`}
+                        >
+                          Anterior
+                        </button>
+                        
+                        <span>
+                          Página {paginaActualCompras} de {totalPaginasCompras}
+                        </span>
+                        
+                        <button 
+                          onClick={() => setPaginaActualCompras(paginaActualCompras + 1)}
+                          disabled={paginaActualCompras === totalPaginasCompras}
+                          className={`px-3 py-1 rounded ${paginaActualCompras === totalPaginasCompras ? 'bg-gray-100 text-gray-400' : 'bg-green-500 text-white'}`}
+                        >
+                          Siguiente
+                        </button>
+                      </div>
                       
-                      {/* Botones de página */}
-                      {Array.from({ length: totalPaginasCompras }, (_, i) => i + 1)
-                        .filter(num => 
-                          num === 1 || 
-                          num === totalPaginasCompras || 
-                          (num >= paginaActualCompras - 1 && num <= paginaActualCompras + 1)
-                        )
-                        .map((numero, index, array) => {
-                          const mostrarPuntosSuspensivos = index > 0 && numero - array[index - 1] > 1;
-                          
-                          return (
-                            <Fragment key={numero}>
-                              {mostrarPuntosSuspensivos && (
-                                <span className="px-3 py-1 border-t border-b">...</span>
-                              )}
-                              <button 
-                                onClick={() => setPaginaActualCompras(numero)}
-                                className={`px-3 py-1 border-t border-b ${
-                                  paginaActualCompras === numero ? 'bg-green-500 text-white' : 'hover:bg-gray-100'
-                                }`}
-                              >
-                                {numero}
-                              </button>
-                            </Fragment>
-                          );
-                        })
-                      }
-                      
-                      <button 
-                        onClick={() => setPaginaActualCompras(paginaActualCompras + 1)}
-                        disabled={paginaActualCompras === totalPaginasCompras}
-                        className={`px-3 py-1 border-t border-b ${paginaActualCompras === totalPaginasCompras ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟩
-                      </button>
-                      <button 
-                        onClick={() => setPaginaActualCompras(totalPaginasCompras)}
-                        disabled={paginaActualCompras === totalPaginasCompras}
-                        className={`px-3 py-1 border rounded-r ${paginaActualCompras === totalPaginasCompras ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟫
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Vista móvil para compras */}
-            <div className="md:hidden space-y-4">
-              {comprasActuales.length > 0 ? (
-                comprasActuales.map((compra) => (
-                  <div key={compra.id} className="bg-white p-4 rounded shadow hover:bg-gray-50 cursor-pointer">
-                    <div className="flex justify-between items-center mb-2">
-                      <input 
-                        type="checkbox"
-                        checked={selectedCompras.includes(compra.id)}
-                        onChange={() => handleSelectCompra(compra.id)}
-                        className="w-4 h-4"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <button 
-                        onClick={() => handleOpenComprobanteModal(compra.id, 'compra')}
-                        className="bg-blue-500 text-white p-1 rounded"
-                      >
-                        <MdRemoveRedEye size={20} />
-                      </button>
-                    </div>
-                    <div onClick={() => handleVerDetalleCompra(compra)}>
-                      <div className="flex justify-between">
-                        <span className="font-bold">ID:</span>
-                        <span>{compra.id}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Fecha:</span>
-                        <span>{formatDate(compra.fecha)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Proveedor:</span>
-                        <span>{compra.proveedor_nombre}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Total:</span>
-                        <span>{formatCurrency(compra.total)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Estado:</span>
-                        <span>{compra.estado}</span>
+                      <div className="mt-2">
+                        <select 
+                          className="border rounded w-full p-2"
+                          value={registrosPorPagina}
+                          onChange={(e) => {
+                            setRegistrosPorPagina(Number(e.target.value));
+                            setPaginaActualCompras(1);
+                          }}
+                        >
+                          <option value={5}>5 por página</option>
+                          <option value={10}>10 por página</option>
+                          <option value={20}>20 por página</option>
+                        </select>
                       </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-gray-500 bg-white rounded shadow">
-                  No hay compras registradas
+                  )}
                 </div>
-              )}
-              
-              {/* Paginador móvil para compras */}
-              {compras.length > 0 && (
-                <div className="bg-white p-4 rounded shadow">
-                  <div className="flex justify-between items-center">
-                    <button 
-                      onClick={() => setPaginaActualCompras(paginaActualCompras - 1)}
-                      disabled={paginaActualCompras === 1}
-                      className={`px-3 py-1 rounded ${paginaActualCompras === 1 ? 'bg-gray-100 text-gray-400' : 'bg-green-500 text-white'}`}
-                    >
-                      Anterior
-                    </button>
-                    
-                    <span>
-                      Página {paginaActualCompras} de {totalPaginasCompras}
-                    </span>
-                    
-                    <button 
-                      onClick={() => setPaginaActualCompras(paginaActualCompras + 1)}
-                      disabled={paginaActualCompras === totalPaginasCompras}
-                      className={`px-3 py-1 rounded ${paginaActualCompras === totalPaginasCompras ? 'bg-gray-100 text-gray-400' : 'bg-green-500 text-white'}`}
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <select 
-                      className="border rounded w-full p-2"
-                      value={registrosPorPagina}
-                      onChange={(e) => {
-                        setRegistrosPorPagina(Number(e.target.value));
-                        setPaginaActualCompras(1);
-                      }}
-                    >
-                      <option value={5}>5 por página</option>
-                      <option value={10}>10 por página</option>
-                      <option value={20}>20 por página</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
+              </>
+            )}
             
             {activeTab === 'compras' && (
               <div className="flex flex-col sm:flex-row justify-end mt-6 gap-4">
@@ -641,32 +715,170 @@ export default function HistorialCompras() {
               <h2 className="text-xl font-semibold mb-4 text-blue-700">Gastos Generales</h2>
             )}
             
-            {/* Vista de escritorio */}
-            <div className="hidden md:block overflow-x-auto bg-white rounded shadow text-black">
-              <table className="w-full">
-                <thead className="bg-blue-100">
-                  <tr>
-                    <th className="p-2 w-10">
-                      <input 
-                        type="checkbox" 
-                        onChange={handleSelectAllGastos}
-                        checked={gastosActuales.length > 0 && gastosActuales.every(g => selectedGastos.includes(g.id))}
-                        className="w-4 h-4"
-                      />
-                    </th>
-                    <th className="p-2">ID</th>
-                    <th className="p-2">Fecha</th>
-                    <th className="p-2">Descripción</th>
-                    <th className="p-2">Monto ($)</th>
-                    <th className="p-2">Forma de Pago</th>
-                    <th className="p-2">Comprobante</th>
-                  </tr>
-                </thead>
-                <tbody>
+            {/* Estado de carga */}
+            {cargandoGastos ? (
+              <div className="text-center py-8">
+                <div className="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                <p className="mt-2 text-gray-600">Cargando gastos...</p>
+              </div>
+            ) : (
+              <>
+                {/* Vista de escritorio */}
+                <div className="hidden md:block overflow-x-auto bg-white rounded shadow text-black">
+                  <table className="w-full">
+                    <thead className="bg-blue-100">
+                      <tr>
+                        <th className="p-2 w-10">
+                          <input 
+                            type="checkbox" 
+                            onChange={handleSelectAllGastos}
+                            checked={gastosActuales.length > 0 && gastosActuales.every(g => selectedGastos.includes(g.id))}
+                            className="w-4 h-4"
+                          />
+                        </th>
+                        <th className="p-2">ID</th>
+                        <th className="p-2">Fecha</th>
+                        <th className="p-2">Descripción</th>
+                        <th className="p-2">Monto ($)</th>
+                        <th className="p-2">Forma de Pago</th>
+                        <th className="p-2">Comprobante</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gastosActuales.length > 0 ? (
+                        gastosActuales.map((gasto) => (
+                          <tr key={gasto.id} className="hover:bg-gray-100 cursor-pointer">
+                            <td className="p-2 text-center">
+                              <input 
+                                type="checkbox"
+                                checked={selectedGastos.includes(gasto.id)}
+                                onChange={() => handleSelectGasto(gasto.id)}
+                                className="w-4 h-4"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </td>
+                            <td className="p-2 text-center" onClick={() => handleVerDetalleGasto(gasto)}>{gasto.id}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{formatDate(gasto.fecha)}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{gasto.descripcion}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{formatCurrency(gasto.monto)}</td>
+                            <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{gasto.forma_pago}</td>
+                            <td className="p-2 text-center">
+                              <button 
+                                onClick={() => handleOpenComprobanteModal(gasto.id, 'gasto')}
+                                className="bg-blue-500 text-white p-1 rounded"
+                                title="Ver/Cargar Comprobante"
+                              >
+                                <MdRemoveRedEye size={20} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="7" className="p-4 text-center text-gray-500">
+                            No hay gastos registrados
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  
+                  {/* Paginador */}
+                  {gastos.length > 0 && (
+                    <div className="flex items-center justify-between p-4 border-t">
+                      <div className="flex items-center">
+                        <span className="mr-2">Mostrar</span>
+                        <select 
+                          className="border rounded px-2 py-1"
+                          value={registrosPorPagina}
+                          onChange={(e) => {
+                            setRegistrosPorPagina(Number(e.target.value));
+                            setPaginaActualGastos(1);
+                          }}
+                        >
+                          <option value={5}>5</option>
+                          <option value={10}>10</option>
+                          <option value={20}>20</option>
+                          <option value={50}>50</option>
+                        </select>
+                        <span className="ml-2">registros por página</span>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        <span className="mr-4">
+                          Mostrando {indexOfPrimerRegistroGastos + 1} a {Math.min(indexOfUltimoRegistroGastos, gastos.length)} de {gastos.length} registros
+                        </span>
+                        
+                        <div className="flex">
+                          <button 
+                            onClick={() => setPaginaActualGastos(1)}
+                            disabled={paginaActualGastos === 1}
+                            className={`px-3 py-1 border rounded-l ${paginaActualGastos === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟪
+                          </button>
+                          <button 
+                            onClick={() => setPaginaActualGastos(paginaActualGastos - 1)}
+                            disabled={paginaActualGastos === 1}
+                            className={`px-3 py-1 border-t border-b ${paginaActualGastos === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟨
+                          </button>
+                          
+                          {/* Botones de página */}
+                          {Array.from({ length: totalPaginasGastos }, (_, i) => i + 1)
+                            .filter(num => 
+                              num === 1 || 
+                              num === totalPaginasGastos || 
+                              (num >= paginaActualGastos - 1 && num <= paginaActualGastos + 1)
+                            )
+                            .map((numero, index, array) => {
+                              const mostrarPuntosSuspensivos = index > 0 && numero - array[index - 1] > 1;
+                              
+                              return (
+                                <Fragment key={numero}>
+                                  {mostrarPuntosSuspensivos && (
+                                    <span className="px-3 py-1 border-t border-b">...</span>
+                                  )}
+                                  <button 
+                                    onClick={() => setPaginaActualGastos(numero)}
+                                    className={`px-3 py-1 border-t border-b ${
+                                      paginaActualGastos === numero ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    {numero}
+                                  </button>
+                                </Fragment>
+                              );
+                            })
+                          }
+                          
+                          <button 
+                            onClick={() => setPaginaActualGastos(paginaActualGastos + 1)}
+                            disabled={paginaActualGastos === totalPaginasGastos}
+                            className={`px-3 py-1 border-t border-b ${paginaActualGastos === totalPaginasGastos ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟩
+                          </button>
+                          <button 
+                            onClick={() => setPaginaActualGastos(totalPaginasGastos)}
+                            disabled={paginaActualGastos === totalPaginasGastos}
+                            className={`px-3 py-1 border rounded-r ${paginaActualGastos === totalPaginasGastos ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
+                          >
+                            ⟫
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Vista móvil para gastos */}
+                <div className="md:hidden space-y-4">
                   {gastosActuales.length > 0 ? (
                     gastosActuales.map((gasto) => (
-                      <tr key={gasto.id} className="hover:bg-gray-100 cursor-pointer">
-                        <td className="p-2 text-center">
+                      <div key={gasto.id} className="bg-white p-4 rounded shadow hover:bg-gray-50 cursor-pointer">
+                        <div className="flex justify-between items-center mb-2">
                           <input 
                             type="checkbox"
                             checked={selectedGastos.includes(gasto.id)}
@@ -674,215 +886,87 @@ export default function HistorialCompras() {
                             className="w-4 h-4"
                             onClick={(e) => e.stopPropagation()}
                           />
-                        </td>
-                        <td className="p-2 text-center" onClick={() => handleVerDetalleGasto(gasto)}>{gasto.id}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{formatDate(gasto.fecha)}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{gasto.descripcion}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{formatCurrency(gasto.monto)}</td>
-                        <td className="p-2" onClick={() => handleVerDetalleGasto(gasto)}>{gasto.forma_pago}</td>
-                        <td className="p-2 text-center">
                           <button 
                             onClick={() => handleOpenComprobanteModal(gasto.id, 'gasto')}
                             className="bg-blue-500 text-white p-1 rounded"
-                            title="Ver/Cargar Comprobante"
                           >
                             <MdRemoveRedEye size={20} />
                           </button>
-                        </td>
-                      </tr>
+                        </div>
+                        <div onClick={() => handleVerDetalleGasto(gasto)}>
+                          <div className="flex justify-between">
+                            <span className="font-bold">ID:</span>
+                            <span>{gasto.id}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Fecha:</span>
+                            <span>{formatDate(gasto.fecha)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Descripción:</span>
+                            <span>{gasto.descripcion}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Monto:</span>
+                            <span>{formatCurrency(gasto.monto)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-bold">Forma de Pago:</span>
+                            <span>{gasto.forma_pago}</span>
+                          </div>
+                        </div>
+                      </div>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan="7" className="p-4 text-center text-gray-500">
-                        No hay gastos registrados
-                      </td>
-                    </tr>
+                    <div className="p-4 text-center text-gray-500 bg-white rounded shadow">
+                      No hay gastos registrados
+                    </div>
                   )}
-                </tbody>
-              </table>
-              
-              {/* Paginador */}
-              {gastos.length > 0 && (
-                <div className="flex items-center justify-between p-4 border-t">
-                  <div className="flex items-center">
-                    <span className="mr-2">Mostrar</span>
-                    <select 
-                      className="border rounded px-2 py-1"
-                      value={registrosPorPagina}
-                      onChange={(e) => {
-                        setRegistrosPorPagina(Number(e.target.value));
-                        setPaginaActualGastos(1);
-                      }}
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                      <option value={50}>50</option>
-                    </select>
-                    <span className="ml-2">registros por página</span>
-                  </div>
                   
-                  <div className="flex items-center">
-                    <span className="mr-4">
-                      Mostrando {indexOfPrimerRegistroGastos + 1} a {Math.min(indexOfUltimoRegistroGastos, gastos.length)} de {gastos.length} registros
-                    </span>
-                    
-                    <div className="flex">
-                      <button 
-                        onClick={() => setPaginaActualGastos(1)}
-                        disabled={paginaActualGastos === 1}
-                        className={`px-3 py-1 border rounded-l ${paginaActualGastos === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟪
-                      </button>
-                      <button 
-                        onClick={() => setPaginaActualGastos(paginaActualGastos - 1)}
-                        disabled={paginaActualGastos === 1}
-                        className={`px-3 py-1 border-t border-b ${paginaActualGastos === 1 ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟨
-                      </button>
+                  {/* Paginador móvil para gastos */}
+                  {gastos.length > 0 && (
+                    <div className="bg-white p-4 rounded shadow">
+                      <div className="flex justify-between items-center">
+                        <button 
+                          onClick={() => setPaginaActualGastos(paginaActualGastos - 1)}
+                          disabled={paginaActualGastos === 1}
+                          className={`px-3 py-1 rounded ${paginaActualGastos === 1 ? 'bg-gray-100 text-gray-400' : 'bg-blue-500 text-white'}`}
+                        >
+                          Anterior
+                        </button>
+                        
+                        <span>
+                          Página {paginaActualGastos} de {totalPaginasGastos}
+                        </span>
+                        
+                        <button 
+                          onClick={() => setPaginaActualGastos(paginaActualGastos + 1)}
+                          disabled={paginaActualGastos === totalPaginasGastos}
+                          className={`px-3 py-1 rounded ${paginaActualGastos === totalPaginasGastos ? 'bg-gray-100 text-gray-400' : 'bg-blue-500 text-white'}`}
+                        >
+                          Siguiente
+                        </button>
+                      </div>
                       
-                      {/* Botones de página */}
-                      {Array.from({ length: totalPaginasGastos }, (_, i) => i + 1)
-                        .filter(num => 
-                          num === 1 || 
-                          num === totalPaginasGastos || 
-                          (num >= paginaActualGastos - 1 && num <= paginaActualGastos + 1)
-                        )
-                        .map((numero, index, array) => {
-                          const mostrarPuntosSuspensivos = index > 0 && numero - array[index - 1] > 1;
-                          
-                          return (
-                            <Fragment key={numero}>
-                              {mostrarPuntosSuspensivos && (
-                                <span className="px-3 py-1 border-t border-b">...</span>
-                              )}
-                              <button 
-                                onClick={() => setPaginaActualGastos(numero)}
-                                className={`px-3 py-1 border-t border-b ${
-                                  paginaActualGastos === numero ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'
-                                }`}
-                              >
-                                {numero}
-                              </button>
-                            </Fragment>
-                          );
-                        })
-                      }
-                      
-                      <button 
-                        onClick={() => setPaginaActualGastos(paginaActualGastos + 1)}
-                        disabled={paginaActualGastos === totalPaginasGastos}
-                        className={`px-3 py-1 border-t border-b ${paginaActualGastos === totalPaginasGastos ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟩
-                      </button>
-                      <button 
-                        onClick={() => setPaginaActualGastos(totalPaginasGastos)}
-                        disabled={paginaActualGastos === totalPaginasGastos}
-                        className={`px-3 py-1 border rounded-r ${paginaActualGastos === totalPaginasGastos ? 'bg-gray-100 text-gray-400' : 'hover:bg-gray-100'}`}
-                      >
-                        ⟫
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            {/* Vista móvil para gastos */}
-            <div className="md:hidden space-y-4">
-              {gastosActuales.length > 0 ? (
-                gastosActuales.map((gasto) => (
-                  <div key={gasto.id} className="bg-white p-4 rounded shadow hover:bg-gray-50 cursor-pointer">
-                    <div className="flex justify-between items-center mb-2">
-                      <input 
-                        type="checkbox"
-                        checked={selectedGastos.includes(gasto.id)}
-                        onChange={() => handleSelectGasto(gasto.id)}
-                        className="w-4 h-4"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <button 
-                        onClick={() => handleOpenComprobanteModal(gasto.id, 'gasto')}
-                        className="bg-blue-500 text-white p-1 rounded"
-                      >
-                        <MdRemoveRedEye size={20} />
-                      </button>
-                    </div>
-                    <div onClick={() => handleVerDetalleGasto(gasto)}>
-                      <div className="flex justify-between">
-                        <span className="font-bold">ID:</span>
-                        <span>{gasto.id}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Fecha:</span>
-                        <span>{formatDate(gasto.fecha)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Descripción:</span>
-                        <span>{gasto.descripcion}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Monto:</span>
-                        <span>{formatCurrency(gasto.monto)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="font-bold">Forma de Pago:</span>
-                        <span>{gasto.forma_pago}</span>
+                      <div className="mt-2">
+                        <select 
+                          className="border rounded w-full p-2"
+                          value={registrosPorPagina}
+                          onChange={(e) => {
+                            setRegistrosPorPagina(Number(e.target.value));
+                            setPaginaActualGastos(1);
+                          }}
+                        >
+                          <option value={5}>5 por página</option>
+                          <option value={10}>10 por página</option>
+                          <option value={20}>20 por página</option>
+                        </select>
                       </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="p-4 text-center text-gray-500 bg-white rounded shadow">
-                  No hay gastos registrados
+                  )}
                 </div>
-              )}
-              
-              {/* Paginador móvil para gastos */}
-              {gastos.length > 0 && (
-                <div className="bg-white p-4 rounded shadow">
-                  <div className="flex justify-between items-center">
-                    <button 
-                      onClick={() => setPaginaActualGastos(paginaActualGastos - 1)}
-                      disabled={paginaActualGastos === 1}
-                      className={`px-3 py-1 rounded ${paginaActualGastos === 1 ? 'bg-gray-100 text-gray-400' : 'bg-blue-500 text-white'}`}
-                    >
-                      Anterior
-                    </button>
-                    
-                    <span>
-                      Página {paginaActualGastos} de {totalPaginasGastos}
-                    </span>
-                    
-                    <button 
-                      onClick={() => setPaginaActualGastos(paginaActualGastos + 1)}
-                      disabled={paginaActualGastos === totalPaginasGastos}
-                      className={`px-3 py-1 rounded ${paginaActualGastos === totalPaginasGastos ? 'bg-gray-100 text-gray-400' : 'bg-blue-500 text-white'}`}
-                    >
-                      Siguiente
-                    </button>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <select 
-                      className="border rounded w-full p-2"
-                      value={registrosPorPagina}
-                      onChange={(e) => {
-                        setRegistrosPorPagina(Number(e.target.value));
-                        setPaginaActualGastos(1);
-                      }}
-                    >
-                      <option value={5}>5 por página</option>
-                      <option value={10}>10 por página</option>
-                      <option value={20}>20 por página</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
+              </>
+            )}
             
             {activeTab === 'gastos' && (
               <div className="flex flex-col sm:flex-row justify-end mt-6 gap-4">
@@ -1105,12 +1189,20 @@ export default function HistorialCompras() {
                   <p className="mb-4 text-green-700 font-medium">
                     Este {tipoComprobante === 'compra' ? 'compra' : 'gasto'} ya tiene un comprobante cargado.
                   </p>
-                  <button 
-                    onClick={handleViewComprobante}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mb-4 w-full sm:w-auto"
-                  >
-                    Ver Comprobante
-                  </button>
+                  <div className="flex gap-2 justify-center mb-4 flex-wrap">
+                    <button 
+                      onClick={handleViewComprobante}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    >
+                      Ver Comprobante
+                    </button>
+                    <button 
+                      onClick={handleEliminarComprobante}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
                   <p className="text-sm text-gray-600 mt-2">
                     Si necesitas reemplazar el comprobante, selecciona un nuevo archivo.
                   </p>
@@ -1133,7 +1225,7 @@ export default function HistorialCompras() {
                 id="comprobante-input"
                 className="hidden"
                 onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
               />
               <label 
                 htmlFor="comprobante-input"
@@ -1143,7 +1235,7 @@ export default function HistorialCompras() {
                   Haz clic aquí para seleccionar un archivo
                 </span>
                 <span className="text-xs text-gray-500">
-                  Formatos aceptados: PDF, JPG, JPEG, PNG
+                  Formatos aceptados: PDF, JPG, JPEG, PNG, DOC, DOCX (Máx. 10MB)
                 </span>
               </label>
               
@@ -1151,6 +1243,9 @@ export default function HistorialCompras() {
                 <div className="mt-4 p-2 bg-blue-50 rounded-lg">
                   <p className="text-sm font-medium text-blue-700">Archivo seleccionado:</p>
                   <p className="text-sm text-gray-600 truncate">{comprobante.name}</p>
+                  <p className="text-xs text-gray-500">
+                    Tamaño: {(comprobante.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
                   
                   {comprobantePreview && (
                     <div className="mt-2 flex justify-center">
@@ -1198,7 +1293,9 @@ export default function HistorialCompras() {
                     </svg>
                     Subiendo...
                   </div>
-                ) : "Subir Comprobante"}
+                ) : (
+                  comprobanteExistente ? "Reemplazar Comprobante" : "Subir Comprobante"
+                )}
               </button>
             </div>
           </div>

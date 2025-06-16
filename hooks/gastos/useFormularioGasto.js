@@ -1,51 +1,171 @@
+// hooks/gastos/useFormularioGasto.js
 import { useGasto } from '../../context/GastosContext';
 
-export function useFormularioGasto() {
-  const { formData, setField } = useGasto();
+export const useFormularioGasto = () => {
+  const {
+    formData,
+    handleInputChange,
+    isValidForm,
+    hasUnsavedData,
+    getMontoNumerico,
+    prepararDatosParaBackend
+  } = useGasto();
 
-  // Opciones predefinidas
-  const opcionesDescripcion = ['NAFTA', 'VIANDA', 'MANTENIMIENTO', 'REPARACION', 'ADELANTO'];
-  const opcionesFormaPago = ['EFECTIVO', 'TRANSFERENCIA'];
+  // Opciones predefinidas para el formulario
+  const opcionesDescripcion = [
+    'Combustible',
+    'Mantenimiento de vehículos',
+    'Servicios públicos (luz, gas, agua)',
+    'Internet y telefonía',
+    'Material de oficina',
+    'Limpieza y mantenimiento',
+    'Seguros',
+    'Impuestos y tasas',
+    'Publicidad y marketing',
+    'Capacitación y cursos',
+    'Herramientas y equipos',
+    'Reparaciones menores',
+    'Viáticos y comidas',
+    'Alquiler de equipos',
+    'Honorarios profesionales',
+    'Gastos bancarios',
+    'Otros gastos operativos'
+  ];
 
-  // Validar formato de monto (números con hasta 2 decimales)
-  const validarMonto = (value) => {
-    return /^\d*\.?\d{0,2}$/.test(value) || value === '';
+  const opcionesFormaPago = [
+    'Efectivo',
+    'Transferencia',
+    'Cheque',
+    'Tarjeta de débito',
+    'Tarjeta de crédito'
+  ];
+
+  // Validaciones específicas
+  const esFormularioValido = () => {
+    return isValidForm();
   };
 
-  // Manejar cambios en los inputs
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
+  const hayDatosNoGuardados = () => {
+    return hasUnsavedData();
+  };
+
+  // Validar campo específico
+  const validarCampo = (campo) => {
+    const valor = formData[campo];
     
-    // Si es campo de monto, validar que sea un número decimal válido
-    if (name === 'monto') {
-      if (validarMonto(value)) {
-        setField(name, value);
-      }
-    } else {
-      setField(name, value);
+    switch (campo) {
+      case 'descripcion':
+        return valor && (valor || '').trim() !== '';
+      
+      case 'monto':
+        const monto = getMontoNumerico();
+        return monto > 0 && monto <= 99999999.99; // Máximo 8 dígitos + 2 decimales
+      
+      case 'formaPago':
+        return valor && (valor || '').trim() !== '';
+      
+      default:
+        return true;
     }
   };
 
-  // Verificar si el formulario está completo
-  const esFormularioValido = () => {
-    return formData.descripcion && formData.monto && formData.formaPago;
+  // Obtener mensaje de error para un campo
+  const obtenerMensajeError = (campo) => {
+    if (validarCampo(campo)) return '';
+    
+    const valor = formData[campo];
+    
+    switch (campo) {
+      case 'descripcion':
+        return 'La descripción es obligatoria';
+      
+      case 'monto':
+        if (!valor) {
+          return 'El monto es obligatorio';
+        }
+        const monto = getMontoNumerico();
+        if (monto <= 0) {
+          return 'El monto debe ser mayor a 0';
+        }
+        if (monto > 99999999.99) {
+          return 'El monto no puede exceder $99.999.999,99';
+        }
+        return '';
+      
+      case 'formaPago':
+        return 'Debe seleccionar una forma de pago';
+      
+      default:
+        return '';
+    }
   };
 
-  // Verificar si hay datos que se perderían al salir
-  const hayDatosNoGuardados = () => {
-    return formData.descripcion || 
-           formData.monto || 
-           formData.formaPago || 
-           formData.observaciones || 
-           formData.comprobante;
+  // Obtener resumen del gasto para confirmación
+  const obtenerResumen = () => {
+    const montoNumerico = getMontoNumerico();
+    
+    return {
+      descripcion: formData.descripcion,
+      monto: montoNumerico,
+      montoFormateado: new Intl.NumberFormat('es-AR', {
+        style: 'currency',
+        currency: 'ARS',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(montoNumerico),
+      formaPago: formData.formaPago,
+      observaciones: formData.observaciones
+    };
+  };
+
+  // Validar rangos específicos
+  const validarRangoMonto = () => {
+    const monto = getMontoNumerico();
+    
+    if (monto <= 0) {
+      return { valido: false, mensaje: 'El monto debe ser mayor a cero' };
+    }
+    
+    if (monto > 99999999.99) {
+      return { valido: false, mensaje: 'El monto no puede exceder $99.999.999,99' };
+    }
+    
+    return { valido: true, mensaje: '' };
+  };
+
+  // Formatear monto para mostrar en la interfaz
+  const formatearMontoParaVisualizacion = (valor) => {
+    if (!valor) return '';
+    
+    const numerico = getMontoNumerico();
+    return new Intl.NumberFormat('es-AR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(numerico);
   };
 
   return {
+    // Datos del formulario
     formData,
+    
+    // Opciones
     opcionesDescripcion,
     opcionesFormaPago,
+    
+    // Funciones de manejo
     handleInputChange,
+    
+    // Validaciones
     esFormularioValido,
-    hayDatosNoGuardados
+    hayDatosNoGuardados,
+    validarCampo,
+    obtenerMensajeError,
+    validarRangoMonto,
+    
+    // Utilidades
+    prepararDatosParaBackend,
+    obtenerResumen,
+    getMontoNumerico,
+    formatearMontoParaVisualizacion
   };
-}
+};

@@ -6,6 +6,7 @@ import useAuth from '../../hooks/useAuth';
 import { GastoProvider, useGasto } from '../../context/GastosContext';
 import { useRegistrarGasto } from '../../hooks/gastos/useRegistrarGasto';
 import { useFormularioGasto } from '../../hooks/gastos/useFormularioGasto';
+import { useArchivoGasto } from '../../hooks/gastos/useArchivoGasto';
 
 import FormularioGasto from '../../components/gastos/FormularioGasto';
 import SelectorArchivosGasto from '../../components/gastos/SelectorArchivosGasto';
@@ -15,7 +16,8 @@ import { BotonAccionesGasto } from '../../components/gastos/BotonAccionesGasto';
 function RegistrarGastoContent() {
   const { formData, resetForm } = useGasto();
   const { registrarGasto, loading } = useRegistrarGasto();
-  const { esFormularioValido, hayDatosNoGuardados } = useFormularioGasto();
+  const { esFormularioValido, hayDatosNoGuardados, obtenerResumen, validarRangoMonto } = useFormularioGasto();
+  const { obtenerArchivo, limpiarArchivo, hayArchivo } = useArchivoGasto();
   
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
@@ -23,8 +25,16 @@ function RegistrarGastoContent() {
   useAuth();
 
   const handleConfirmarGasto = () => {
+    // Validar formulario básico
     if (!esFormularioValido()) {
       toast.error('Por favor complete los campos obligatorios: Descripción, Monto y Forma de Pago');
+      return;
+    }
+    
+    // Validar rango del monto
+    const validacionMonto = validarRangoMonto();
+    if (!validacionMonto.valido) {
+      toast.error(validacionMonto.mensaje);
       return;
     }
     
@@ -32,20 +42,54 @@ function RegistrarGastoContent() {
   };
 
   const handleRegistrarGasto = async () => {
-    const exito = await registrarGasto(formData);
-    if (exito) {
-      resetForm();
-      setMostrarConfirmacion(false);
+    try {
+      // Obtener el archivo seleccionado
+      const archivo = obtenerArchivo();
+      
+      console.log('🚀 Iniciando registro de gasto:', {
+        formData,
+        tieneArchivo: !!archivo,
+        nombreArchivo: archivo?.name
+      });
+      
+      // Registrar gasto con archivo (si existe)
+      const exito = await registrarGasto(formData, archivo);
+      
+      if (exito) {
+        // Limpiar formulario Y archivo después del registro exitoso
+        resetForm();
+        limpiarArchivo();
+        setMostrarConfirmacion(false);
+        
+        // Mostrar mensaje adicional sobre el flujo
+        setTimeout(() => {
+          toast.success('Puede registrar otro gasto o volver al menú principal');
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('💥 Error en handleRegistrarGasto:', error);
+      toast.error('Error inesperado al registrar el gasto');
     }
   };
 
   const handleLimpiarFormulario = () => {
-    resetForm();
-    toast.success('Formulario limpiado');
+    const tieneDatos = hayDatosNoGuardados() || hayArchivo;
+    
+    if (tieneDatos) {
+      if (confirm('¿Está seguro de que desea limpiar el formulario? Se perderán todos los datos ingresados y el archivo seleccionado.')) {
+        resetForm();
+        limpiarArchivo();
+        toast.success('Formulario limpiado');
+      }
+    } else {
+      toast.info('El formulario ya está vacío');
+    }
   };
 
   const handleConfirmarSalida = () => {
-    if (hayDatosNoGuardados()) {
+    const tieneDatos = hayDatosNoGuardados() || hayArchivo;
+    
+    if (tieneDatos) {
       setMostrarConfirmacionSalida(true);
     } else {
       window.location.href = '/';
@@ -54,6 +98,16 @@ function RegistrarGastoContent() {
 
   const handleSalir = () => {
     window.location.href = '/';
+  };
+
+  // Obtener resumen para el modal de confirmación
+  const resumenGasto = obtenerResumen();
+  
+  // Agregar información del archivo al resumen
+  const resumenCompleto = {
+    ...resumenGasto,
+    tieneComprobante: hayArchivo,
+    nombreComprobante: obtenerArchivo()?.name || null
   };
 
   return (
@@ -68,6 +122,9 @@ function RegistrarGastoContent() {
         <div className="bg-blue-800 p-6 text-center">
           <h1 className="text-2xl font-bold text-white">REGISTRAR GASTO</h1>
           <p className="text-blue-200 mt-2">Complete el formulario para registrar un nuevo gasto</p>
+          <p className="text-blue-100 mt-1 text-sm">
+            Todos los campos marcados con <span className="text-red-300">*</span> son obligatorios
+          </p>
         </div>
         
         {/* Formulario */}
@@ -89,9 +146,7 @@ function RegistrarGastoContent() {
       {/* Modal de confirmación de gasto */}
       <ModalConfirmacionGasto
         mostrar={mostrarConfirmacion}
-        descripcion={formData.descripcion}
-        monto={formData.monto}
-        formaPago={formData.formaPago}
+        resumen={resumenCompleto}
         onConfirmar={handleRegistrarGasto}
         onCancelar={() => setMostrarConfirmacion(false)}
         loading={loading}
