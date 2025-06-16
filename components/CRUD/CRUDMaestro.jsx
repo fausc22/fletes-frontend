@@ -6,7 +6,7 @@ import useAuth from '../../hooks/useAuth';
 // Hooks
 import { useEntityCRUD, useFormMode } from '../../hooks/useCRUD';
 import { useEmpleados } from '../../hooks/useEmpleados';
-import { useDynamicOptions } from '../../hooks/useDynamicOptions'; // ← NUEVO HOOK
+import { useDynamicOptions } from '../../hooks/useDynamicOptions';
 
 // Componentes
 import { LayoutCRUD } from './LayoutCRUD';
@@ -35,13 +35,11 @@ export default function CRUDMaestro({ config }) {
   // Hooks para manejar el estado
   const { selectedOption, setMode } = useFormMode();
   
-  // Hook de empleados (solo si es empleado)
-  const empleadosHook = isEmpleado ? useEmpleados() : null;
-  
-  // Hook genérico (solo si NO es empleado) - usar configuración dinámica
-  const genericHook = !isEmpleado ? useEntityCRUD(activeConfig) : null;
+  // ✅ SIEMPRE llamar ambos hooks (sin condicionales)
+  const empleadosHook = useEmpleados();
+  const genericHook = useEntityCRUD(activeConfig);
 
-  // USAR EL ESTADO DEL HOOK EN LUGAR DE ESTADO LOCAL
+  // ✅ Usar lógica condicional DESPUÉS de llamar los hooks
   const formData = isEmpleado ? (empleadosHook?.formData || {}) : (genericHook?.formData || {});
   const setFormData = isEmpleado ? empleadosHook?.setFormData : genericHook?.setFormData;
   const errors = isEmpleado ? {} : (genericHook?.errors || {});
