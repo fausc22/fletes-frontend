@@ -1,5 +1,3 @@
-
-
 export function ModalConfirmacionPedido({ 
   mostrar, 
   cliente, 
@@ -170,7 +168,6 @@ export function ModalConfirmacionEliminarMultiple({
   );
 }
 
-
 export function ModalConfirmacionAnularPedidoIndividual({ 
   mostrar, 
   pedido, 
@@ -214,7 +211,7 @@ export function ModalConfirmacionAnularPedidoIndividual({
               <h4 className="font-semibold text-red-800 mb-2">⚠️ Importante:</h4>
               <div className="space-y-1 text-sm text-red-700">
                 <p>• Se reestablecerá el STOCK de todos los productos del pedido</p>
-                <p>• Esta acción cambiará el estado del pedido a "Anulado"</p>
+                <p>• Esta acción cambiará el estado del pedido a &quot;Anulado&quot;</p>
                 <p>• Los productos volverán a estar disponibles en el inventario</p>
               </div>
             </div>

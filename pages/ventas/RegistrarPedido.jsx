@@ -10,11 +10,15 @@ import ClienteSelector from '../../components/pedidos/SelectorClientes';
 import ProductoSelector from '../../components/pedidos/SelectorProductos';
 import ProductosCarrito from '../../components/pedidos/ProductosCarrito';
 import ObservacionesPedido from '../../components/pedidos/ObservacionesPedido';
-import { ModalConfirmacionPedido, ModalConfirmacionSalidaPedidos } from '../../components/pedidos/ModalesConfirmacion';
+import { 
+  ModalConfirmacionPedido, 
+  ModalConfirmacionSalidaPedidos 
+} from '../../components/pedidos/ModalesConfirmacion';
 
 function RegistrarPedidoContent() {
   const { 
     cliente, 
+
     productos, 
     observaciones,
     total, 
