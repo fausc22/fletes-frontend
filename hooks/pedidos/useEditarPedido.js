@@ -31,10 +31,42 @@ export function useEditarPedido() {
     }
   };
 
-  // Agregar producto a un pedido existente
+  // Verificar si un producto ya existe en el pedido
+  const verificarProductoDuplicado = (productoId) => {
+    return productos.some(prod => prod.producto_id === productoId);
+  };
+
+  // Obtener información de stock de un producto
+  const verificarStock = async (productoId) => {
+    try {
+      const response = await axiosAuth.get(`/productos/stock/${productoId}`);
+      if (response.data.success) {
+        return response.data.data.stock_actual || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error al verificar stock:', error);
+      return 0;
+    }
+  };
+
+  // Agregar producto a un pedido existente (con validaciones)
   const agregarProducto = async (producto, cantidad) => {
     if (!selectedPedido) {
       toast.error('No hay pedido seleccionado');
+      return false;
+    }
+
+    // 1. Verificar si el producto ya existe en el pedido
+    if (verificarProductoDuplicado(producto.id)) {
+      toast.error(`El producto "${producto.nombre}" ya está en el pedido. Use la opción editar para modificar la cantidad.`);
+      return false;
+    }
+
+    // 2. Verificar stock disponible
+    const stockDisponible = await verificarStock(producto.id);
+    if (cantidad > stockDisponible) {
+      toast.error(`Stock insuficiente. Disponible: ${stockDisponible}, Solicitado: ${cantidad}`);
       return false;
     }
 
@@ -50,7 +82,8 @@ export function useEditarPedido() {
       cantidad,
       precio,
       iva: ivaCalculado, // IVA en pesos
-      subtotal: subtotalSinIva // Subtotal sin IVA
+      subtotal: subtotalSinIva, // Subtotal sin IVA
+      stock_actual: stockDisponible // Guardar stock para validaciones futuras
     };
 
     try {
@@ -67,7 +100,19 @@ export function useEditarPedido() {
       }
     } catch (error) {
       console.error('Error al agregar producto:', error);
-      toast.error('No se pudo agregar el producto');
+      
+      // Manejar errores específicos del backend
+      if (error.response?.data?.message) {
+        if (error.response.data.message.includes('stock')) {
+          toast.error('Stock insuficiente en el servidor');
+        } else if (error.response.data.message.includes('duplicado')) {
+          toast.error('El producto ya existe en el pedido');
+        } else {
+          toast.error(error.response.data.message);
+        }
+      } else {
+        toast.error('No se pudo agregar el producto');
+      }
       return false;
     }
   };
@@ -98,7 +143,7 @@ export function useEditarPedido() {
     }
   };
 
-  // Actualizar producto (cantidad, precio)
+  // Actualizar producto (cantidad, precio) con validaciones de stock
   const actualizarProducto = async (producto) => {
     if (!selectedPedido) {
       toast.error('No hay pedido seleccionado');
@@ -107,10 +152,17 @@ export function useEditarPedido() {
 
     const precio = parseFloat(producto.precio) || 0;
     const cantidad = parseInt(producto.cantidad) || 1;
+
+    // Verificar stock antes de actualizar
+    const stockDisponible = await verificarStock(producto.producto_id);
+    if (cantidad > stockDisponible) {
+      toast.error(`Stock insuficiente. Disponible: ${stockDisponible}, Solicitado: ${cantidad}`);
+      return false;
+    }
+
     const subtotalSinIva = parseFloat((precio * cantidad).toFixed(2));
     
     // Calcular IVA basado en el porcentaje original del producto
-    // Asumiendo que el porcentaje se puede obtener del producto actual
     const porcentajeIva = 21; // Por defecto, pero idealmente debería venir del producto
     const ivaCalculado = parseFloat((subtotalSinIva * (porcentajeIva / 100)).toFixed(2));
 
@@ -138,9 +190,27 @@ export function useEditarPedido() {
       }
     } catch (error) {
       console.error('Error al actualizar producto:', error);
-      toast.error('Error al actualizar el producto');
+      
+      // Manejar errores específicos del backend
+      if (error.response?.data?.message?.includes('stock')) {
+        toast.error('Stock insuficiente en el servidor');
+      } else {
+        toast.error('Error al actualizar el producto');
+      }
       return false;
     }
+  };
+
+  // Validar stock antes de proceder con cualquier operación
+  const validarStockAntesDeProceder = async (productoId, cantidadSolicitada) => {
+    const stockDisponible = await verificarStock(productoId);
+    
+    if (cantidadSolicitada > stockDisponible) {
+      toast.error(`Stock insuficiente. Disponible: ${stockDisponible}, Solicitado: ${cantidadSolicitada}`);
+      return false;
+    }
+    
+    return true;
   };
 
   // Actualizar totales del pedido
@@ -186,15 +256,15 @@ export function useEditarPedido() {
 
       if (response.data.success) {
         setSelectedPedido(prev => ({ ...prev, observaciones: nuevasObservaciones }));
-        toast.success('Observaciones actualizadas');
         return true;
       } else {
-        toast.error('Error al actualizar observaciones');
+        toast.error(response.data.message || 'Error al actualizar observaciones');
         return false;
       }
     } catch (error) {
       console.error('Error al actualizar observaciones:', error);
-      toast.error('Error al actualizar observaciones');
+      const errorMessage = error.response?.data?.message || 'Error al actualizar observaciones';
+      toast.error(errorMessage);
       return false;
     }
   };
@@ -219,6 +289,11 @@ export function useEditarPedido() {
     };
   };
 
+  // Función para obtener la lista de productos actuales (para validaciones)
+  const getProductosActuales = () => {
+    return productos;
+  };
+
   return {
     // Estado
     selectedPedido,
@@ -235,6 +310,12 @@ export function useEditarPedido() {
     actualizarObservaciones,
     cerrarEdicion,
     getTotales,
+    getProductosActuales,
+    
+    // Funciones de validación
+    verificarProductoDuplicado,
+    verificarStock,
+    validarStockAntesDeProceder,
     
     // Función interna (por si la necesitas)
     actualizarTotalPedido

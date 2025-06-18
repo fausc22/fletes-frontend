@@ -1,6 +1,22 @@
 // components/pedidos/TablaPedidos.jsx
 import { useState } from 'react';
 
+
+// Función helper para formatear fechas
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'Fecha no disponible';
+  
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
+
 // Componente para tabla en escritorio
 function TablaEscritorio({
   pedidos,
@@ -105,13 +121,7 @@ function TablaEscritorio({
                 #{pedido.id}
               </td>
               <td className="p-3 text-sm">
-                {pedido.fecha ? new Date(pedido.fecha).toLocaleDateString('es-AR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                }) : 'Fecha no disponible'}
+                {formatearFecha(pedido.fecha)}
               </td>
               <td className="p-3 font-medium">
                 <div>
@@ -245,13 +255,7 @@ function TarjetasMovil({
                 <div>
                   <h3 className="text-lg font-bold text-blue-600">#{pedido.id}</h3>
                   <p className="text-xs text-gray-500">
-                    {pedido.fecha ? new Date(pedido.fecha).toLocaleDateString('es-AR', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) : 'Fecha no disponible'}
+                    {formatearFecha(pedido.fecha)}
                   </p>
                 </div>
               </div>

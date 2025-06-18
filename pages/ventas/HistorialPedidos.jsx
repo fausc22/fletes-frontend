@@ -107,17 +107,18 @@ function HistorialPedidosContent() {
     cambiarRegistrosPorPagina
   } = usePaginacion(pedidos, 10); // Usa pedidos ya filtrados
 
-  // Hook para editar pedidos
   const {
-    selectedPedido,
-    productos,
-    loading: loadingProductos,
-    cargarProductosPedido,
-    agregarProducto,
-    eliminarProducto,
-    actualizarProducto,
-    cerrarEdicion
-  } = useEditarPedido();
+  selectedPedido,
+  productos,
+  loading: loadingProductos,
+  cargarProductosPedido,
+  agregarProducto,
+  eliminarProducto,
+  actualizarProducto,
+  actualizarObservaciones, 
+  verificarStock, 
+  cerrarEdicion
+} = useEditarPedido();
 
   // FUNCIONES para anular pedidos
   const handleMostrarConfirmacionAnular = (pedido, productosDelPedido) => {
@@ -197,11 +198,28 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalAgregarProducto(true), 300);
   };
 
-  const handleEditarProducto = (producto) => {
-    setProductoEditando({ ...producto });
+  const handleEditarProducto = async (producto) => {
+  try {
+    console.log('🔍 Consultando stock para producto:', producto.producto_id);
+    const stockActual = await verificarStock(producto.producto_id);
+    console.log('📦 Stock obtenido:', stockActual);
+    
+    const productoConStock = {
+      ...producto,
+      stock_actual: stockActual
+    };
+    
+    setProductoEditando(productoConStock);
     setMostrarModalDetalle(false);
     setTimeout(() => setMostrarModalEditarProducto(true), 300);
-  };
+  } catch (error) {
+    console.error('❌ Error al obtener stock:', error);
+    toast.error('Error al consultar stock del producto');
+    setProductoEditando({ ...producto, stock_actual: 0 });
+    setMostrarModalDetalle(false);
+    setTimeout(() => setMostrarModalEditarProducto(true), 300);
+  }
+};
 
   const handleEliminarProducto = (producto) => {
     setProductoEliminando(producto);
@@ -262,6 +280,29 @@ function HistorialPedidosContent() {
     }
      
     await generarPDFPedido(selectedPedido, productos);
+  };
+
+
+  const handleActualizarObservaciones = async (nuevasObservaciones) => {
+  if (!selectedPedido) {
+    toast.error('No hay pedido seleccionado');
+    return false;
+  }
+
+  try {
+    console.log('📝 Actualizando observaciones para pedido:', selectedPedido.id);
+    const exito = await actualizarObservaciones(nuevasObservaciones);
+    
+    if (exito) {
+      await cargarPedidos();
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('❌ Error al actualizar observaciones:', error);
+    toast.error('Error al actualizar observaciones');
+    return false;
+  }
   };
 
   // Función para generar PDFs múltiples
@@ -395,6 +436,7 @@ function HistorialPedidosContent() {
         generandoPDF={generandoPDF}
         mostrarModalFacturacion={mostrarModalFacturacion}
         setMostrarModalFacturacion={setMostrarModalFacturacion}
+        onActualizarObservaciones={handleActualizarObservaciones} 
         isPedidoFacturado={selectedPedido?.estado === 'Facturado'}
         isPedidoAnulado={selectedPedido?.estado === 'Anulado'}
       />

@@ -137,7 +137,9 @@ export default function TablaRemitos({
                   {new Date(remito.fecha).toLocaleDateString('es-AR', {
                     day: '2-digit',
                     month: '2-digit',
-                    year: 'numeric'
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
                   })}
                 </td>
                 <td className="p-3 font-medium">

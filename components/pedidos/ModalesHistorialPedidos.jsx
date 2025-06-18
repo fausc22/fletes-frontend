@@ -596,8 +596,15 @@ export function InformacionCliente({ pedido, expandido, onToggleExpansion, mostr
   );
 }
 
-// Resto de componentes sin cambios significativos...
-export function InformacionAdicional({ pedido }) {
+export function InformacionAdicional({ 
+  pedido, 
+  onActualizarObservaciones, 
+  canEdit = true 
+}) {
+  const [editandoObservaciones, setEditandoObservaciones] = useState(false);
+  const [observacionesTemp, setObservacionesTemp] = useState('');
+  const [guardandoObservaciones, setGuardandoObservaciones] = useState(false);
+
   const getEstadoStyle = (estado) => {
     switch (estado) {
       case 'Exportado':
@@ -611,23 +618,143 @@ export function InformacionAdicional({ pedido }) {
     }
   };
 
+  const iniciarEdicionObservaciones = () => {
+    setObservacionesTemp(pedido.observaciones || '');
+    setEditandoObservaciones(true);
+  };
+
+  const cancelarEdicionObservaciones = () => {
+    setObservacionesTemp('');
+    setEditandoObservaciones(false);
+  };
+
+  const guardarObservaciones = async () => {
+    setGuardandoObservaciones(true);
+    
+    try {
+      const exito = await onActualizarObservaciones(observacionesTemp);
+      if (exito) {
+        setEditandoObservaciones(false);
+        setObservacionesTemp('');
+        toast.success('Observaciones actualizadas correctamente');
+      }
+    } catch (error) {
+      toast.error('Error al actualizar observaciones');
+    } finally {
+      setGuardandoObservaciones(false);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    // Ctrl/Cmd + Enter para guardar rápido
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      guardarObservaciones();
+    }
+    // Escape para cancelar
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelarEdicionObservaciones();
+    }
+  };
+
   return (
     <div className="bg-gray-100 p-4 rounded-lg mb-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Estado */}
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Estado</h3>
           <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getEstadoStyle(pedido.estado)}`}>
             {pedido.estado || 'Sin estado'}
           </span>
         </div>
-        <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Observaciones</h3>
-          <p className="text-lg text-gray-700">
-            {pedido.observaciones || 'Sin observaciones especiales'}
-          </p>
+
+        {/* Observaciones - Responsivo y Editable SIN HOVER MOLESTO */}
+        <div className="md:col-span-1">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-xl text-gray-800">Observaciones</h3>
+            {canEdit && !editandoObservaciones && (
+              <button
+                onClick={iniciarEdicionObservaciones}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs transition-colors flex items-center gap-1"
+                title="Editar observaciones"
+              >
+                ✏️ <span className="hidden sm:inline">Editar</span>
+              </button>
+            )}
+          </div>
+
+          {editandoObservaciones ? (
+            <div className="space-y-2">
+              <textarea
+                value={observacionesTemp}
+                onChange={(e) => setObservacionesTemp(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Escriba las observaciones del pedido..."
+                className="w-full p-2 border border-gray-300 rounded text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows="3"
+                maxLength="500"
+                disabled={guardandoObservaciones}
+              />
+              
+              {/* Contador de caracteres */}
+              <div className="text-xs text-gray-500 text-right">
+                {observacionesTemp.length}/500 caracteres
+              </div>
+              
+              {/* Botones de acción - Responsivos */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  onClick={guardarObservaciones}
+                  disabled={guardandoObservaciones}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-3 py-1 rounded text-sm transition-colors flex items-center justify-center gap-1"
+                >
+                  {guardandoObservaciones ? (
+                    <>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                      <span className="hidden sm:inline">Guardando...</span>
+                    </>
+                  ) : (
+                    <>
+                      ✅ <span className="hidden sm:inline">Guardar</span>
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  onClick={cancelarEdicionObservaciones}
+                  disabled={guardandoObservaciones}
+                  className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition-colors flex items-center justify-center gap-1"
+                >
+                  ❌ <span className="hidden sm:inline">Cancelar</span>
+                </button>
+              </div>
+              
+              {/* Ayuda de teclado */}
+              <div className="text-xs text-gray-500 hidden sm:block">
+                💡 Ctrl+Enter para guardar, Escape para cancelar
+              </div>
+            </div>
+          ) : (
+            // ✅ VERSIÓN SIN HOVER MOLESTO - Solo el contenido simple
+            <div>
+              <p className="text-lg text-gray-700 bg-white p-3 rounded border min-h-[2.5rem] break-words">
+                {pedido.observaciones && pedido.observaciones !== 'sin observaciones' 
+                  ? pedido.observaciones 
+                  : (
+                    <span className="text-gray-400 italic">
+                      Sin observaciones especiales
+                    </span>
+                  )
+                }
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* Empleado */}
         <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Empleado</h3>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Usuario</h3>
           <p className="text-lg font-semibold text-blue-600">
             {pedido.empleado_nombre || 'No especificado'}
           </p>
@@ -640,7 +767,8 @@ export function InformacionAdicional({ pedido }) {
 export function ModalAgregarProductoPedido({ 
   mostrar, 
   onClose, 
-  onAgregarProducto 
+  onAgregarProducto,
+  productosActuales = [] // Nueva prop para validaciones
 }) {
   const [productQuantity, setProductQuantity] = useState(1);
   const {
@@ -654,8 +782,31 @@ export function ModalAgregarProductoPedido({
     limpiarSeleccion
   } = useProductoSearch();
 
+  // Validar si el producto ya existe en el pedido
+  const productoYaExiste = (productoId) => {
+    return productosActuales.some(prod => prod.producto_id === productoId);
+  };
+
+  // Verificar stock disponible
+  const stockDisponible = productoSeleccionado?.stock_actual || 0;
+  const stockSuficiente = productQuantity <= stockDisponible;
+  const productoEsDuplicado = productoSeleccionado ? productoYaExiste(productoSeleccionado.id) : false;
+
   const handleAgregarProducto = async () => {
     if (!productoSeleccionado || productQuantity < 1) {
+      toast.error('Seleccione un producto y una cantidad válida');
+      return;
+    }
+
+    // Validar duplicado
+    if (productoEsDuplicado) {
+      toast.error(`El producto "${productoSeleccionado.nombre}" ya está en el pedido. Use la opción editar para modificar la cantidad.`);
+      return;
+    }
+
+    // Validar stock
+    if (!stockSuficiente) {
+      toast.error(`Stock insuficiente. Disponible: ${stockDisponible}, Solicitado: ${productQuantity}`);
       return;
     }
 
@@ -709,18 +860,27 @@ export function ModalAgregarProductoPedido({
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
               ) : resultados.length > 0 ? (
-                resultados.map((product, index) => (
-                  <div 
-                    key={index}
-                    className={`p-2 border-b cursor-pointer transition-colors ${
-                      productoSeleccionado?.id === product.id ? 'bg-blue-100' : 'hover:bg-gray-100'
-                    }`}
-                    onClick={() => seleccionarProducto(product)}
-                  >
-                    <div className="font-medium text-sm">{product.nombre}</div>
-                    <div className="text-xs text-gray-600">Código: {product.id}</div>
-                  </div>
-                ))
+                resultados.map((product, index) => {
+                  const yaExiste = productoYaExiste(product.id);
+                  return (
+                    <div 
+                      key={index}
+                      className={`p-2 border-b cursor-pointer transition-colors ${
+                        productoSeleccionado?.id === product.id ? 'bg-blue-100' : 
+                        yaExiste ? 'bg-red-50 opacity-50' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => !yaExiste && seleccionarProducto(product)}
+                    >
+                      <div className="font-medium text-sm">
+                        {product.nombre}
+                        {yaExiste && <span className="text-red-600 ml-2">(Ya en pedido)</span>}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        Código: {product.id} | Stock: {product.stock_actual}
+                      </div>
+                    </div>
+                  );
+                })
               ) : (
                 <p className="text-gray-500 text-sm">No hay productos para mostrar</p>
               )}
@@ -734,7 +894,18 @@ export function ModalAgregarProductoPedido({
                   <p><strong>Nombre:</strong> {productoSeleccionado.nombre}</p>
                   <p><strong>Unidad de Medida:</strong> {productoSeleccionado.unidad_medida}</p>
                   <p><strong>Precio:</strong> ${precio.toFixed(2)}</p>
-                  <p><strong>Stock:</strong> {productoSeleccionado.stock_actual}</p>
+                  <p><strong>Stock Disponible:</strong> 
+                    <span className={stockDisponible > 0 ? 'text-green-600' : 'text-red-600'}>
+                      {stockDisponible}
+                    </span>
+                  </p>
+                  
+                  {/* Alertas de validación */}
+                  {productoEsDuplicado && (
+                    <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded">
+                      ⚠️ Este producto ya está en el pedido
+                    </div>
+                  )}
                   
                   <div className="mt-4">
                     <label className="block mb-1 font-medium">Cantidad:</label>
@@ -748,19 +919,28 @@ export function ModalAgregarProductoPedido({
                       </button>
                       <input 
                         type="number"
-                        className="border p-2 w-16 rounded text-sm text-center"
+                        className={`border p-2 w-16 rounded text-sm text-center ${
+                          !stockSuficiente ? 'border-red-500 bg-red-50' : ''
+                        }`}
                         value={productQuantity}
                         onChange={(e) => setProductQuantity(Math.max(1, Number(e.target.value)))}
                         min="1"
+                        max={stockDisponible}
                       />
                       <button 
                         type="button"
                         className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
-                        onClick={() => setProductQuantity(productQuantity + 1)}
+                        onClick={() => setProductQuantity(Math.min(stockDisponible, productQuantity + 1))}
                       >
                         +
                       </button>
                     </div>
+                    
+                    {!stockSuficiente && (
+                      <p className="text-red-600 text-xs mt-1">
+                        ❌ Stock insuficiente (máximo: {stockDisponible})
+                      </p>
+                    )}
                   </div>
                   
                   <div className="bg-gray-100 p-3 rounded">
@@ -769,9 +949,19 @@ export function ModalAgregarProductoPedido({
                   
                   <button 
                     onClick={handleAgregarProducto}
-                    className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full transition-colors"
+                    disabled={productoEsDuplicado || !stockSuficiente}
+                    className={`mt-4 px-4 py-2 rounded w-full transition-colors ${
+                      productoEsDuplicado || !stockSuficiente
+                        ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                   >
-                    Agregar Producto
+                    {productoEsDuplicado 
+                      ? 'Producto ya agregado' 
+                      : !stockSuficiente 
+                        ? 'Stock insuficiente'
+                        : 'Agregar Producto'
+                    }
                   </button>
                 </div>
               ) : (
@@ -802,8 +992,20 @@ export function ModalEditarProductoPedido({
 }) {
   if (!producto) return null;
 
+  // Obtener stock desde la información del producto
+  const stockDisponible = Number(producto.stock_actual) || 0;
+  const cantidadActual = Number(producto.cantidad) || 1;
+  const stockSuficiente = cantidadActual <= stockDisponible;
+
   const handleCantidadChange = (e) => {
     const nuevaCantidad = Math.max(1, parseInt(e.target.value) || 1);
+    
+    // Validar stock antes de permitir el cambio
+    if (nuevaCantidad > stockDisponible) {
+      toast.error(`Stock insuficiente. Máximo disponible: ${stockDisponible}`);
+      return;
+    }
+
     const precio = Number(producto.precio) || 0;
     const nuevoSubtotal = (nuevaCantidad * precio).toFixed(2);
     
@@ -824,6 +1026,14 @@ export function ModalEditarProductoPedido({
       precio: nuevoPrecio,
       subtotal: nuevoSubtotal
     });
+  };
+
+  const handleGuardar = () => {
+    if (!stockSuficiente) {
+      toast.error(`No se puede guardar. Stock insuficiente (disponible: ${stockDisponible})`);
+      return;
+    }
+    onGuardar();
   };
 
   const precio = Number(producto.precio) || 0;
@@ -866,6 +1076,16 @@ export function ModalEditarProductoPedido({
                 disabled
               />
             </div>
+
+            {/* Mostrar stock disponible */}
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Stock Disponible:</span>
+                <span className={`font-bold ${stockDisponible > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {stockDisponible}
+                </span>
+              </div>
+            </div>
             
             <div>
               <label className="block mb-1 font-medium text-sm">Precio ($):</label>
@@ -889,24 +1109,35 @@ export function ModalEditarProductoPedido({
                   type="button"
                   className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
                   onClick={() => handleCantidadChange({ target: { value: cantidad - 1 } })}
+                  disabled={cantidad <= 1}
                 >
                   -
                 </button>
                 <input 
                   type="number"
-                  className="border p-2 w-16 rounded text-sm text-center"
+                  className={`border p-2 w-16 rounded text-sm text-center ${
+                    !stockSuficiente ? 'border-red-500 bg-red-50' : ''
+                  }`}
                   value={cantidad}
                   onChange={handleCantidadChange}
                   min="1"
+                  max={stockDisponible}
                 />
                 <button 
                   type="button"
                   className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
                   onClick={() => handleCantidadChange({ target: { value: cantidad + 1 } })}
+                  disabled={cantidad >= stockDisponible}
                 >
                   +
                 </button>
               </div>
+              
+              {!stockSuficiente && (
+                <p className="text-red-600 text-xs mt-1">
+                  ❌ Cantidad excede el stock disponible
+                </p>
+              )}
             </div>
             
             <div>
@@ -925,10 +1156,15 @@ export function ModalEditarProductoPedido({
           
           <div className="flex flex-col sm:flex-row justify-between mt-6 gap-2">
             <button 
-              onClick={onGuardar}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors"
+              onClick={handleGuardar}
+              disabled={!stockSuficiente}
+              className={`px-4 py-2 rounded transition-colors ${
+                !stockSuficiente 
+                  ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              Guardar Cambios
+              {!stockSuficiente ? 'Stock Insuficiente' : 'Guardar Cambios'}
             </button>
             <button 
               onClick={onClose}
@@ -1176,6 +1412,9 @@ export function ResumenTotales({ productos }) {
   );
 }
 
+
+
+// ModalDetallePedido actualizado
 export function ModalDetallePedido({ 
   pedido,
   productos,
@@ -1186,6 +1425,7 @@ export function ModalDetallePedido({
   onEliminarProducto,
   onCambiarEstado,
   onGenerarPDF,
+  onActualizarObservaciones, // Nueva prop
   generandoPDF,
   mostrarModalFacturacion,
   setMostrarModalFacturacion,
@@ -1193,7 +1433,27 @@ export function ModalDetallePedido({
   isPedidoAnulado
 }) {
   const [clienteExpandido, setClienteExpandido] = useState(false);
+  const [mostrarModalAgregar, setMostrarModalAgregar] = useState(false); // Nuevo estado
   const { user } = useAuth();
+
+
+
+    // Función helper para formatear fechas
+  const formatearFecha = (fecha) => {
+  if (!fecha) return 'Fecha no disponible';
+  
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  };
+
+
 
   if (!pedido) return null;
   
@@ -1221,106 +1481,136 @@ export function ModalDetallePedido({
     }
   };
 
+  // Función para abrir el modal de agregar producto
+  const handleAbrirModalAgregar = () => {
+    setMostrarModalAgregar(true);
+  };
+
+  // Función para manejar el agregado de producto con validaciones
+  const handleAgregarProductoConValidaciones = async (producto, cantidad) => {
+    const exito = await onAgregarProducto(producto, cantidad);
+    if (exito) {
+      setMostrarModalAgregar(false);
+    }
+    return exito;
+  };
+
   const esGerente = user?.rol === 'GERENTE';
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg w-full max-w-xs sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        <div className="p-3 sm:p-4 lg:p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">
-              Pedido #{pedido.id}
-            </h2>
-            <button 
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
-            >
-              ✕
-            </button>
-          </div>
-          <div className="mb-4">
-            <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
-              <strong>Fecha:</strong> {pedido.fecha}
-            </h4>
-          </div>
-          <InformacionCliente 
-            pedido={pedido} 
-            expandido={clienteExpandido}
-            onToggleExpansion={toggleClienteExpansion}
-            mostrarModalFacturacion={mostrarModalFacturacion}
-            setMostrarModalFacturacion={setMostrarModalFacturacion}
-            productos={productos}
-            handleConfirmarFacturacion={handleConfirmarFacturacion}
-          />
-
-          <InformacionAdicional pedido={pedido} />
-
-          <div className="mb-4">
-            <h3 className="text-xl font-semibold mb-4 text-gray-800">Productos del Pedido</h3>
-            
-            {canEdit && (
-              <button
-                onClick={onAgregarProducto}
-                className="mb-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center"
+    <>
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 sm:p-4">
+        <div className="bg-white rounded-lg w-full max-w-xs sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="p-3 sm:p-4 lg:p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">
+                Pedido #{pedido.id}
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
               >
-                ➕ AGREGAR PRODUCTO
+                ✕
               </button>
-            )}
-
-            <TablaProductos
+            </div>
+            <div className="mb-4">
+              <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
+                <strong>Fecha:</strong> {formatearFecha(pedido.fecha)}
+              </h4>
+            </div>
+            <InformacionCliente 
+              pedido={pedido} 
+              expandido={clienteExpandido}
+              onToggleExpansion={toggleClienteExpansion}
+              mostrarModalFacturacion={mostrarModalFacturacion}
+              setMostrarModalFacturacion={setMostrarModalFacturacion}
               productos={productos}
-              onEditarProducto={onEditarProducto}
-              onEliminarProducto={onEliminarProducto}
-              loading={loading}
+              handleConfirmarFacturacion={handleConfirmarFacturacion}
+            />
+
+            <InformacionAdicional 
+              pedido={pedido} 
+              onActualizarObservaciones={onActualizarObservaciones}
               canEdit={canEdit}
             />
-            <ResumenTotales productos={productos} />
-          </div>
 
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            {esGerente && !isPedidoFacturado && (
+            <div className="mb-4">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">Productos del Pedido</h3>
+              
+              {canEdit && (
+                <button
+                  onClick={handleAbrirModalAgregar}
+                  className="mb-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center"
+                >
+                  ➕ AGREGAR PRODUCTO
+                </button>
+              )}
+
+              <TablaProductos
+                productos={productos}
+                onEditarProducto={onEditarProducto}
+                onEliminarProducto={onEliminarProducto}
+                loading={loading}
+                canEdit={canEdit}
+              />
+              <ResumenTotales productos={productos} />
+            </div>
+
+            <div className="mt-6 flex flex-col sm:flex-row gap-4">
+              {esGerente && !isPedidoFacturado && (
+                <button 
+                  onClick={handleFacturar}
+                  className={`bg-green-600 hover:bg-green-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
+                    esGerente ? 'sm:w-1/3' : ''
+                  }`}
+                >
+                  ✅ FACTURAR
+                </button>
+              )}
+              
               <button 
-                onClick={handleFacturar}
-                className={`bg-green-600 hover:bg-green-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
-                  esGerente ? 'sm:w-1/3' : ''
+                onClick={handleImprimir}
+                className={`bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
+                    esGerente && !isPedidoFacturado ? 'sm:w-1/3' : (isPedidoFacturado || !esGerente ? 'sm:w-1/2' : '')
+                }`}
+                disabled={generandoPDF}
+              >
+                {generandoPDF ? 'Generando PDF...' : '🖨️ IMPRIMIR'}
+              </button>
+
+              {esGerente && !isPedidoFacturado && (
+                <button 
+                  onClick={() => onCambiarEstado('Anulado')}
+                  className={`bg-red-600 hover:bg-red-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
+                    esGerente ? 'sm:w-1/3' : ''
+                  }`}
+                >
+                  🚫 ANULAR
+                </button>
+              )}
+              
+              <button 
+                onClick={onClose}
+                className={`bg-gray-600 hover:bg-gray-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
+                    esGerente && !isPedidoFacturado ? 'sm:w-1/3' : (isPedidoFacturado || !esGerente ? 'sm:w-1/2' : '')
                 }`}
               >
-                ✅ FACTURAR
+                CERRAR
               </button>
-            )}
-            
-            <button 
-              onClick={handleImprimir}
-              className={`bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
-                  esGerente && !isPedidoFacturado ? 'sm:w-1/3' : (isPedidoFacturado || !esGerente ? 'sm:w-1/2' : '')
-              }`}
-              disabled={generandoPDF}
-            >
-              {generandoPDF ? 'Generando PDF...' : '🖨️ IMPRIMIR'}
-            </button>
-
-            {esGerente && !isPedidoFacturado && (
-              <button 
-                onClick={() => onCambiarEstado('Anulado')}
-                className={`bg-red-600 hover:bg-red-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
-                  esGerente ? 'sm:w-1/3' : ''
-                }`}
-              >
-                🚫 ANULAR
-              </button>
-            )}
-            
-            <button 
-              onClick={onClose}
-              className={`bg-gray-600 hover:bg-gray-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
-                  esGerente && !isPedidoFacturado ? 'sm:w-1/3' : (isPedidoFacturado || !esGerente ? 'sm:w-1/2' : '')
-              }`}
-            >
-              CERRAR
-            </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Modal para agregar producto con validaciones */}
+      {mostrarModalAgregar && (
+        <ModalAgregarProductoPedido
+          mostrar={mostrarModalAgregar}
+          onClose={() => setMostrarModalAgregar(false)}
+          onAgregarProducto={handleAgregarProductoConValidaciones}
+          productosActuales={productos} // Pasar productos actuales para validaciones
+        />
+      )}
+    </>
   );
 }

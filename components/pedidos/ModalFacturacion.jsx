@@ -172,7 +172,7 @@ export default function ModalFacturacion({
 }) {
   // Estados para los selects
   const [cuentaSeleccionada, setCuentaSeleccionada] = useState('');
-  const [tipoFiscal, setTipoFiscal] = useState('A');
+  const [tipoFiscal, setTipoFiscal] = useState(''); // Se actualizará automáticamente
   const [cuentas, setCuentas] = useState([]); // Se cargarán desde la BD
 
   // Estados para los montos
@@ -188,9 +188,59 @@ export default function ModalFacturacion({
   const [loading, setLoading] = useState(false);
   const [loadingCuentas, setLoadingCuentas] = useState(false);
 
-  // Inicializar montos al abrir el modal
+  // ✅ FUNCIÓN PARA DETERMINAR TIPO FISCAL AUTOMÁTICAMENTE
+  const determinarTipoFiscal = (condicionIva) => {
+    if (!condicionIva) return 'A'; // Por defecto
+
+    const condicion = condicionIva.toLowerCase().trim();
+    
+    console.log('🧾 Determinando tipo fiscal para condición:', condicion);
+
+    // Mapeo de condiciones IVA a tipos fiscales
+    if (condicion.includes('consumidor final') || 
+        condicion.includes('consumidor') || 
+        condicion.includes('final')) {
+      console.log('✅ Tipo fiscal seleccionado: C (Consumidor Final)');
+      return 'C';
+    }
+    
+    if (condicion.includes('monotributo') || 
+        condicion.includes('monotributista')) {
+      console.log('✅ Tipo fiscal seleccionado: C (Monotributo = Consumidor Final)');
+      return 'C';
+    }
+    
+    if (condicion.includes('responsable inscripto') || 
+        condicion.includes('responsable inscrito') ||
+        condicion.includes('inscripto') ||
+        condicion.includes('inscrito')) {
+      console.log('✅ Tipo fiscal seleccionado: A (Responsable Inscripto)');
+      return 'A';
+    }
+    
+    if (condicion.includes('exento') || 
+        condicion.includes('no inscripto') ||
+        condicion.includes('no inscrito')) {
+      console.log('✅ Tipo fiscal seleccionado: B (No Inscripto)');
+      return 'B';
+    }
+
+    // Por defecto, Responsable Inscripto
+    console.log('⚠️ Condición no reconocida, usando tipo fiscal por defecto: A');
+    return 'A';
+  };
+
+  // ✅ INICIALIZAR MONTOS Y TIPO FISCAL AL ABRIR EL MODAL
   useEffect(() => {
     if (mostrar && productos && productos.length > 0) {
+      console.log('🧾 Inicializando modal de facturación...');
+      console.log('📋 Datos del pedido:', {
+        id: pedido?.id,
+        cliente: pedido?.cliente_nombre,
+        condicionIva: pedido?.cliente_condicion
+      });
+
+      // Calcular montos
       const subtotal = productos.reduce((acc, prod) => acc + (Number(prod.subtotal) || 0), 0);
       const iva = productos.reduce((acc, prod) => acc + (Number(prod.iva) || 0), 0);
       const total = subtotal + iva;
@@ -199,10 +249,21 @@ export default function ModalFacturacion({
       setIvaTotal(iva);
       setTotalConIva(total);
       
+      // ✅ DETERMINAR Y ESTABLECER TIPO FISCAL AUTOMÁTICAMENTE
+      const tipoFiscalAuto = determinarTipoFiscal(pedido.cliente_condicion);
+      setTipoFiscal(tipoFiscalAuto);
+
+      console.log('💰 Montos calculados:', {
+        subtotal: subtotal.toFixed(2),
+        iva: iva.toFixed(2),
+        total: total.toFixed(2),
+        tipoFiscalSeleccionado: tipoFiscalAuto
+      });
+      
       // Limpiar descuentos previos
       setDescuentoAplicado(null);
     }
-  }, [mostrar, productos]);
+  }, [mostrar, productos, pedido]);
 
   // Cargar cuentas desde la BD (placeholder)
   useEffect(() => {
@@ -306,7 +367,7 @@ export default function ModalFacturacion({
   // Limpiar formulario
   const limpiarFormulario = () => {
     setCuentaSeleccionada('');
-    setTipoFiscal('A');
+    setTipoFiscal('A'); // Reset al valor por defecto
     setSubtotalSinIva(0);
     setIvaTotal(0);
     setTotalConIva(0);
@@ -358,6 +419,13 @@ export default function ModalFacturacion({
                 <div>
                   <span className="font-medium">Productos:</span> {productos?.length || 0}
                 </div>
+                {/* ✅ MOSTRAR CONDICIÓN IVA DEL CLIENTE */}
+                <div className="sm:col-span-2">
+                  <span className="font-medium">Condición IVA:</span> 
+                  <span className="ml-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs">
+                    {pedido?.cliente_condicion || 'No especificada'}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -389,21 +457,28 @@ export default function ModalFacturacion({
                 )}
               </div>
 
-              {/* Select de tipo fiscal */}
+              {/* ✅ SELECT DE TIPO FISCAL CON PRESELECCIÓN AUTOMÁTICA */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tipo fiscal *
+                  Tipo fiscal * 
+                  <span className="text-xs text-green-600 ml-1">
+                    (Auto-seleccionado según condición IVA)
+                  </span>
                 </label>
                 <select
                   value={tipoFiscal}
                   onChange={(e) => setTipoFiscal(e.target.value)}
-                  className="border p-2 rounded w-full text-sm"
+                  className="border p-2 rounded w-full text-sm font-medium"
                   required
                 >
                   <option value="A">A - Responsable Inscripto</option>
                   <option value="B">B - Responsable No Inscripto</option>
                   <option value="C">C - Consumidor Final</option>
                 </select>
+                {/* ✅ INDICADOR DE PRESELECCIÓN */}
+                <p className="text-xs text-gray-500 mt-1">
+                  ✅ Preseleccionado automáticamente según: "{pedido?.cliente_condicion}"
+                </p>
               </div>
             </div>
 

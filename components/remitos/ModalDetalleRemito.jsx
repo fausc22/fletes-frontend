@@ -1,4 +1,4 @@
-// components/remitos/ModalDetalleRemito.jsx - Versión actualizada
+// components/remitos/ModalDetalleRemito.jsx - Versión corregida
 import React, { useState } from "react";
 import { toast } from 'react-hot-toast';
 import { MdExpandMore, MdExpandLess } from "react-icons/md";
@@ -109,7 +109,8 @@ function TablaProductosEscritorio({ productos }) {
         </thead>
         <tbody>
           {productos.map((producto) => {
-            const cantidad = Number(producto.cantidad) || 0;
+            // ✅ CONVERSIÓN SEGURA A ENTERO
+            const cantidad = Math.floor(Number(producto.cantidad)) || 0;
             
             return (
               <tr key={producto.id} className="hover:bg-gray-100 border-b">
@@ -130,7 +131,8 @@ function TarjetasProductosMovil({ productos }) {
   return (
     <div className="lg:hidden space-y-3">
       {productos.map((producto) => {
-        const cantidad = Number(producto.cantidad) || 0;
+        // ✅ CONVERSIÓN SEGURA A ENTERO
+        const cantidad = Math.floor(Number(producto.cantidad)) || 0;
         
         return (
           <div key={producto.id} className="bg-white p-3 rounded shadow border">
@@ -185,11 +187,14 @@ function TablaProductos({ productos, loading }) {
   );
 }
 
+// ✅ FUNCIÓN CORREGIDA - SIN DECIMALES PARA CANTIDADES
 function ResumenCantidades({ productos }) {
   // Calcular total de productos
   const totalProductos = productos.length;
+  
+  // ✅ CONVERSIÓN CORRECTA SIN DECIMALES
   const totalCantidad = productos.reduce((acc, prod) => {
-    const cantidad = Number(prod.cantidad) || 0;
+    const cantidad = Math.floor(Number(prod.cantidad)) || 0;
     return acc + cantidad;
   }, 0);
 
@@ -205,7 +210,8 @@ function ResumenCantidades({ productos }) {
         
         <div className="flex justify-between items-center py-2 bg-green-300 rounded-lg px-3 border-2 border-green-400">
           <span className="text-black font-bold">CANTIDAD TOTAL:</span>
-          <span className="text-black text-lg font-bold">{totalCantidad.toFixed(3)}</span>
+          {/* ✅ CORREGIDO: SIN .toFixed(3) - MOSTRAR COMO ENTERO */}
+          <span className="text-black text-lg font-bold">{totalCantidad}</span>
         </div>
       </div>
     </div>
