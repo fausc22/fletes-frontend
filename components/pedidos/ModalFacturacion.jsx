@@ -475,10 +475,7 @@ export default function ModalFacturacion({
                   <option value="B">B - Responsable No Inscripto</option>
                   <option value="C">C - Consumidor Final</option>
                 </select>
-                {/* ✅ INDICADOR DE PRESELECCIÓN */}
-                <p className="text-xs text-gray-500 mt-1">
-                  ✅ Preseleccionado automáticamente según: '{pedido?.cliente_condicion}'
-                </p>
+                
               </div>
             </div>
 
