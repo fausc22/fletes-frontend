@@ -477,7 +477,7 @@ export default function ModalFacturacion({
                 </select>
                 {/* ✅ INDICADOR DE PRESELECCIÓN */}
                 <p className="text-xs text-gray-500 mt-1">
-                  ✅ Preseleccionado automáticamente según: "{pedido?.cliente_condicion}"
+                  ✅ Preseleccionado automáticamente según: '{pedido?.cliente_condicion}'
                 </p>
               </div>
             </div>
