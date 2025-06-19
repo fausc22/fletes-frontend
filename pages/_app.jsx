@@ -1,6 +1,7 @@
 import '../styles/globals.css';
 import { AnimatePresence } from 'framer-motion';
 import { Toaster } from 'react-hot-toast'; 
+import { AuthProvider } from '../components/AuthProvider';
 import DefaultLayout from '../components/DefaultLayout';
 
 function MyApp({ Component, pageProps }) {
@@ -11,6 +12,7 @@ function MyApp({ Component, pageProps }) {
 
   return (
     <AnimatePresence>
+      <AuthProvider>
       <div className="bg-secondary-light dark:bg-primary-dark transition duration-300">
         {getLayout(<Component {...pageProps} />)}
         
@@ -40,7 +42,9 @@ function MyApp({ Component, pageProps }) {
           }}
         />
       </div>
+      </AuthProvider>
     </AnimatePresence>
+   
   );
 }
 

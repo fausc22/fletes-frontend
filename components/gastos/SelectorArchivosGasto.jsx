@@ -1,7 +1,16 @@
-import { useArchivoGasto } from '../../hooks/gastos/useArchivoGasto';
+import { useGasto } from '../../context/GastosContext';
 
 export default function SelectorArchivosGasto() {
-  const { fileName, preview, archivoInfo, handleFileChange, hayArchivo } = useArchivoGasto();
+  // Usar el contexto en lugar del hook independiente
+  const { 
+    formData, 
+    handleArchivoChange, 
+    hayArchivo, 
+    getArchivoInfo 
+  } = useGasto();
+
+  const archivoInfo = getArchivoInfo();
+  const preview = formData.archivoPreview;
 
   return (
     <div className="mb-6 px-6">
@@ -24,14 +33,14 @@ export default function SelectorArchivosGasto() {
             name="comprobante"
             type="file" 
             className="hidden" 
-            onChange={handleFileChange}
+            onChange={handleArchivoChange}
             accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
           />
         </label>
       </div>
       
       {/* Mostrar información del archivo seleccionado */}
-      {hayArchivo && archivoInfo && (
+      {hayArchivo() && archivoInfo && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-start space-x-3">
             {/* Icono del archivo */}
@@ -75,15 +84,6 @@ export default function SelectorArchivosGasto() {
           <div className="mt-3 bg-green-100 p-2 rounded text-xs text-green-800">
             ✅ <strong>Archivo listo para subir.</strong> Se cargará automáticamente después de registrar el gasto.
           </div>
-        </div>
-      )}
-      
-      {/* Información adicional cuando no hay archivo */}
-      {!hayArchivo && (
-        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-xs text-blue-700">
-            💡 <strong>Tip:</strong> El comprobante es opcional pero recomendado para mantener un registro completo de sus gastos.
-          </p>
         </div>
       )}
     </div>

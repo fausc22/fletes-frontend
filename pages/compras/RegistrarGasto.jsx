@@ -6,7 +6,6 @@ import useAuth from '../../hooks/useAuth';
 import { GastoProvider, useGasto } from '../../context/GastosContext';
 import { useRegistrarGasto } from '../../hooks/gastos/useRegistrarGasto';
 import { useFormularioGasto } from '../../hooks/gastos/useFormularioGasto';
-import { useArchivoGasto } from '../../hooks/gastos/useArchivoGasto';
 
 import FormularioGasto from '../../components/gastos/FormularioGasto';
 import SelectorArchivosGasto from '../../components/gastos/SelectorArchivosGasto';
@@ -14,10 +13,25 @@ import { ModalConfirmacionGasto, ModalConfirmacionSalidaGasto } from '../../comp
 import { BotonAccionesGasto } from '../../components/gastos/BotonAccionesGasto';
 
 function RegistrarGastoContent() {
-  const { formData, resetForm } = useGasto();
+  // Usar el contexto actualizado que incluye archivos
+  const { 
+    formData, 
+    resetForm, 
+    obtenerArchivo, 
+    hayArchivo, 
+    limpiarArchivo,
+    hasUnsavedData,
+    isValidForm,
+    getArchivoInfo 
+  } = useGasto();
+  
   const { registrarGasto, loading } = useRegistrarGasto();
-  const { esFormularioValido, hayDatosNoGuardados, obtenerResumen, validarRangoMonto } = useFormularioGasto();
-  const { obtenerArchivo, limpiarArchivo, hayArchivo } = useArchivoGasto();
+  const { 
+    esFormularioValido, 
+    hayDatosNoGuardados, 
+    obtenerResumen, 
+    validarRangoMonto 
+  } = useFormularioGasto();
   
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
@@ -43,7 +57,7 @@ function RegistrarGastoContent() {
 
   const handleRegistrarGasto = async () => {
     try {
-      // Obtener el archivo seleccionado
+      // Obtener el archivo del contexto
       const archivo = obtenerArchivo();
       
       console.log('🚀 Iniciando registro de gasto:', {
@@ -57,8 +71,7 @@ function RegistrarGastoContent() {
       
       if (exito) {
         // Limpiar formulario Y archivo después del registro exitoso
-        resetForm();
-        limpiarArchivo();
+        resetForm(); // Esto ahora limpia todo incluyendo el archivo
         setMostrarConfirmacion(false);
         
         // Mostrar mensaje adicional sobre el flujo
@@ -73,12 +86,12 @@ function RegistrarGastoContent() {
   };
 
   const handleLimpiarFormulario = () => {
-    const tieneDatos = hayDatosNoGuardados() || hayArchivo;
+    // Usar la función del contexto que verifica tanto datos como archivos
+    const tieneDatos = hasUnsavedData();
     
     if (tieneDatos) {
       if (confirm('¿Está seguro de que desea limpiar el formulario? Se perderán todos los datos ingresados y el archivo seleccionado.')) {
-        resetForm();
-        limpiarArchivo();
+        resetForm(); // Esto limpia todo: datos + archivo
         toast.success('Formulario limpiado');
       }
     } else {
@@ -87,7 +100,8 @@ function RegistrarGastoContent() {
   };
 
   const handleConfirmarSalida = () => {
-    const tieneDatos = hayDatosNoGuardados() || hayArchivo;
+    // Usar la función del contexto que verifica tanto datos como archivos
+    const tieneDatos = hasUnsavedData();
     
     if (tieneDatos) {
       setMostrarConfirmacionSalida(true);
@@ -104,10 +118,11 @@ function RegistrarGastoContent() {
   const resumenGasto = obtenerResumen();
   
   // Agregar información del archivo al resumen
+  const archivoInfo = getArchivoInfo();
   const resumenCompleto = {
     ...resumenGasto,
-    tieneComprobante: hayArchivo,
-    nombreComprobante: obtenerArchivo()?.name || null
+    tieneComprobante: hayArchivo(),
+    nombreComprobante: archivoInfo?.nombre || null
   };
 
   return (

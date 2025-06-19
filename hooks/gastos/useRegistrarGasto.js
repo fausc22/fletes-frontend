@@ -43,6 +43,7 @@ export const useRegistrarGasto = () => {
       }
 
       const gastoId = response.data.data?.id;
+      console.log('ID: ' + gastoId);
       
       if (!gastoId) {
         console.error('❌ No se recibió ID del gasto creado');

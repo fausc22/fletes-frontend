@@ -4,6 +4,7 @@ import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 import { toast, Toaster } from 'react-hot-toast';
 import Head from 'next/head';
 import useAuth from '../../hooks/useAuth';
+import { useComprobantes } from '../../hooks/useComprobantes'; // Importar el hook
 
 export default function HistorialCompras() {
   // Estado para controlar las pestañas
@@ -25,11 +26,21 @@ export default function HistorialCompras() {
   const [mostrarModalComprobante, setMostrarModalComprobante] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
   
-  // Estados para gestión de comprobantes
-  const [comprobante, setComprobante] = useState(null);
-  const [comprobantePreview, setComprobantePreview] = useState(null);
-  const [comprobanteExistente, setComprobanteExistente] = useState(false);
-  const [uploadingComprobante, setUploadingComprobante] = useState(false);
+  // Estados para gestión de comprobantes usando el hook
+  const {
+    comprobante,
+    comprobantePreview,
+    comprobanteExistente,
+    uploadingComprobante,
+    verificarComprobante,
+    subirComprobante,
+    verComprobante,
+    eliminarComprobante,
+    handleFileChange,
+    limpiarEstados,
+    getArchivoInfo
+  } = useComprobantes();
+  
   const [tipoComprobante, setTipoComprobante] = useState(''); // 'compra' o 'gasto'
   const [idComprobante, setIdComprobante] = useState(null);
   
@@ -117,7 +128,16 @@ export default function HistorialCompras() {
       console.log('Respuesta recibida:', response.data);
       
       if (Array.isArray(response.data)) {
-        setProductosCompra(response.data);
+        // CORRECCIÓN: Asegurar que los precios sean números válidos
+        const productosConPreciosCorregidos = response.data.map(producto => ({
+          ...producto,
+          precio_costo: parseFloat(producto.precio_costo) || 0,
+          precio_venta: parseFloat(producto.precio_venta) || 0,
+          subtotal: parseFloat(producto.subtotal) || 0,
+          cantidad: parseFloat(producto.cantidad) || 0
+        }));
+        
+        setProductosCompra(productosConPreciosCorregidos);
       } else {
         console.error("Formato de respuesta inesperado:", response.data);
         setProductosCompra([]);
@@ -137,27 +157,7 @@ export default function HistorialCompras() {
     setModalDetalleGastoOpen(true);
   };
 
-  // FUNCIONES PARA COMPROBANTES
-
-  // Función para verificar si existe un comprobante
-  const verificarComprobanteExistente = async (id, tipo) => {
-    try {
-      const response = await axiosAuth.get(`/comprobantes/verificar/${tipo}/${id}`);
-      
-      if (response.data.success) {
-        const existe = response.data.data.tieneComprobante && response.data.data.archivoExiste;
-        setComprobanteExistente(existe);
-        return existe;
-      } else {
-        setComprobanteExistente(false);
-        return false;
-      }
-    } catch (error) {
-      console.error(`Error al verificar comprobante de ${tipo}:`, error);
-      setComprobanteExistente(false);
-      return false;
-    }
-  };
+  // FUNCIONES PARA COMPROBANTES USANDO EL HOOK
 
   // Función para abrir el modal de comprobantes
   const handleOpenComprobanteModal = async (id, tipo) => {
@@ -165,121 +165,43 @@ export default function HistorialCompras() {
     setIdComprobante(id);
     
     // Limpiar estados previos
-    setComprobante(null);
-    setComprobantePreview(null);
+    limpiarEstados();
     
     // Verificar si hay un comprobante existente
-    await verificarComprobanteExistente(id, tipo);
+    await verificarComprobante(id, tipo);
     
     setMostrarModalComprobante(true);
   };
 
-  // Función para manejar la selección de archivo
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      // Validar tamaño del archivo (10MB máximo)
-      const maxSize = 10 * 1024 * 1024; // 10MB en bytes
-      if (file.size > maxSize) {
-        toast.error('El archivo es demasiado grande. Máximo 10MB permitido.');
-        return;
-      }
-      
-      // Validar tipo de archivo
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Tipo de archivo no válido. Solo se permiten: JPG, PNG, PDF, DOC, DOCX');
-        return;
-      }
-      
-      setComprobante(file);
-      
-      // Generar preview si es una imagen
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setComprobantePreview(e.target.result);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setComprobantePreview(null);
-      }
-    }
-  };
-
   // Función para subir el comprobante
   const handleUploadComprobante = async () => {
-    if (!comprobante || !idComprobante) {
-      toast.error("Seleccione un archivo");
-      return;
-    }
-
-    setUploadingComprobante(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("comprobante", comprobante);
-
-      const response = await axiosAuth.post(`/comprobantes/subir/${tipoComprobante}/${idComprobante}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      if (response.data.success) {
-        toast.success("Comprobante cargado exitosamente");
-        setComprobanteExistente(true);
-        
-        // Cerrar el modal después de cargar
-        setTimeout(() => {
-          setMostrarModalComprobante(false);
-        }, 1500);
-      } else {
-        toast.error(response.data.message || "Error al cargar el comprobante");
-      }
-    } catch (error) {
-      console.error("Error al cargar el comprobante:", error);
-      if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error("Error al cargar el comprobante");
-      }
-    } finally {
-      setUploadingComprobante(false);
+    const success = await subirComprobante(idComprobante, tipoComprobante);
+    if (success) {
+      // Cerrar el modal después de cargar
+      setTimeout(() => {
+        setMostrarModalComprobante(false);
+      }, 1500);
     }
   };
 
-  // Función para ver el comprobante
-  const handleViewComprobante = () => {
-    if (!idComprobante || !tipoComprobante) return;
+  // CORRECCIÓN: Función para ver el comprobante usando el hook
+  const handleViewComprobante = async () => {
+    if (!idComprobante || !tipoComprobante) {
+      toast.error("No se ha seleccionado un comprobante válido");
+      return;
+    }
     
-    // Abrir en una nueva pestaña usando el endpoint de descarga
-    const url = `${apiUrl}/comprobantes/obtener/${tipoComprobante}/${idComprobante}`;
-    window.open(url, '_blank');
+    const success = await verComprobante(idComprobante, tipoComprobante);
+    if (!success) {
+      console.error("Error al visualizar comprobante");
+    }
   };
 
   // Función para eliminar comprobante
   const handleEliminarComprobante = async () => {
-    if (!idComprobante || !tipoComprobante) return;
-    
-    if (!confirm('¿Está seguro de que desea eliminar este comprobante?')) {
-      return;
-    }
-    
-    try {
-      const response = await axiosAuth.delete(`/comprobantes/eliminar/${tipoComprobante}/${idComprobante}`);
-      
-      if (response.data.success) {
-        toast.success("Comprobante eliminado exitosamente");
-        setComprobanteExistente(false);
-        setMostrarModalComprobante(false);
-      } else {
-        toast.error(response.data.message || "Error al eliminar el comprobante");
-      }
-    } catch (error) {
-      console.error("Error al eliminar comprobante:", error);
-      toast.error("Error al eliminar el comprobante");
+    const success = await eliminarComprobante(idComprobante, tipoComprobante);
+    if (success) {
+      setMostrarModalComprobante(false);
     }
   };
 
@@ -321,7 +243,7 @@ export default function HistorialCompras() {
 
   // Función para imprimir comprobantes seleccionados
   const imprimirComprobantesSeleccionados = async () => {
-    toast.info("Funcionalidad de impresión deshabilitada");
+    toast.error("Funcionalidad de impresión deshabilitada");
   };
 
   // Función para salir
@@ -347,10 +269,12 @@ export default function HistorialCompras() {
 
   // Función para formatear moneda
   const formatCurrency = (value) => {
+    // CORRECCIÓN: Asegurar que el valor sea un número válido
+    const numericValue = parseFloat(value) || 0;
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS'
-    }).format(value);
+    }).format(numericValue);
   };
 
   // Función para formatear fecha
@@ -376,19 +300,7 @@ export default function HistorialCompras() {
       <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
         <h1 className="text-2xl font-bold mb-4 text-center">HISTORIAL DE COMPRAS Y GASTOS</h1>
         
-        {/* Botón de refrescar */}
-        <div className="flex justify-end mb-4">
-          <button 
-            onClick={() => {
-              cargarCompras();
-              cargarGastos();
-            }}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
-          >
-            <MdAutorenew size={20} />
-            Refrescar
-          </button>
-        </div>
+        
         
         {/* Pestañas de navegación */}
         <div className="flex border-b mb-6">
@@ -676,27 +588,7 @@ export default function HistorialCompras() {
             
             {activeTab === 'compras' && (
               <div className="flex flex-col sm:flex-row justify-end mt-6 gap-4">
-                <button 
-                  className={`px-6 py-2 rounded text-white font-semibold ${
-                    imprimiendo 
-                      ? "bg-gray-500 cursor-not-allowed" 
-                      : "bg-green-600 hover:bg-green-800"
-                  }`}
-                  onClick={imprimirComprobantesSeleccionados}
-                  disabled={selectedCompras.length === 0 || imprimiendo}
-                >
-                  {imprimiendo ? (
-                    <div className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      IMPRIMIENDO...
-                    </div>
-                  ) : (
-                    `IMPRIMIR (${selectedCompras.length})`
-                  )}
-                </button>
+                
                 <button 
                   className="bg-red-600 hover:bg-red-800 px-6 py-2 rounded text-white font-semibold"
                   onClick={confirmarSalida}
@@ -970,27 +862,7 @@ export default function HistorialCompras() {
             
             {activeTab === 'gastos' && (
               <div className="flex flex-col sm:flex-row justify-end mt-6 gap-4">
-                <button 
-                  className={`px-6 py-2 rounded text-white font-semibold ${
-                    imprimiendo 
-                      ? "bg-gray-500 cursor-not-allowed" 
-                      : "bg-blue-600 hover:bg-blue-800"
-                  }`}
-                  onClick={imprimirComprobantesSeleccionados}
-                  disabled={selectedGastos.length === 0 || imprimiendo}
-                >
-                  {imprimiendo ? (
-                    <div className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      IMPRIMIENDO...
-                    </div>
-                  ) : (
-                    `IMPRIMIR (${selectedGastos.length})`
-                  )}
-                </button>
+               
                 <button 
                   className="bg-red-600 hover:bg-red-800 px-6 py-2 rounded text-white font-semibold"
                   onClick={confirmarSalida}
@@ -1088,11 +960,7 @@ export default function HistorialCompras() {
                 GESTIONAR COMPROBANTE
               </button>
               
-              <button 
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
-              >
-                IMPRIMIR COMPRA
-              </button>
+              
             </div>
             
             <button 
@@ -1151,11 +1019,7 @@ export default function HistorialCompras() {
                 GESTIONAR COMPROBANTE
               </button>
               
-              <button 
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded"
-              >
-                IMPRIMIR GASTO
-              </button>
+              
             </div>
             
             <button 
@@ -1168,7 +1032,7 @@ export default function HistorialCompras() {
         </div>
       )}
       
-      {/* Modal para cargar comprobantes */}
+      {/* Modal para cargar comprobantes - ACTUALIZADO */}
       {mostrarModalComprobante && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
           <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
@@ -1235,29 +1099,30 @@ export default function HistorialCompras() {
                   Haz clic aquí para seleccionar un archivo
                 </span>
                 <span className="text-xs text-gray-500">
-                  Formatos aceptados: PDF, JPG, JPEG, PNG, DOC, DOCX (Máx. 10MB)
+                  Formatos aceptados: PDF, JPG, PNG, DOC, DOCX (Máx. 10MB)
                 </span>
               </label>
               
-              {comprobante && (
+              {/* Mostrar información del archivo usando el hook */}
+              {comprobante && getArchivoInfo() && (
                 <div className="mt-4 p-2 bg-blue-50 rounded-lg">
                   <p className="text-sm font-medium text-blue-700">Archivo seleccionado:</p>
-                  <p className="text-sm text-gray-600 truncate">{comprobante.name}</p>
+                  <p className="text-sm text-gray-600 truncate">{getArchivoInfo().nombre}</p>
                   <p className="text-xs text-gray-500">
-                    Tamaño: {(comprobante.size / (1024 * 1024)).toFixed(2)} MB
+                    Tamaño: {getArchivoInfo().tamaño}
                   </p>
                   
-                  {comprobantePreview && (
+                  {getArchivoInfo().preview && (
                     <div className="mt-2 flex justify-center">
                       <img 
-                        src={comprobantePreview} 
+                        src={getArchivoInfo().preview} 
                         alt="Vista previa" 
                         className="h-32 object-contain rounded border" 
                       />
                     </div>
                   )}
                   
-                  {!comprobantePreview && comprobante.type === 'application/pdf' && (
+                  {!getArchivoInfo().preview && getArchivoInfo().tipo === 'application/pdf' && (
                     <div className="mt-2 flex justify-center">
                       <p className="text-xs text-gray-500">
                         Vista previa no disponible para archivos PDF

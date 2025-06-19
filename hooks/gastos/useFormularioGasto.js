@@ -1,4 +1,4 @@
-// hooks/gastos/useFormularioGasto.js
+// hooks/gastos/useFormularioGasto.js - VERSIÓN ACTUALIZADA
 import { useGasto } from '../../context/GastosContext';
 
 export const useFormularioGasto = () => {
@@ -40,7 +40,7 @@ export const useFormularioGasto = () => {
     'Tarjeta de crédito'
   ];
 
-  // Validaciones específicas
+  // Validaciones específicas (usando las funciones del contexto)
   const esFormularioValido = () => {
     return isValidForm();
   };

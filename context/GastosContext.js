@@ -1,4 +1,4 @@
-// context/GastosContext.jsx
+// context/GastosContext.jsx - VERSIÓN ACTUALIZADA
 import { createContext, useContext, useReducer } from 'react';
 
 // Estado inicial
@@ -6,14 +6,20 @@ const initialState = {
   descripcion: '',
   monto: '',
   formaPago: '',
-  observaciones: ''
+  observaciones: '',
+  // Estados para archivos
+  archivo: null,
+  archivoPreview: null
 };
 
 // Tipos de acciones
 const actionTypes = {
   SET_FIELD: 'SET_FIELD',
   RESET_FORM: 'RESET_FORM',
-  SET_FORM_DATA: 'SET_FORM_DATA'
+  SET_FORM_DATA: 'SET_FORM_DATA',
+  SET_ARCHIVO: 'SET_ARCHIVO',
+  SET_ARCHIVO_PREVIEW: 'SET_ARCHIVO_PREVIEW',
+  LIMPIAR_ARCHIVO: 'LIMPIAR_ARCHIVO'
 };
 
 // Reducer
@@ -33,6 +39,25 @@ const gastosReducer = (state, action) => {
         ...state,
         ...action.data
       };
+
+    case actionTypes.SET_ARCHIVO:
+      return {
+        ...state,
+        archivo: action.archivo
+      };
+
+    case actionTypes.SET_ARCHIVO_PREVIEW:
+      return {
+        ...state,
+        archivoPreview: action.preview
+      };
+
+    case actionTypes.LIMPIAR_ARCHIVO:
+      return {
+        ...state,
+        archivo: null,
+        archivoPreview: null
+      };
     
     default:
       return state;
@@ -46,7 +71,7 @@ const GastoContext = createContext();
 export const GastoProvider = ({ children }) => {
   const [formData, dispatch] = useReducer(gastosReducer, initialState);
 
-  // Funciones del contexto
+  // Funciones del contexto existentes
   const setField = (field, value) => {
     dispatch({
       type: actionTypes.SET_FIELD,
@@ -56,6 +81,7 @@ export const GastoProvider = ({ children }) => {
   };
 
   const resetForm = () => {
+    console.log('🗑️ Limpiando formulario completo (datos + archivo)');
     dispatch({
       type: actionTypes.RESET_FORM
     });
@@ -68,38 +94,139 @@ export const GastoProvider = ({ children }) => {
     });
   };
 
-  // Funciones de utilidad para monto (hasta 8 dígitos)
+  // NUEVAS FUNCIONES PARA MANEJO DE ARCHIVOS
+  const setArchivo = (archivo) => {
+    console.log('📁 Guardando archivo en contexto:', archivo ? archivo.name : 'null');
+    dispatch({
+      type: actionTypes.SET_ARCHIVO,
+      archivo
+    });
+  };
+
+  const setArchivoPreview = (preview) => {
+    dispatch({
+      type: actionTypes.SET_ARCHIVO_PREVIEW,
+      preview
+    });
+  };
+
+  const limpiarArchivo = () => {
+    console.log('🗑️ Limpiando archivo del contexto');
+    dispatch({
+      type: actionTypes.LIMPIAR_ARCHIVO
+    });
+  };
+
+  // Validar archivo
+  const validarArchivo = (file) => {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return { valido: false, mensaje: 'El archivo es demasiado grande. Máximo 10MB permitido.' };
+    }
+    
+    const allowedTypes = [
+      'image/jpeg', 
+      'image/jpg', 
+      'image/png', 
+      'application/pdf', 
+      'application/msword', 
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      return { valido: false, mensaje: 'Tipo de archivo no válido. Solo se permiten: JPG, PNG, PDF, DOC, DOCX' };
+    }
+    
+    return { valido: true, mensaje: '' };
+  };
+
+  // Manejar cambio de archivo
+  const handleArchivoChange = (e) => {
+    const file = e.target.files?.[0];
+    
+    if (!file) {
+      limpiarArchivo();
+      return;
+    }
+    
+    console.log('📁 Archivo seleccionado:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+    
+    const validacion = validarArchivo(file);
+    
+    if (!validacion.valido) {
+      console.error('❌ Archivo no válido:', validacion.mensaje);
+      alert(validacion.mensaje);
+      limpiarArchivo();
+      return;
+    }
+    
+    setArchivo(file);
+    
+    // Generar preview si es una imagen
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setArchivoPreview(e.target.result);
+        console.log('🖼️ Preview generado para imagen');
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setArchivoPreview(null);
+      console.log('📄 Archivo no es imagen, sin preview');
+    }
+  };
+
+  // Obtener archivo (para usar en registro)
+  const obtenerArchivo = () => {
+    console.log('📋 Obteniendo archivo del contexto:', formData.archivo ? formData.archivo.name : 'sin archivo');
+    return formData.archivo;
+  };
+
+  // Verificar si hay archivo
+  const hayArchivo = () => {
+    return !!formData.archivo;
+  };
+
+  // Obtener información del archivo
+  const getArchivoInfo = () => {
+    if (!formData.archivo) return null;
+    
+    return {
+      nombre: formData.archivo.name,
+      tamaño: (formData.archivo.size / (1024 * 1024)).toFixed(2) + ' MB',
+      tipo: formData.archivo.type,
+      preview: formData.archivoPreview
+    };
+  };
+
+  // Funciones de utilidad para monto (sin cambios)
   const formatMonto = (value) => {
-    // Si está vacío, devolver vacío
     if (!value) return '';
     
-    // Convertir a string y remover todo excepto números
     let numericString = value.toString().replace(/[^\d]/g, '');
     
-    // Si está vacío después de limpiar, devolver vacío
     if (!numericString) return '';
     
-    // Limitar a 10 dígitos máximo (8 enteros + 2 decimales)
     if (numericString.length > 10) {
       numericString = numericString.substring(0, 10);
     }
     
-    // Convertir a número para trabajar con él
     let numero = parseInt(numericString, 10);
     
-    // Verificar que esté en el rango válido
-    if (numero > 9999999999) { // 99.999.999,99 sin separadores
+    if (numero > 9999999999) {
       numero = 9999999999;
       numericString = numero.toString();
     }
     
-    // Si tiene más de 2 dígitos, agregar decimales
     let formattedValue;
     if (numericString.length > 2) {
       const enteros = numericString.slice(0, -2);
       const decimales = numericString.slice(-2);
       
-      // Formatear la parte entera con puntos como separadores de miles
       const enterosFormateados = parseInt(enteros, 10).toLocaleString('es-AR');
       formattedValue = `${enterosFormateados},${decimales}`;
     } else if (numericString.length === 2) {
@@ -119,7 +246,6 @@ export const GastoProvider = ({ children }) => {
     console.log(`Campo ${name} cambiado a:`, value);
     
     if (name === 'monto') {
-      // Solo formatear si hay contenido
       if (value === '') {
         setField(name, '');
       } else {
@@ -131,7 +257,7 @@ export const GastoProvider = ({ children }) => {
     }
   };
 
-  // Validaciones
+  // Validaciones (sin cambios)
   const isValidForm = () => {
     const requiredFields = ['descripcion', 'monto', 'formaPago'];
     return requiredFields.every(field => {
@@ -144,19 +270,25 @@ export const GastoProvider = ({ children }) => {
   };
 
   const hasUnsavedData = () => {
-    return Object.values(formData).some(value => 
-      value && (value || '').toString().trim() !== ''
-    );
+    // Incluir archivo en la verificación de datos no guardados
+    const hasFormData = Object.keys(initialState).some(key => {
+      if (key === 'archivo' || key === 'archivoPreview') return false; // Los manejamos por separado
+      const value = formData[key];
+      return value && (value || '').toString().trim() !== '';
+    });
+    
+    const hasArchivo = hayArchivo();
+    
+    return hasFormData || hasArchivo;
   };
 
-  // Obtener monto como número (remover formato)
+  // Obtener monto como número (sin cambios)
   const getMontoNumerico = () => {
     if (!formData.monto) return 0;
     
-    // Remover puntos (separadores de miles) y cambiar coma por punto decimal
     const cleanValue = formData.monto
-      .replace(/\./g, '') // Remover puntos
-      .replace(',', '.'); // Cambiar coma por punto
+      .replace(/\./g, '')
+      .replace(',', '.');
     
     const numericValue = parseFloat(cleanValue);
     return isNaN(numericValue) ? 0 : numericValue;
@@ -172,10 +304,8 @@ export const GastoProvider = ({ children }) => {
     };
   };
 
-  // Función para establecer monto desde número
   const setMontoDesdeNumero = (numero) => {
     if (typeof numero === 'number' && numero >= 0) {
-      // Convertir a centavos para trabajar con enteros
       const centavos = Math.round(numero * 100);
       const formattedValue = formatMonto(centavos.toString());
       setField('monto', formattedValue);
@@ -186,12 +316,20 @@ export const GastoProvider = ({ children }) => {
     // Estado
     formData,
     
-    // Funciones de manipulación
+    // Funciones de manipulación de formulario
     setField,
     resetForm,
     setFormData,
     handleInputChange,
     setMontoDesdeNumero,
+    
+    // Funciones de archivos
+    handleArchivoChange,
+    obtenerArchivo,
+    hayArchivo,
+    limpiarArchivo,
+    getArchivoInfo,
+    validarArchivo,
     
     // Utilidades
     formatMonto,
