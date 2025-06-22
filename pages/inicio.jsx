@@ -4,6 +4,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import InstallButton from '../components/InstallButton';
 
 export default function Inicio() {
   const router = useRouter();
@@ -92,6 +93,7 @@ export default function Inicio() {
             </p>
           </div>
           <div className="mt-4 md:mt-0 text-right">
+            <InstallButton />
             <p className="text-blue-100 text-sm">
               {new Date().toLocaleDateString('es-AR', {
                 weekday: 'long',
