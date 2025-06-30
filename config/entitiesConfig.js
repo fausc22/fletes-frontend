@@ -579,11 +579,11 @@ export const empleadosConfig = {
   ],
   
   searchConfig: {
-    searchEndpoint: `${apiUrl}/buscar-empleado`,
-    placeholder: 'BUSCAR POR NOMBRE, APELLIDO O USUARIO',
-    entityName: 'empleado',
-    displayField: 'nombre_completo' // Campo que se mostrará en los resultados
-  },
+  searchEndpoint: `${apiUrl}/empleados/buscar-empleado`,
+  placeholder: 'BUSCAR POR NOMBRE, APELLIDO O USUARIO',
+  entityName: 'empleado',
+  displayField: 'nombre_completo'
+},
   
   buttons: {
     new: 'NUEVO EMPLEADO',
