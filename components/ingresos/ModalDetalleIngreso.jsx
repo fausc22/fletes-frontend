@@ -2,10 +2,18 @@
 
 // Formateadores
 const formatCurrency = (value) => {
+  // Manejar valores nulos, undefined o no numéricos
+  if (value === null || value === undefined || isNaN(value)) {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS'
+    }).format(0);
+  }
+  
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS'
-  }).format(value);
+  }).format(parseFloat(value) || 0);
 };
 
 const formatDate = (dateString) => {
@@ -61,13 +69,13 @@ function DetalleVenta({ venta, productos }) {
                 <tr key={index} className="border-b hover:bg-gray-50">
                   <td className="p-2">{producto.producto_nombre}</td>
                   <td className="p-2 text-center">
-                    {producto.cantidad} {producto.unidad_medida}
+                    {producto.cantidad} {producto.producto_um || producto.unidad_medida || ''}
                   </td>
                   <td className="p-2 text-right">
-                    {formatCurrency(producto.precio_unitario)}
+                    {formatCurrency(producto.precio_venta || producto.precio_unitario || producto.precio)}
                   </td>
                   <td className="p-2 text-right">
-                    {formatCurrency(producto.subtotal)}
+                    {formatCurrency(producto.subtotal || (parseFloat(producto.cantidad || 0) * parseFloat(producto.precio_venta || producto.precio_unitario || producto.precio || 0)))}
                   </td>
                 </tr>
               ))
@@ -142,7 +150,10 @@ export default function ModalDetalleIngreso({
 }) {
   if (!mostrar || !detalle.data) return null;
 
+  // Corregir la lógica para detectar el tipo
   const esVenta = detalle.tipo === 'venta';
+  const esIngreso = detalle.tipo === 'ingreso';
+  
   const titulo = esVenta ? 'Detalle de Venta' : 'Detalle de Ingreso';
 
   return (
@@ -160,13 +171,7 @@ export default function ModalDetalleIngreso({
         )}
         
         {/* Botones de acción */}
-        <div className="flex justify-end space-x-3 mt-6">
-          <button
-            onClick={() => onImprimir(detalle.data)}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded transition-colors"
-          >
-            Imprimir
-          </button>
+        <div className="flex justify-end mt-6">
           <button
             onClick={onCerrar}
             className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition-colors"

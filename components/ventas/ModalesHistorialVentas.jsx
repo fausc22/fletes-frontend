@@ -263,6 +263,21 @@ function ResumenTotales({ productos, venta }) {
   );
 }
 
+// Función helper para formatear fechas
+  const formatearFecha = (fecha) => {
+  if (!fecha) return 'Fecha no disponible';
+  
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+  };
+
 export function ModalDetalleVenta({ 
   venta,
   productos,
@@ -310,7 +325,7 @@ export function ModalDetalleVenta({
           {/* Fecha y Estado */}
           <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <h4 className="text-lg font-semibold text-gray-700">
-              <strong>Fecha:</strong> {venta.fecha}
+              <strong>Fecha:</strong> {formatearFecha(venta.fecha)}
             </h4>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Estado:</span>

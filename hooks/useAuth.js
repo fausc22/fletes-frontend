@@ -1,10 +1,9 @@
-// hooks/useAuth.js - Versión corregida para SSR
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiClient } from '../utils/apiClient';
 import { toast } from 'react-hot-toast';
 
-// ===== HELPER PARA SSR =====
+// ✅ HELPER PARA SSR
 const isClient = () => typeof window !== 'undefined';
 
 export default function useAuth() {
@@ -15,13 +14,12 @@ export default function useAuth() {
   const initialized = useRef(false);
 
   useEffect(() => {
-    // Solo ejecutar en el cliente
     if (!isClient()) {
       setLoading(false);
       return;
     }
 
-    // Evitar doble inicialización en desarrollo
+    // Evitar doble inicialización
     if (initialized.current) return;
     initialized.current = true;
 
@@ -41,24 +39,11 @@ export default function useAuth() {
           return;
         }
 
-        // Verificar si el token está expirado
-        if (apiClient.isTokenExpired()) {
-          console.log('⏰ Token expirado, intentando renovar...');
-          
-          try {
-            await apiClient.refreshToken();
-            console.log('✅ Token renovado exitosamente');
-          } catch (error) {
-            console.log('❌ No se pudo renovar el token, redirigiendo al login');
-            router.push('/login');
-            return;
-          }
-        }
-
-        // Cargar datos del usuario
+        // ✅ Cargar datos del usuario sin verificar expiración aquí
+        // El interceptor de axios se encargará de renovar si es necesario
         await loadUserData();
         
-        // Iniciar verificación periódica de tokens
+        // ✅ Iniciar verificación periódica
         startTokenVerification();
 
       } catch (error) {
@@ -71,7 +56,6 @@ export default function useAuth() {
 
     initializeAuth();
 
-    // Cleanup al desmontar
     return () => {
       if (tokenCheckInterval) {
         clearInterval(tokenCheckInterval);
@@ -79,12 +63,12 @@ export default function useAuth() {
     };
   }, [router.pathname]);
 
-  // ===== CARGAR DATOS DEL USUARIO =====
+  // ✅ CARGAR DATOS DEL USUARIO - Simplificado
   const loadUserData = async () => {
     if (!isClient()) return;
 
     try {
-      // Intentar obtener del localStorage primero
+      // Primero intentar obtener del localStorage
       const user = apiClient.getUserFromStorage();
       
       if (user) {
@@ -92,47 +76,41 @@ export default function useAuth() {
         return;
       }
 
-      // Si no hay datos en localStorage, obtener del backend
-      try {
-        const profileResponse = await apiClient.axiosAuth.get('/auth/profile');
-        const empleado = profileResponse.data.empleado;
-        
-        // Actualizar localStorage
-        localStorage.setItem('empleado', JSON.stringify(empleado));
-        localStorage.setItem('role', empleado.rol);
-        
-        setUser(empleado);
-      } catch (profileError) {
-        console.error('❌ Error obteniendo perfil del backend:', profileError);
-        throw profileError;
-      }
+      // Si no hay datos locales, obtener del backend
+      const profileResponse = await apiClient.axiosAuth.get('/auth/profile');
+      const empleado = profileResponse.data.empleado;
+      
+      // Actualizar localStorage
+      localStorage.setItem('empleado', JSON.stringify(empleado));
+      localStorage.setItem('role', empleado.rol);
+      
+      setUser(empleado);
 
     } catch (error) {
       console.error('❌ Error cargando datos del usuario:', error);
+      // Si falla, el interceptor de axios manejará la renovación de token
       throw error;
     }
   };
 
-  // ===== INICIAR VERIFICACIÓN PERIÓDICA =====
+  // ✅ VERIFICACIÓN PERIÓDICA - Simplificada
   const startTokenVerification = () => {
     if (!isClient()) return;
 
-    // Limpiar intervalo anterior si existe
     if (tokenCheckInterval) {
       clearInterval(tokenCheckInterval);
     }
 
-    // Iniciar nuevo intervalo
     const interval = apiClient.startTokenCheck();
     setTokenCheckInterval(interval);
   };
 
-  // ===== FUNCIÓN DE LOGOUT =====
+  // ✅ FUNCIÓN DE LOGOUT - Simplificada
   const logout = async () => {
     try {
       console.log('👋 Cerrando sesión...');
       
-      // Limpiar intervalo de verificación
+      // Limpiar intervalo
       if (tokenCheckInterval) {
         clearInterval(tokenCheckInterval);
         setTokenCheckInterval(null);
@@ -153,7 +131,7 @@ export default function useAuth() {
     } catch (error) {
       console.error('❌ Error en logout:', error);
       
-      // Forzar limpieza local incluso si falla el backend
+      // Forzar limpieza local
       if (tokenCheckInterval) {
         clearInterval(tokenCheckInterval);
         setTokenCheckInterval(null);
@@ -168,7 +146,7 @@ export default function useAuth() {
     }
   };
 
-  // ===== FUNCIÓN DE LOGIN =====
+  // ✅ FUNCIÓN DE LOGIN - Simplificada
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -183,8 +161,11 @@ export default function useAuth() {
         // Iniciar verificación de tokens
         startTokenVerification();
         
-        if (isClient() && typeof toast !== 'undefined') {
-          toast.success(`¡Bienvenido ${empleado.nombre} ${empleado.apellido}!`);
+        // ✅ Toast informativo sobre "recuérdame"
+        if (result.data.hasRefreshToken) {
+          toast.success(`¡Bienvenido ${empleado.nombre}! Tu sesión se mantendrá activa.`);
+        } else {
+          toast.success(`¡Bienvenido ${empleado.nombre}!`);
         }
         
         return { success: true, empleado };
@@ -200,7 +181,7 @@ export default function useAuth() {
     }
   };
 
-  // ===== FUNCIONES DE AUTORIZACIÓN =====
+  // ✅ FUNCIONES DE AUTORIZACIÓN - Sin cambios
   const hasRole = (roles) => {
     if (!user) return false;
     if (typeof roles === 'string') {
@@ -218,10 +199,10 @@ export default function useAuth() {
   const isAuthenticated = () => {
     if (!isClient()) return false;
     const token = localStorage.getItem('token');
-    return !!token && !!user && !apiClient.isTokenExpired();
+    return !!token && !!user;
   };
 
-  // ===== FUNCIÓN PARA VERIFICAR CONECTIVIDAD =====
+  // ✅ VERIFICAR CONECTIVIDAD
   const checkConnection = async () => {
     try {
       await apiClient.axiosAuth.get('/health');
@@ -234,13 +215,13 @@ export default function useAuth() {
     }
   };
 
-  // ===== FUNCIÓN PARA FORZAR RENOVACIÓN DE TOKEN =====
+  // ✅ FORZAR RENOVACIÓN DE TOKEN
   const forceTokenRefresh = async () => {
     try {
       await apiClient.refreshToken();
       await loadUserData();
       
-      if (isClient() && typeof toast !== 'undefined') {
+      if (isClient()) {
         toast.success('Token renovado exitosamente');
       }
       
@@ -248,7 +229,7 @@ export default function useAuth() {
     } catch (error) {
       console.error('❌ Error forzando renovación:', error);
       
-      if (isClient() && typeof toast !== 'undefined') {
+      if (isClient()) {
         toast.error('Error renovando token');
       }
       
@@ -268,9 +249,9 @@ export default function useAuth() {
     isAuthenticated,
     checkConnection,
     forceTokenRefresh,
-    // Información adicional para debugging
+    
+    // ✅ Debug info simplificada
     debug: {
-      tokenExpired: isClient() ? apiClient.isTokenExpired() : false,
       hasToken: isClient() ? !!localStorage.getItem('token') : false,
       intervalActive: !!tokenCheckInterval,
       isClient: isClient()
@@ -278,7 +259,7 @@ export default function useAuth() {
   };
 }
 
-// ===== HOOK SIMPLE PARA PÁGINAS QUE SOLO NECESITAN VERIFICAR AUTH =====
+// ✅ HOOK SIMPLE PARA VERIFICAR AUTH SIN LÓGICA COMPLETA
 export function useAuthSimple() {
   const router = useRouter();
 
@@ -288,13 +269,13 @@ export function useAuthSimple() {
     if (router.pathname === '/login') return;
     
     const token = localStorage.getItem('token');
-    if (!token || apiClient.isTokenExpired()) {
+    if (!token) {
       router.push('/login');
     }
   }, [router.pathname]);
 }
 
-// ===== HOOK PARA OBTENER INFORMACIÓN DEL USUARIO SIN LÓGICA COMPLETA =====
+// ✅ HOOK PARA OBTENER USUARIO ACTUAL
 export function useCurrentUser() {
   const [user, setUser] = useState(null);
 

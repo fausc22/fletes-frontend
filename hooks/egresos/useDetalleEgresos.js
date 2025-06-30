@@ -3,7 +3,6 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useEgresos } from '../../context/EgresosContext';
 
-
 import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useDetalleEgresos() {
@@ -22,6 +21,7 @@ export function useDetalleEgresos() {
       }
       
       setLoading({ operacion: true });
+      console.log(`Consultando detalle de ${tipo} con ID: ${id}`);
       let response;
       
       if (tipo === 'Compra') {
@@ -31,7 +31,7 @@ export function useDetalleEgresos() {
         response = await axiosAuth.get(`/finanzas/egresos/detalle-gasto/${id}`);
         setDetalle(response.data.data, 'gasto');
       } else {
-        // Para egresos manuales del movimiento de fondos
+        // Para egresos manuales del movimiento de fondos (tipo EGRESO)
         response = await axiosAuth.get(`/finanzas/egresos/detalle-egreso/${id}`);
         setDetalle(response.data.data, 'egreso');
       }

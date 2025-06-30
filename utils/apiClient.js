@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
-// ===== HELPER FUNCTIONS PARA SSR =====
+// ✅ HELPER FUNCTIONS PARA SSR
 const isClient = () => typeof window !== 'undefined';
 
 const getFromStorage = (key) => {
@@ -34,16 +34,16 @@ const removeFromStorage = (key) => {
   }
 };
 
-// Instancia de axios para login SIN interceptores
+// ✅ Instancia de axios para login SIN interceptores
 export const axiosLogin = axios.create({
   baseURL: apiUrl,
-  withCredentials: true,
+  withCredentials: true, // ✅ IMPORTANTE: Para enviar cookies
 });
 
-// Instancia de axios autenticado CON interceptores
+// ✅ Instancia de axios autenticado CON interceptores
 export const axiosAuth = axios.create({
   baseURL: apiUrl,
-  withCredentials: true,
+  withCredentials: true, // ✅ IMPORTANTE: Para enviar cookies
 });
 
 class ApiClient {
@@ -59,7 +59,7 @@ class ApiClient {
   }
 
   setupInterceptors() {
-    // ===== REQUEST INTERCEPTOR =====
+    // ✅ REQUEST INTERCEPTOR - Más simple
     axiosAuth.interceptors.request.use(
       (config) => {
         const token = getFromStorage('token');
@@ -71,65 +71,27 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // ===== RESPONSE INTERCEPTOR CON AUTO-RENOVACIÓN =====
+    // ✅ RESPONSE INTERCEPTOR - Simplificado
     axiosAuth.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
 
-        // Si es error 401 y no hemos intentado renovar este request
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        // Solo manejar errores 401 que no sean del refresh endpoint
+        if (error.response?.status === 401 && 
+            !originalRequest._retry && 
+            !originalRequest.url?.includes('/auth/refresh-token')) {
           
+          originalRequest._retry = true;
+
           // Si ya estamos renovando, añadir a la cola
           if (this.isRefreshing) {
             return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            }).then(token => {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-              return axiosAuth(originalRequest);
-            }).catch(err => {
-              return Promise.reject(err);
+              this.failedQueue.push({ resolve, reject, originalRequest });
             });
           }
 
-          originalRequest._retry = true;
-          this.isRefreshing = true;
-
-          try {
-            console.log('🔄 Token expirado, intentando renovar...');
-            
-            // Intentar renovar token
-            const newToken = await this.refreshToken();
-            
-            if (newToken) {
-              console.log('✅ Token renovado exitosamente');
-              
-              // Procesar cola de requests fallidos
-              this.processQueue(null, newToken);
-              
-              // Reintentar request original
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-              return axiosAuth(originalRequest);
-            }
-            
-          } catch (refreshError) {
-            console.log('❌ Error renovando token:', refreshError.message);
-            
-            // Procesar cola con error
-            this.processQueue(refreshError, null);
-            
-            // Limpiar sesión y redirigir
-            this.clearSessionAndRedirect();
-            return Promise.reject(refreshError);
-          } finally {
-            this.isRefreshing = false;
-          }
-        }
-
-        // Error 403 o cualquier otro error de auth
-        if (error.response?.status === 403) {
-          console.log('❌ Token inválido o permisos insuficientes');
-          this.clearSessionAndRedirect();
+          return this.handleTokenRefresh(originalRequest);
         }
 
         return Promise.reject(error);
@@ -137,54 +99,81 @@ class ApiClient {
     );
   }
 
-  // ===== PROCESAR COLA DE REQUESTS =====
+  // ✅ Manejo simplificado de refresh de token
+  async handleTokenRefresh(originalRequest) {
+    if (this.isRefreshing) {
+      return new Promise((resolve, reject) => {
+        this.failedQueue.push({ resolve, reject, originalRequest });
+      });
+    }
+
+    this.isRefreshing = true;
+
+    try {
+      console.log('🔄 Token expirado, intentando renovar...');
+      
+      const response = await axiosLogin.post('/auth/refresh-token');
+      const { accessToken, empleado, expiresIn } = response.data;
+      
+      // ✅ Actualizar localStorage
+      setToStorage('token', accessToken);
+      setToStorage('empleado', JSON.stringify(empleado));
+      setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
+      
+      console.log('✅ Token renovado exitosamente');
+      
+      // ✅ Procesar cola de requests fallidos
+      this.processQueue(null, accessToken);
+      
+      // ✅ Reintentar request original
+      originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+      return axiosAuth(originalRequest);
+      
+    } catch (refreshError) {
+      console.log('❌ Error renovando token:', refreshError.response?.data?.message || refreshError.message);
+      
+      // ✅ Procesar cola con error
+      this.processQueue(refreshError, null);
+      
+      // ✅ Limpiar sesión y redirigir
+      this.clearSessionAndRedirect();
+      
+      return Promise.reject(refreshError);
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  // ✅ Procesar cola de requests
   processQueue(error, token = null) {
-    this.failedQueue.forEach(({ resolve, reject }) => {
+    this.failedQueue.forEach(({ resolve, reject, originalRequest }) => {
       if (error) {
         reject(error);
       } else {
-        resolve(token);
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        resolve(axiosAuth(originalRequest));
       }
     });
     
     this.failedQueue = [];
   }
 
-  // ===== RENOVAR TOKEN =====
-  async refreshToken() {
-    try {
-      const response = await axiosLogin.post('/auth/refresh-token');
-      const { accessToken, empleado, expiresIn } = response.data;
-      
-      // Actualizar localStorage
-      setToStorage('token', accessToken);
-      setToStorage('empleado', JSON.stringify(empleado));
-      setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
-      
-      console.log(`✅ Token renovado - Expira en: ${expiresIn}`);
-      
-      return accessToken;
-    } catch (error) {
-      console.error('❌ Error en refresh token:', error);
-      throw error;
-    }
-  }
-
-  // ===== LOGIN =====
+  // ✅ LOGIN simplificado
   async login(credentials) {
     try {
       const response = await axiosLogin.post('/auth/login', credentials);
-      const { token, empleado, expiresIn } = response.data;
+      const { token, empleado, expiresIn, hasRefreshToken } = response.data;
       
-      // Guardar en localStorage
+      // ✅ Guardar en localStorage
       setToStorage('token', token);
       setToStorage('role', empleado.rol);
       setToStorage('empleado', JSON.stringify(empleado));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
       
-      console.log(`✅ Login exitoso - Token expira en: ${expiresIn}`);
+      console.log(`✅ Login exitoso - Token expira en: ${expiresIn}, Refresh token: ${hasRefreshToken ? 'Sí' : 'No'}`);
       
-      return { success: true, data: { token, empleado, expiresIn } };
+      return { success: true, data: { token, empleado, expiresIn, hasRefreshToken } };
+      
     } catch (error) {
       console.error('❌ Error en login:', error);
       
@@ -198,25 +187,24 @@ class ApiClient {
           return { success: false, error: message };
         }
       } else {
-        return { success: false, error: 'No se puede conectar con el servidor. Verifique que esté ejecutándose.' };
+        return { success: false, error: 'No se puede conectar con el servidor. Verifique su conexión.' };
       }
     }
   }
 
-  // ===== LOGOUT =====
+  // ✅ LOGOUT
   async logout() {
     try {
-      // Llamar logout en el backend para limpiar refresh token
+      console.log('👋 Cerrando sesión...');
       await axiosLogin.post('/auth/logout');
     } catch (error) {
       console.error('Error en logout del backend:', error);
     } finally {
-      // Limpiar localStorage siempre
       this.clearLocalStorage();
     }
   }
 
-  // ===== UTILIDADES =====
+  // ✅ UTILIDADES
   clearLocalStorage() {
     if (!isClient()) return;
     
@@ -240,18 +228,18 @@ class ApiClient {
     }
   }
 
+  // ✅ Verificación de expiración más conservadora
   isTokenExpired() {
-    if (!isClient()) return false; // En el servidor, asumir que no está expirado
+    if (!isClient()) return false;
     
     const expiry = getFromStorage('tokenExpiry');
     if (!expiry) return true;
     
     const expiryTime = parseInt(expiry);
     const now = Date.now();
-    const fiveMinutes = 5 * 60 * 1000; // 5 minutos en ms
+    const twoMinutes = 2 * 60 * 1000; // 2 minutos de buffer
     
-    // Considerar expirado si queda menos de 5 minutos
-    return (expiryTime - now) < fiveMinutes;
+    return (expiryTime - now) < twoMinutes;
   }
 
   hasToken() {
@@ -259,10 +247,10 @@ class ApiClient {
     return !!getFromStorage('token');
   }
 
+  // ✅ Función para parsear tiempo de expiración
   parseExpiration(expiresIn) {
-    // Convertir "2h", "15m", etc. a milisegundos
     const match = expiresIn.match(/^(\d+)([hm])$/);
-    if (!match) return 15 * 60 * 1000; // Default 15 minutos
+    if (!match) return 60 * 60 * 1000; // Default 1 hora
     
     const value = parseInt(match[1]);
     const unit = match[2];
@@ -270,11 +258,10 @@ class ApiClient {
     return unit === 'h' ? value * 60 * 60 * 1000 : value * 60 * 1000;
   }
 
-  // ===== VERIFICACIÓN PERIÓDICA =====
+  // ✅ Verificación periódica simplificada
   startTokenCheck() {
     if (!isClient()) return null;
     
-    // Verificar cada 2 minutos
     const interval = setInterval(() => {
       const token = getFromStorage('token');
       
@@ -283,78 +270,19 @@ class ApiClient {
         return;
       }
 
+      // Solo renovar si está próximo a expirar y no estamos renovando
       if (this.isTokenExpired() && !this.isRefreshing) {
-        console.log('⏰ Token próximo a expirar, renovando preventivamente...');
-        this.refreshToken().catch(() => {
+        console.log('⏰ Token próximo a expirar, renovando...');
+        this.handleTokenRefresh({ url: '/health', headers: {} }).catch(() => {
           clearInterval(interval);
-          this.clearSessionAndRedirect();
         });
       }
-    }, 2 * 60 * 1000); // 2 minutos
+    }, 60 * 1000); // Verificar cada minuto
 
     return interval;
   }
 
-  // ===== WRAPPER PARA FETCH CON AUTH =====
-  async fetchWithAuth(endpoint, options = {}) {
-    if (!isClient()) {
-      throw new Error('fetchWithAuth solo puede usarse en el cliente');
-    }
-    
-    const token = getFromStorage('token');
-    
-    // Verificar si necesita renovación antes de hacer el request
-    if (this.isTokenExpired() && !this.isRefreshing) {
-      try {
-        await this.refreshToken();
-      } catch (error) {
-        this.clearSessionAndRedirect();
-        throw error;
-      }
-    }
-    
-    const config = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-        ...options.headers
-      },
-      credentials: 'include', // Para enviar cookies
-      ...options
-    };
-
-    const response = await fetch(`${this.baseURL}${endpoint}`, config);
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        // Intentar renovar y reintentar
-        try {
-          const newToken = await this.refreshToken();
-          const retryConfig = {
-            ...config,
-            headers: {
-              ...config.headers,
-              'Authorization': `Bearer ${newToken}`
-            }
-          };
-          
-          const retryResponse = await fetch(`${this.baseURL}${endpoint}`, retryConfig);
-          if (retryResponse.ok) {
-            return retryResponse.json();
-          }
-        } catch (refreshError) {
-          this.clearSessionAndRedirect();
-          throw refreshError;
-        }
-      }
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    return response.json();
-  }
-
-  // ===== FUNCIONES AUXILIARES PARA HOOKS =====
+  // ✅ Función auxiliar para obtener usuario
   getUserFromStorage() {
     if (!isClient()) return null;
     
@@ -376,10 +304,59 @@ class ApiClient {
     
     return null;
   }
+
+  // ✅ Refresh manual
+  async refreshToken() {
+    const response = await axiosLogin.post('/auth/refresh-token');
+    const { accessToken, empleado, expiresIn } = response.data;
+    
+    setToStorage('token', accessToken);
+    setToStorage('empleado', JSON.stringify(empleado));
+    setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
+    
+    return accessToken;
+  }
+
+  // ✅ WRAPPER PARA FETCH CON AUTH (para compatibilidad)
+  async fetchWithAuth(endpoint, options = {}) {
+    if (!isClient()) {
+      throw new Error('fetchWithAuth solo puede usarse en el cliente');
+    }
+    
+    const token = getFromStorage('token');
+    
+    const config = {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers
+      },
+      credentials: 'include',
+      ...options
+    };
+
+    try {
+      const response = await fetch(`${this.baseURL}${endpoint}`, config);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      // Para errores 401, usar axios que tiene el interceptor configurado
+      if (error.message.includes('401')) {
+        const axiosResponse = await axiosAuth.get(endpoint);
+        return axiosResponse.data;
+      }
+      throw error;
+    }
+  }
 }
 
-// Exportar instancia única
+// ✅ Exportar instancia única
 export const apiClient = new ApiClient();
 
-// Funciones helper para compatibilidad
-export const fetchAuth = apiClient.fetchWithAuth.bind(apiClient);
+// ✅ Funciones helper para compatibilidad con código existente
+export const fetchAuth = (endpoint, options) => apiClient.fetchWithAuth(endpoint, options);

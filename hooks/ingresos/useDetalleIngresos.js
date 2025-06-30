@@ -3,7 +3,6 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { useIngresos } from '../../context/IngresosContext';
 
-
 import { axiosAuth, fetchAuth } from '../../utils/apiClient';
   
 export function useDetalleIngresos() {
@@ -27,13 +26,16 @@ export function useDetalleIngresos() {
       let response;
 
       if (tipo === 'Venta') {
-        response = await axiosAuth.get(`/ingresos/detalle-venta/${id}`);
+        // Corregir la ruta para que use el prefijo /finanzas
+        response = await axiosAuth.get(`/finanzas/ingresos/detalle-venta/${id}`);
+        setDetalle(response.data.data, 'venta');
       } else {
-        response = await axiosAuth.get(`/ingresos/detalle-ingreso/${id}`);
+        // Para ingresos manuales (tipo INGRESO)
+        response = await axiosAuth.get(`/finanzas/ingresos/detalle-ingreso/${id}`);
+        setDetalle(response.data.data, 'ingreso');
       }
       
       if (response.data.success) {
-        setDetalle(response.data.data, tipo.toLowerCase());
         setModal('detalle', true);
       } else {
         toast.error(`Error al cargar detalle del ${tipo.toLowerCase()}`);

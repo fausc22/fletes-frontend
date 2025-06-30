@@ -87,13 +87,7 @@ function TablaEscritorio({ egresos, onVerDetalle, onImprimir }) {
                     >
                       <MdRemoveRedEye size={20} />
                     </button>
-                    <button 
-                      onClick={() => onImprimir(egreso)}
-                      className="bg-purple-500 hover:bg-purple-600 text-white p-1 rounded transition-colors"
-                      title="Imprimir"
-                    >
-                      <MdPrint size={20} />
-                    </button>
+                    
                   </div>
                 </td>
               </tr>
@@ -156,13 +150,7 @@ function TarjetasMoviles({ egresos, onVerDetalle, onImprimir }) {
                 >
                   <MdRemoveRedEye size={20} />
                 </button>
-                <button 
-                  onClick={() => onImprimir(egreso)}
-                  className="bg-purple-500 hover:bg-purple-600 text-white p-1 rounded transition-colors"
-                  title="Imprimir"
-                >
-                  <MdPrint size={20} />
-                </button>
+                
               </div>
             </div>
           ))}
