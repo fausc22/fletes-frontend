@@ -59,7 +59,7 @@ class ApiClient {
   }
 
   setupInterceptors() {
-    // ✅ REQUEST INTERCEPTOR - Más simple
+    // ✅ REQUEST INTERCEPTOR
     axiosAuth.interceptors.request.use(
       (config) => {
         const token = getFromStorage('token');
@@ -71,7 +71,7 @@ class ApiClient {
       (error) => Promise.reject(error)
     );
 
-    // ✅ RESPONSE INTERCEPTOR - Simplificado
+    // ✅ RESPONSE INTERCEPTOR - MEJORADO
     axiosAuth.interceptors.response.use(
       (response) => response,
       async (error) => {
@@ -99,7 +99,7 @@ class ApiClient {
     );
   }
 
-  // ✅ Manejo simplificado de refresh de token
+  // ✅ MANEJO MEJORADO DE REFRESH TOKEN
   async handleTokenRefresh(originalRequest) {
     if (this.isRefreshing) {
       return new Promise((resolve, reject) => {
@@ -112,6 +112,7 @@ class ApiClient {
     try {
       console.log('🔄 Token expirado, intentando renovar...');
       
+      // ✅ USAR axiosLogin para evitar interceptores
       const response = await axiosLogin.post('/auth/refresh-token');
       const { accessToken, empleado, expiresIn } = response.data;
       
@@ -120,7 +121,7 @@ class ApiClient {
       setToStorage('empleado', JSON.stringify(empleado));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
       
-      console.log('✅ Token renovado exitosamente');
+      console.log('✅ Token renovado exitosamente via refresh token');
       
       // ✅ Procesar cola de requests fallidos
       this.processQueue(null, accessToken);
@@ -158,9 +159,14 @@ class ApiClient {
     this.failedQueue = [];
   }
 
-  // ✅ LOGIN simplificado
+  // ✅ LOGIN MEJORADO para manejar refresh tokens
   async login(credentials) {
     try {
+      console.log('🔐 Iniciando login con credenciales:', { 
+        username: credentials.username, 
+        remember: credentials.remember 
+      });
+      
       const response = await axiosLogin.post('/auth/login', credentials);
       const { token, empleado, expiresIn, hasRefreshToken } = response.data;
       
@@ -170,7 +176,10 @@ class ApiClient {
       setToStorage('empleado', JSON.stringify(empleado));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
       
-      console.log(`✅ Login exitoso - Token expira en: ${expiresIn}, Refresh token: ${hasRefreshToken ? 'Sí' : 'No'}`);
+      // ✅ Guardar si hay refresh token disponible
+      setToStorage('hasRefreshToken', hasRefreshToken.toString());
+      
+      console.log(`✅ Login exitoso - Token expira en: ${expiresIn}, Refresh token: ${hasRefreshToken ? 'SÍ' : 'NO'}`);
       
       return { success: true, data: { token, empleado, expiresIn, hasRefreshToken } };
       
@@ -192,14 +201,19 @@ class ApiClient {
     }
   }
 
-  // ✅ LOGOUT
+  // ✅ LOGOUT MEJORADO
   async logout() {
     try {
       console.log('👋 Cerrando sesión...');
+      
+      // ✅ Intentar logout en backend (para limpiar cookie)
       await axiosLogin.post('/auth/logout');
+      console.log('✅ Logout exitoso en backend');
+      
     } catch (error) {
-      console.error('Error en logout del backend:', error);
+      console.error('⚠️ Error en logout del backend (continuando con limpieza local):', error.response?.data?.message || error.message);
     } finally {
+      // ✅ Siempre limpiar localStorage
       this.clearLocalStorage();
     }
   }
@@ -212,6 +226,7 @@ class ApiClient {
     removeFromStorage('role');
     removeFromStorage('empleado');
     removeFromStorage('tokenExpiry');
+    removeFromStorage('hasRefreshToken');
   }
 
   clearSessionAndRedirect() {
@@ -228,7 +243,7 @@ class ApiClient {
     }
   }
 
-  // ✅ Verificación de expiración más conservadora
+  // ✅ VERIFICACIÓN DE EXPIRACIÓN MEJORADA
   isTokenExpired() {
     if (!isClient()) return false;
     
@@ -237,14 +252,20 @@ class ApiClient {
     
     const expiryTime = parseInt(expiry);
     const now = Date.now();
-    const twoMinutes = 2 * 60 * 1000; // 2 minutos de buffer
+    const fiveMinutes = 5 * 60 * 1000; // 5 minutos de buffer
     
-    return (expiryTime - now) < twoMinutes;
+    return (expiryTime - now) < fiveMinutes;
   }
 
   hasToken() {
     if (!isClient()) return false;
     return !!getFromStorage('token');
+  }
+
+  hasRefreshToken() {
+    if (!isClient()) return false;
+    const hasRefresh = getFromStorage('hasRefreshToken');
+    return hasRefresh === 'true';
   }
 
   // ✅ Función para parsear tiempo de expiración
@@ -258,24 +279,29 @@ class ApiClient {
     return unit === 'h' ? value * 60 * 60 * 1000 : value * 60 * 1000;
   }
 
-  // ✅ Verificación periódica simplificada
+  // ✅ VERIFICACIÓN PERIÓDICA MEJORADA
   startTokenCheck() {
     if (!isClient()) return null;
     
     const interval = setInterval(() => {
       const token = getFromStorage('token');
+      const hasRefresh = this.hasRefreshToken();
       
       if (!token) {
         clearInterval(interval);
         return;
       }
 
-      // Solo renovar si está próximo a expirar y no estamos renovando
-      if (this.isTokenExpired() && !this.isRefreshing) {
-        console.log('⏰ Token próximo a expirar, renovando...');
+      // Solo intentar renovar si tenemos refresh token y está próximo a expirar
+      if (this.isTokenExpired() && hasRefresh && !this.isRefreshing) {
+        console.log('⏰ Token próximo a expirar con refresh disponible, renovando...');
         this.handleTokenRefresh({ url: '/health', headers: {} }).catch(() => {
           clearInterval(interval);
         });
+      } else if (this.isTokenExpired() && !hasRefresh) {
+        console.log('⏰ Token expirado sin refresh token, cerrando sesión...');
+        this.clearSessionAndRedirect();
+        clearInterval(interval);
       }
     }, 60 * 1000); // Verificar cada minuto
 

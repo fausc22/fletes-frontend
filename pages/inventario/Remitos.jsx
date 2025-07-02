@@ -1,4 +1,4 @@
-// pages/remitos/Remitos.jsx - Versión completa actualizada
+// pages/inventario/Remitos.jsx - Versión actualizada con responsividad
 import { useState } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -24,7 +24,7 @@ function HistorialRemitosContent() {
   const [mostrarModalDetalle, setMostrarModalDetalle] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
 
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Hooks personalizados
   const { 
@@ -72,8 +72,12 @@ function HistorialRemitosContent() {
 
   // Handlers para eventos de la tabla
   const handleRowDoubleClick = async (remito) => {
-    await cargarProductosRemito(remito);
-    setMostrarModalDetalle(true);
+    try {
+      await cargarProductosRemito(remito);
+      setMostrarModalDetalle(true);
+    } catch (error) {
+      toast.error('Error al cargar detalles del remito');
+    }
   };
 
   const handleCloseModalDetalle = () => {
@@ -104,22 +108,17 @@ function HistorialRemitosContent() {
 
     console.log('🖨️ Remitos seleccionados para imprimir:', remitosSeleccionados.map(r => ({ id: r.id, cliente: r.cliente_nombre })));
     
-    await generarPDFsMultiples(remitosSeleccionados);
-  };
-
-  // Handler para ver detalle de venta
-  const handleVerDetalleVenta = (ventaId) => {
-    // TODO: Implementar navegación a detalle de venta
-    toast.info(`Funcionalidad para ver venta #${ventaId} pendiente de implementación`);
+    const exito = await generarPDFsMultiples(remitosSeleccionados);
+    
+    if (exito) {
+      clearSelection();
+      toast.success('PDFs generados correctamente');
+    }
   };
 
   // Handlers para navegación
   const handleConfirmarSalida = () => {
-    if (selectedRemito) {
-      setMostrarConfirmacionSalida(true);
-    } else {
-      window.location.href = '/';
-    }
+    setMostrarConfirmacionSalida(true);
   };
 
   const handleSalir = () => {
@@ -130,12 +129,26 @@ function HistorialRemitosContent() {
   const handleFiltrosChangeConLimpieza = (nuevosFiltros) => {
     handleFiltrosChange(nuevosFiltros);
     clearSelection();
+    cambiarPagina(1); // Reset a primera página
   };
 
   const handleLimpiarFiltrosConSeleccion = () => {
     limpiarFiltros();
     clearSelection();
+    cambiarPagina(1); // Reset a primera página
   };
+
+  // Mostrar loading mientras se autentica
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -144,8 +157,10 @@ function HistorialRemitosContent() {
         <meta name="description" content="Historial de remitos en el sistema VERTIMAR" />
       </Head>
       
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-7xl">
-        <h1 className="text-2xl font-bold mb-4 text-center">HISTORIAL DE REMITOS</h1>
+      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+          HISTORIAL DE REMITOS
+        </h1>
         
         {/* Componente de filtros */}
         <FiltrosHistorialRemitos
@@ -161,8 +176,8 @@ function HistorialRemitosContent() {
         <TablaRemitos
           remitos={remitosActuales}
           selectedRemitos={selectedRemitos}
-          onSelectRemito={(remito) => handleSelectRemito(remito.id)}
-          onSelectAll={handleSelectAllRemitos}
+          onSelectRemito={handleSelectRemito}
+          onSelectAll={() => handleSelectAllRemitos(remitosActuales)}
           onRowDoubleClick={handleRowDoubleClick}
           loading={loading}
         />
@@ -186,14 +201,13 @@ function HistorialRemitosContent() {
         />
       </div>
       
-      {/* Modal de detalles de remito */}
+      {/* Modal de detalles de remito - SIN PROP onVerDetalleVenta */}
       <ModalDetalleRemito
         remito={selectedRemito}
         productos={productos}
         loading={loadingProductos}
         onClose={handleCloseModalDetalle}
         onGenerarPDF={handleGenerarPDF}
-        onVerDetalleVenta={handleVerDetalleVenta}
         generandoPDF={generandoPDF}
       />
 

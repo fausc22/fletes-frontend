@@ -91,8 +91,11 @@ export function useEditarPedido() {
       
       if (response.data.success) {
         toast.success(`Producto agregado: ${cantidad} x ${producto.nombre}`);
+        
+        // ✅ SOLO RECARGAR PRODUCTOS - El backend ya actualizó los totales
         await cargarProductosPedido(selectedPedido);
-        await actualizarTotalPedido();
+        
+        console.log('✅ Backend actualizó totales automáticamente:', response.data.data?.totales);
         return true;
       } else {
         toast.error(response.data.message || 'Error al agregar producto');
@@ -129,8 +132,11 @@ export function useEditarPedido() {
       
       if (response.data.success) {
         toast.success(`Producto eliminado: ${producto.producto_nombre}`);
+        
+        // ✅ SOLO RECARGAR PRODUCTOS - El backend ya actualizó los totales
         await cargarProductosPedido(selectedPedido);
-        await actualizarTotalPedido();
+        
+        console.log('✅ Backend actualizó totales automáticamente:', response.data.data?.totales);
         return true;
       } else {
         toast.error(response.data.message || 'No se pudo eliminar el producto');
@@ -181,8 +187,11 @@ export function useEditarPedido() {
 
       if (response.data.success) {
         toast.success(`Producto actualizado: ${producto.producto_nombre}`);
+        
+        // ✅ SOLO RECARGAR PRODUCTOS - El backend ya actualizó los totales
         await cargarProductosPedido(selectedPedido);
-        await actualizarTotalPedido();
+        
+        console.log('✅ Backend actualizó totales automáticamente:', response.data.data?.totales);
         return true;
       } else {
         toast.error(response.data.message || 'No se pudo actualizar el producto');
@@ -213,37 +222,8 @@ export function useEditarPedido() {
     return true;
   };
 
-  // Actualizar totales del pedido
-  const actualizarTotalPedido = async () => {
-    if (!selectedPedido) return;
-
-    // Calcular nuevos totales
-    const subtotalTotal = productos.reduce((acc, prod) => acc + parseFloat(prod.subtotal || 0), 0);
-    const ivaTotal = productos.reduce((acc, prod) => acc + parseFloat(prod.iva || 0), 0);
-    const total = subtotalTotal + ivaTotal;
-
-    const totalesActualizados = {
-      subtotal: parseFloat(subtotalTotal.toFixed(2)),
-      iva_total: parseFloat(ivaTotal.toFixed(2)),
-      total: parseFloat(total.toFixed(2))
-    };
-
-    try {
-      const response = await axiosAuth.put(`/pedidos/actualizar-totales/${selectedPedido.id}`, totalesActualizados);
-
-      if (response.data.success) {
-        setSelectedPedido(prev => ({ 
-          ...prev, 
-          subtotal: totalesActualizados.subtotal,
-          iva_total: totalesActualizados.iva_total,
-          total: totalesActualizados.total
-        }));
-      }
-    } catch (error) {
-      console.error("Error al actualizar totales:", error);
-      toast.error("No se pudieron actualizar los totales");
-    }
-  };
+  // ❌ ELIMINAR: Esta función ya no es necesaria porque el backend calcula automáticamente
+  // const actualizarTotalPedido = async () => { ... }
 
   // Actualizar observaciones del pedido
   const actualizarObservaciones = async (nuevasObservaciones) => {
@@ -275,7 +255,7 @@ export function useEditarPedido() {
     setProductos([]);
   };
 
-  // Obtener totales calculados dinámicamente
+  // ✅ ACTUALIZAR: Obtener totales calculados dinámicamente (ahora solo para mostrar)
   const getTotales = () => {
     const subtotal = productos.reduce((acc, prod) => acc + parseFloat(prod.subtotal || 0), 0);
     const ivaTotal = productos.reduce((acc, prod) => acc + parseFloat(prod.iva || 0), 0);
@@ -309,15 +289,14 @@ export function useEditarPedido() {
     // Funciones auxiliares
     actualizarObservaciones,
     cerrarEdicion,
-    getTotales,
+    getTotales, // Solo para mostrar en el modal
     getProductosActuales,
     
     // Funciones de validación
     verificarProductoDuplicado,
     verificarStock,
-    validarStockAntesDeProceder,
+    validarStockAntesDeProceder
     
-    // Función interna (por si la necesitas)
-    actualizarTotalPedido
+    // ❌ ELIMINAR: actualizarTotalPedido ya no es necesaria
   };
 }

@@ -1433,7 +1433,7 @@ export function ModalDetallePedido({
   isPedidoAnulado
 }) {
   const [clienteExpandido, setClienteExpandido] = useState(false);
-  const [mostrarModalAgregar, setMostrarModalAgregar] = useState(false); // Nuevo estado
+  
   const { user } = useAuth();
 
 
@@ -1483,17 +1483,12 @@ export function ModalDetallePedido({
 
   // Función para abrir el modal de agregar producto
   const handleAbrirModalAgregar = () => {
-    setMostrarModalAgregar(true);
+    if (onAgregarProducto) {
+      onAgregarProducto();
+    }
   };
 
-  // Función para manejar el agregado de producto con validaciones
-  const handleAgregarProductoConValidaciones = async (producto, cantidad) => {
-    const exito = await onAgregarProducto(producto, cantidad);
-    if (exito) {
-      setMostrarModalAgregar(false);
-    }
-    return exito;
-  };
+  
 
   const esGerente = user?.rol === 'GERENTE';
 
@@ -1602,15 +1597,7 @@ export function ModalDetallePedido({
         </div>
       </div>
 
-      {/* Modal para agregar producto con validaciones */}
-      {mostrarModalAgregar && (
-        <ModalAgregarProductoPedido
-          mostrar={mostrarModalAgregar}
-          onClose={() => setMostrarModalAgregar(false)}
-          onAgregarProducto={handleAgregarProductoConValidaciones}
-          productosActuales={productos} // Pasar productos actuales para validaciones
-        />
-      )}
+      
     </>
   );
 }

@@ -26,12 +26,12 @@ function HistorialVentasContent() {
   const [mostrarModalComprobante, setMostrarModalComprobante] = useState(false);
   const [mostrarConfirmacionSalida, setMostrarConfirmacionSalida] = useState(false);
 
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Hooks personalizados
   const { ventas, selectedVentas, loading, handleSelectVenta, handleSelectAllVentas, clearSelection } = useHistorialVentas();
   
-  // 🆕 Hook de filtros para ventas
+  // Hook de filtros para ventas
   const { filtros, ventasFiltradas, handleFiltrosChange, limpiarFiltros } = useFiltrosVentas(ventas);
   
   const {
@@ -43,7 +43,7 @@ function HistorialVentasContent() {
     indexOfUltimo,
     cambiarPagina,
     cambiarRegistrosPorPagina
-  } = usePaginacion(ventasFiltradas, 10); // 🔄 Usar ventasFiltradas en lugar de ventas
+  } = usePaginacion(ventasFiltradas, 10);
 
   const {
     selectedVenta,
@@ -76,9 +76,13 @@ function HistorialVentasContent() {
 
   // Handlers para eventos de la tabla
   const handleRowDoubleClick = async (venta) => {
-    await cargarProductosVenta(venta);
-    await cargarCuenta(venta);
-    setMostrarModalDetalle(true);
+    try {
+      await cargarProductosVenta(venta);
+      await cargarCuenta(venta);
+      setMostrarModalDetalle(true);
+    } catch (error) {
+      toast.error('Error al cargar detalles de la venta');
+    }
   };
 
   const handleCloseModalDetalle = () => {
@@ -131,7 +135,6 @@ function HistorialVentasContent() {
     await generarPDFIndividual(selectedVenta, productos);
   };
 
-  // 🔧 CORREGIDO: Pasar las ventas completas seleccionadas
   const handleImprimirMultiple = async () => {
     const ventasSeleccionadas = ventasFiltradas.filter(venta => 
       selectedVentas.includes(venta.id)
@@ -144,16 +147,17 @@ function HistorialVentasContent() {
 
     console.log('🖨️ Ventas seleccionadas para imprimir:', ventasSeleccionadas.map(v => ({ id: v.id, cliente: v.cliente_nombre })));
     
-    await generarPDFsMultiples(ventasSeleccionadas);
+    const exito = await generarPDFsMultiples(ventasSeleccionadas);
+    
+    if (exito) {
+      clearSelection();
+      toast.success('PDFs generados correctamente');
+    }
   };
 
   // Handlers para navegación
   const handleConfirmarSalida = () => {
-    if (selectedVenta) {
-      setMostrarConfirmacionSalida(true);
-    } else {
-      window.location.href = '/';
-    }
+    setMostrarConfirmacionSalida(true);
   };
 
   const handleSalir = () => {
@@ -173,16 +177,30 @@ function HistorialVentasContent() {
     toast.error('Funcionalidad por implementar.');
   };
 
-  // 🆕 Limpiar selección cuando cambian los filtros
+  // Limpiar selección cuando cambian los filtros
   const handleFiltrosChangeConLimpieza = (nuevosFiltros) => {
     handleFiltrosChange(nuevosFiltros);
-    clearSelection(); // Limpiar selección al cambiar filtros
+    clearSelection();
+    cambiarPagina(1); // Reset a primera página
   };
 
   const handleLimpiarFiltrosConSeleccion = () => {
     limpiarFiltros();
-    clearSelection(); // Limpiar selección al limpiar filtros
+    clearSelection();
+    cambiarPagina(1); // Reset a primera página
   };
+
+  // Mostrar loading mientras se autentica
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
@@ -191,10 +209,12 @@ function HistorialVentasContent() {
         <meta name="description" content="Historial de ventas en el sistema VERTIMAR" />
       </Head>
       
-      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-7xl">
-        <h1 className="text-2xl font-bold mb-4 text-center">HISTORIAL DE VENTAS</h1>
+      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-6xl">
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
+          HISTORIAL DE VENTAS
+        </h1>
         
-        {/* 🆕 Componente de filtros */}
+        {/* Componente de filtros */}
         <FiltrosHistorialVentas
           filtros={filtros}
           onFiltrosChange={handleFiltrosChangeConLimpieza}
@@ -208,14 +228,14 @@ function HistorialVentasContent() {
         <TablaVentas
           ventas={ventasActuales}
           selectedVentas={selectedVentas}
-          onSelectVenta={(venta) => handleSelectVenta(venta.id)}
-          onSelectAll={handleSelectAllVentas}
+          onSelectVenta={handleSelectVenta}
+          onSelectAll={() => handleSelectAllVentas(ventasActuales)}
           onRowDoubleClick={handleRowDoubleClick}
           loading={loading}
         />
         
         <Paginacion
-          datosOriginales={ventasFiltradas} // 🔄 Usar ventasFiltradas
+          datosOriginales={ventasFiltradas}
           paginaActual={paginaActual}
           registrosPorPagina={registrosPorPagina}
           totalPaginas={totalPaginas}
@@ -235,14 +255,13 @@ function HistorialVentasContent() {
         />
       </div>
       
-      {/* Modal de detalles de venta - SIN BOTÓN ANULAR */}
+      {/* Modal de detalles de venta */}
       <ModalDetalleVenta
         venta={selectedVenta}
         productos={productos}
         loading={loadingProductos}
         onClose={handleCloseModalDetalle}
         onImprimirFacturaIndividual={handleGenerarPDF}
-        onCargarComprobante={handleCargarComprobante}
         generandoPDF={generandoPDF}
         cuenta={cuenta}
       />

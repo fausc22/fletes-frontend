@@ -1,7 +1,22 @@
-// components/remitos/ModalDetalleRemito.jsx - Versión corregida
+// components/remitos/ModalDetalleRemito.jsx - Sin botón Ver Venta Origen
 import React, { useState } from "react";
 import { toast } from 'react-hot-toast';
 import { MdExpandMore, MdExpandLess } from "react-icons/md";
+
+// Función helper para formatear fechas
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'Fecha no disponible';
+  
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
 
 function InformacionCliente({ remito, expandido, onToggleExpansion }) {
   return (
@@ -53,43 +68,54 @@ function InformacionCliente({ remito, expandido, onToggleExpansion }) {
 }
 
 function InformacionAdicional({ remito }) {
+  const getEstadoStyle = (estado) => {
+    switch (estado) {
+      case 'Activo':
+        return 'bg-green-100 text-green-800 border-green-300';
+      case 'Entregado':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'Pendiente':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'Cancelado':
+        return 'bg-red-100 text-red-800 border-red-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
   return (
     <div className="bg-gray-100 p-4 rounded-lg mb-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Estado */}
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Estado</h3>
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getEstadoStyle(remito.estado)}`}>
+            {remito.estado || 'Sin estado'}
+          </span>
+        </div>
+
+        {/* Observaciones */}
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Observaciones</h3>
-          <p className="text-lg text-gray-700">
-            {remito.observaciones || 'Sin observaciones especiales'}
+          <p className="text-lg text-gray-700 bg-white p-3 rounded border min-h-[2.5rem] break-words">
+            {remito.observaciones && remito.observaciones !== 'Sin observaciones' 
+              ? remito.observaciones 
+              : (
+                <span className="text-gray-400 italic">
+                  Sin observaciones especiales
+                </span>
+              )
+            }
           </p>
         </div>
+
+        {/* Empleado */}
         <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Empleado</h3>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Usuario</h3>
           <p className="text-lg font-semibold text-green-600">
             {remito.empleado_nombre || 'No especificado'}
           </p>
         </div>
-        <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Estado</h3>
-          <div className="flex items-center gap-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-              remito.estado === 'Activo' ? 'bg-green-100 text-green-800' :
-              remito.estado === 'Entregado' ? 'bg-blue-100 text-blue-800' :
-              remito.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
-              remito.estado === 'Cancelado' ? 'bg-red-100 text-red-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {remito.estado || 'Sin estado'}
-            </span>
-          </div>
-        </div>
-        {remito.venta_id && (
-          <div>
-            <h3 className="font-bold text-xl mb-2 text-gray-800">Venta Origen</h3>
-            <p className="text-lg font-semibold text-blue-600">
-              Venta #{remito.venta_id}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -224,7 +250,6 @@ export function ModalDetalleRemito({
   loading,
   onClose,
   onGenerarPDF,
-  onVerDetalleVenta,
   generandoPDF = false
 }) {
   const [clienteExpandido, setClienteExpandido] = useState(false);
@@ -235,50 +260,32 @@ export function ModalDetalleRemito({
     setClienteExpandido(!clienteExpandido);
   };
 
-  const handleVerDetalleVenta = () => {
-    if (remito.venta_id) {
-      onVerDetalleVenta(remito.venta_id);
-    } else {
-      toast.info('Este remito no está asociado a una venta específica');
-    }
-  };
-
   const handleCerrarModal = () => {
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-4 md:p-6">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-xs sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-3 sm:p-4 lg:p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Detalles del Remito</h2>
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">
+              Remito #{remito.id}
+            </h2>
             <button 
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-2xl"
+              className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
             >
               ✕
             </button>
           </div>
 
           {/* Fecha y Estado */}
-          <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <h4 className="text-lg font-semibold text-gray-700">
-              <strong>Fecha:</strong> {remito.fecha}
+          <div className="mb-4">
+            <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
+              <strong>Fecha:</strong> {formatearFecha(remito.fecha)}
             </h4>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Estado:</span>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                remito.estado === 'Activo' ? 'bg-green-100 text-green-800' :
-                remito.estado === 'Entregado' ? 'bg-blue-100 text-blue-800' :
-                remito.estado === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                remito.estado === 'Cancelado' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {remito.estado || 'Sin estado'}
-              </span>
-            </div>
           </div>
           
           {/* Información del Cliente (colapsable) */}
@@ -292,10 +299,8 @@ export function ModalDetalleRemito({
           <InformacionAdicional remito={remito} />
           
           {/* Sección de productos */}
-          <div className="mt-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800">Productos del Remito</h3>
-            </div>
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">Productos del Remito</h3>
             
             <TablaProductos
               productos={productos}
@@ -305,12 +310,12 @@ export function ModalDetalleRemito({
             <ResumenCantidades productos={productos} />
           </div>
           
-          {/* Botones de acción */}
-          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+          {/* Botones de acción - REMOVIDO botón Ver Venta Origen */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-4">
             <button
               onClick={onGenerarPDF}
               disabled={generandoPDF}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded flex items-center justify-center gap-2"
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/2 flex items-center justify-center gap-2"
             >
               {generandoPDF ? (
                 <>
@@ -318,24 +323,15 @@ export function ModalDetalleRemito({
                   Generando...
                 </>
               ) : (
-                'Imprimir Remito'
+                '🖨️ IMPRIMIR REMITO'
               )}
             </button>
             
-            {remito.venta_id && (
-              <button
-                onClick={handleVerDetalleVenta}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              >
-                Ver Venta Origen
-              </button>
-            )}
-            
             <button
               onClick={handleCerrarModal}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+              className="bg-gray-600 hover:bg-gray-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/2"
             >
-              Cerrar
+              ❌ CERRAR
             </button>
           </div>
         </div>

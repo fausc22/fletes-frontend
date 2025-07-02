@@ -1,4 +1,4 @@
-// pages/pedidos/HistorialPedidos.jsx - VERSIÓN COMPLETA CON FILTROS Y SOLUCIÓN 1
+// pages/pedidos/HistorialPedidos.jsx - VERSIÓN SIMPLIFICADA
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -13,7 +13,7 @@ import { useAnularPedido } from '../../hooks/pedidos/useAnularPedido';
 
 // Componentes
 import TablaPedidos from '../../components/pedidos/TablaPedidos';
-import FiltrosHistorialPedidos from '../../components/pedidos/FiltrosHistorialPedidos'; // COMPONENTE DE FILTROS
+import FiltrosHistorialPedidos from '../../components/pedidos/FiltrosHistorialPedidos';
 import { Paginacion } from '../../components/Paginacion';
 import { 
   ModalDetallePedido, 
@@ -62,22 +62,22 @@ function HistorialPedidosContent() {
   // Determinar si debe filtrar por empleado
   const filtroEmpleado = user && user.rol !== 'GERENTE' ? user.id : null;
 
-  // Hook ACTUALIZADO para historial de pedidos
+  // Hook para historial de pedidos
   const { 
-    pedidos, // Ahora estos ya vienen filtrados
-    pedidosOriginales, // NUEVO: Pedidos sin filtrar para estadísticas y empleados
+    pedidos,
+    pedidosOriginales,
     selectedPedidos, 
     loading, 
-    filtros, // Estado de filtros
+    filtros,
     handleSelectPedido, 
     handleSelectAllPedidos, 
     clearSelection,
     cambiarEstadoMultiple,
     eliminarMultiple,
     cargarPedidos,
-    actualizarFiltros, // Función para actualizar filtros
-    limpiarFiltros, // Función para limpiar filtros
-    getEstadisticas // Función para estadísticas
+    actualizarFiltros,
+    limpiarFiltros,
+    getEstadisticas
   } = useHistorialPedidos(filtroEmpleado);
 
   // Effect para cargar pedidos
@@ -95,7 +95,7 @@ function HistorialPedidosContent() {
     }
   }, [user, authLoading]);
   
-  // Hook de paginación - Usa pedidos filtrados
+  // Hook de paginación
   const {
     datosActuales: pedidosActuales,
     paginaActual,
@@ -105,20 +105,20 @@ function HistorialPedidosContent() {
     indexOfUltimo,
     cambiarPagina,
     cambiarRegistrosPorPagina
-  } = usePaginacion(pedidos, 10); // Usa pedidos ya filtrados
+  } = usePaginacion(pedidos, 10);
 
   const {
-  selectedPedido,
-  productos,
-  loading: loadingProductos,
-  cargarProductosPedido,
-  agregarProducto,
-  eliminarProducto,
-  actualizarProducto,
-  actualizarObservaciones, 
-  verificarStock, 
-  cerrarEdicion
-} = useEditarPedido();
+    selectedPedido,
+    productos,
+    loading: loadingProductos,
+    cargarProductosPedido,
+    agregarProducto,
+    eliminarProducto,
+    actualizarProducto,
+    actualizarObservaciones, 
+    verificarStock, 
+    cerrarEdicion
+  } = useEditarPedido();
 
   // FUNCIONES para anular pedidos
   const handleMostrarConfirmacionAnular = (pedido, productosDelPedido) => {
@@ -142,6 +142,7 @@ function HistorialPedidosContent() {
       setMostrarModalDetalle(false);
       setPedidoParaAnular(null);
       cerrarEdicion();
+      // ✅ RECARGAR PEDIDOS (necesario para cambios de estado)
       await cargarPedidos();
     }
   };
@@ -167,6 +168,7 @@ function HistorialPedidosContent() {
         toast.success(`Pedido #${selectedPedido.id} marcado como ${nuevoEstado}`);
         setMostrarModalDetalle(false);
         cerrarEdicion();
+        // ✅ RECARGAR PEDIDOS (necesario para cambios de estado)
         await cargarPedidos();
       } else {
         toast.error(response.data.message || 'Error al cambiar estado del pedido');
@@ -199,27 +201,27 @@ function HistorialPedidosContent() {
   };
 
   const handleEditarProducto = async (producto) => {
-  try {
-    console.log('🔍 Consultando stock para producto:', producto.producto_id);
-    const stockActual = await verificarStock(producto.producto_id);
-    console.log('📦 Stock obtenido:', stockActual);
-    
-    const productoConStock = {
-      ...producto,
-      stock_actual: stockActual
-    };
-    
-    setProductoEditando(productoConStock);
-    setMostrarModalDetalle(false);
-    setTimeout(() => setMostrarModalEditarProducto(true), 300);
-  } catch (error) {
-    console.error('❌ Error al obtener stock:', error);
-    toast.error('Error al consultar stock del producto');
-    setProductoEditando({ ...producto, stock_actual: 0 });
-    setMostrarModalDetalle(false);
-    setTimeout(() => setMostrarModalEditarProducto(true), 300);
-  }
-};
+    try {
+      console.log('🔍 Consultando stock para producto:', producto.producto_id);
+      const stockActual = await verificarStock(producto.producto_id);
+      console.log('📦 Stock obtenido:', stockActual);
+      
+      const productoConStock = {
+        ...producto,
+        stock_actual: stockActual
+      };
+      
+      setProductoEditando(productoConStock);
+      setMostrarModalDetalle(false);
+      setTimeout(() => setMostrarModalEditarProducto(true), 300);
+    } catch (error) {
+      console.error('❌ Error al obtener stock:', error);
+      toast.error('Error al consultar stock del producto');
+      setProductoEditando({ ...producto, stock_actual: 0 });
+      setMostrarModalDetalle(false);
+      setTimeout(() => setMostrarModalEditarProducto(true), 300);
+    }
+  };
 
   const handleEliminarProducto = (producto) => {
     setProductoEliminando(producto);
@@ -245,30 +247,76 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalDetalle(true), 300);
   };
 
-  // Handlers para acciones de productos
+  // ✅ HANDLERS SIMPLIFICADOS - El backend maneja los totales automáticamente
   const handleConfirmarAgregarProducto = async (producto, cantidad) => {
-    const exito = await agregarProducto(producto, cantidad);
-    if (exito) {
-      handleCloseModalAgregarProducto();
+    try {
+      console.log('🔄 Agregando producto...');
+      
+      const exito = await agregarProducto(producto, cantidad);
+      if (exito) {
+        console.log('✅ Producto agregado exitosamente');
+        handleCloseModalAgregarProducto();
+        
+        // ✅ SIMPLE: Solo recargar pedidos para actualizar la tabla
+        console.log('🔄 Recargando lista de pedidos...');
+        await cargarPedidos();
+        console.log('✅ Lista de pedidos actualizada');
+        
+        toast.success('Producto agregado correctamente');
+      }
+      return exito;
+    } catch (error) {
+      console.error('❌ Error en handleConfirmarAgregarProducto:', error);
+      toast.error('Error al agregar producto');
+      return false;
     }
-    return exito;
   };
 
   const handleConfirmarEditarProducto = async () => {
     if (!productoEditando) return;
     
-    const exito = await actualizarProducto(productoEditando);
-    if (exito) {
-      handleCloseModalEditarProducto();
+    try {
+      console.log('🔄 Editando producto...');
+      
+      const exito = await actualizarProducto(productoEditando);
+      if (exito) {
+        console.log('✅ Producto editado exitosamente');
+        handleCloseModalEditarProducto();
+        
+        // ✅ SIMPLE: Solo recargar pedidos para actualizar la tabla
+        console.log('🔄 Recargando lista de pedidos...');
+        await cargarPedidos();
+        console.log('✅ Lista de pedidos actualizada');
+        
+        toast.success('Producto editado correctamente');
+      }
+    } catch (error) {
+      console.error('❌ Error en handleConfirmarEditarProducto:', error);
+      toast.error('Error al editar producto');
     }
   };
 
   const handleConfirmarEliminarProducto = async () => {
     if (!productoEliminando) return;
     
-    const exito = await eliminarProducto(productoEliminando);
-    if (exito) {
-      handleCloseModalEliminarProducto();
+    try {
+      console.log('🔄 Eliminando producto...');
+      
+      const exito = await eliminarProducto(productoEliminando);
+      if (exito) {
+        console.log('✅ Producto eliminado exitosamente');
+        handleCloseModalEliminarProducto();
+        
+        // ✅ SIMPLE: Solo recargar pedidos para actualizar la tabla
+        console.log('🔄 Recargando lista de pedidos...');
+        await cargarPedidos();
+        console.log('✅ Lista de pedidos actualizada');
+        
+        toast.success('Producto eliminado correctamente');
+      }
+    } catch (error) {
+      console.error('❌ Error en handleConfirmarEliminarProducto:', error);
+      toast.error('Error al eliminar producto');
     }
   };
 
@@ -282,27 +330,28 @@ function HistorialPedidosContent() {
     await generarPDFPedido(selectedPedido, productos);
   };
 
-
   const handleActualizarObservaciones = async (nuevasObservaciones) => {
-  if (!selectedPedido) {
-    toast.error('No hay pedido seleccionado');
-    return false;
-  }
-
-  try {
-    console.log('📝 Actualizando observaciones para pedido:', selectedPedido.id);
-    const exito = await actualizarObservaciones(nuevasObservaciones);
-    
-    if (exito) {
-      await cargarPedidos();
-      return true;
+    if (!selectedPedido) {
+      toast.error('No hay pedido seleccionado');
+      return false;
     }
-    return false;
-  } catch (error) {
-    console.error('❌ Error al actualizar observaciones:', error);
-    toast.error('Error al actualizar observaciones');
-    return false;
-  }
+
+    try {
+      console.log('📝 Actualizando observaciones para pedido:', selectedPedido.id);
+      const exito = await actualizarObservaciones(nuevasObservaciones);
+      
+      if (exito) {
+        // ✅ RECARGAR PEDIDOS (las observaciones se muestran en la tabla)
+        await cargarPedidos();
+        toast.success('Observaciones actualizadas correctamente');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('❌ Error al actualizar observaciones:', error);
+      toast.error('Error al actualizar observaciones');
+      return false;
+    }
   };
 
   // Función para generar PDFs múltiples
@@ -331,16 +380,14 @@ function HistorialPedidosContent() {
     window.location.href = '/';
   };
 
-  // NUEVAS FUNCIONES para manejar filtros
+  // FUNCIONES para manejar filtros
   const handleFiltrosChange = (nuevosFiltros) => {
     actualizarFiltros(nuevosFiltros);
-    // Reset a primera página cuando se cambian filtros
     cambiarPagina(1);
   };
 
   const handleLimpiarFiltros = () => {
     limpiarFiltros();
-    // Reset a primera página cuando se limpian filtros
     cambiarPagina(1);
   };
 
@@ -379,7 +426,6 @@ function HistorialPedidosContent() {
           {getTitulo()}
         </h1>
         
-        {/* COMPONENTE DE FILTROS CON SOLUCIÓN 1 */}
         <FiltrosHistorialPedidos
           filtros={filtros}
           onFiltrosChange={handleFiltrosChange}
@@ -387,7 +433,7 @@ function HistorialPedidosContent() {
           user={user}
           totalPedidos={estadisticas.total}
           pedidosFiltrados={estadisticas.filtrado}
-          pedidosOriginales={pedidosOriginales} // PROP NUEVA - para extraer empleados
+          pedidosOriginales={pedidosOriginales}
         />
         
         <TablaPedidos
@@ -402,7 +448,7 @@ function HistorialPedidosContent() {
         />
         
         <Paginacion
-          datosOriginales={pedidos} // Usa los pedidos filtrados
+          datosOriginales={pedidos}
           paginaActual={paginaActual}
           registrosPorPagina={registrosPorPagina}
           totalPaginas={totalPaginas}

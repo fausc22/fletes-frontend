@@ -2,6 +2,20 @@ import React, { useState } from "react";
 import { toast } from 'react-hot-toast';
 import { MdDeleteForever, MdExpandMore, MdExpandLess } from "react-icons/md";
 
+// Función helper para formatear fechas
+const formatearFecha = (fecha) => {
+  if (!fecha) return 'Fecha no disponible';
+  
+  return new Date(fecha).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+};
 
 function InformacionCliente({ venta, expandido, onToggleExpansion }) {
   return (
@@ -53,39 +67,52 @@ function InformacionCliente({ venta, expandido, onToggleExpansion }) {
 }
 
 function InformacionAdicional({ venta, cuenta }) {
+  const getDocumentoStyle = (tipoDoc) => {
+    switch (tipoDoc) {
+      case 'FACTURA':
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+      case 'NOTA_DEBITO':
+        return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'NOTA_CREDITO':
+        return 'bg-green-100 text-green-800 border-green-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
+  const getTipoFiscalStyle = (tipoF) => {
+    switch (tipoF) {
+      case 'A':
+        return 'bg-purple-100 text-purple-800 border-purple-300';
+      case 'B':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+      case 'C':
+        return 'bg-pink-100 text-pink-800 border-pink-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+  };
+
   return (
     <div className="bg-gray-100 p-4 rounded-lg mb-4">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Observaciones</h3>
-          <p className="text-lg text-gray-700">
-            {venta.observaciones || 'Sin observaciones especiales'}
-          </p>
-        </div>
-        <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Empleado</h3>
-          <p className="text-lg font-semibold text-blue-600">
-            {venta.empleado_nombre || 'No especificado'}
-          </p>
-        </div>
-        <div>
-          <h3 className="font-bold text-xl mb-2 text-gray-800">Cuenta Destino</h3>
-          <p className="text-lg font-semibold text-blue-600">
-            {cuenta?.nombre || 'No especificado'}
-          </p>
-        </div>
+        {/* Tipo de Documento */}
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Tipo Documento</h3>
-          <p className="text-lg font-semibold text-green-600">
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getDocumentoStyle(venta.tipo_doc)}`}>
             {venta.tipo_doc || 'No especificado'}
-          </p>
+          </span>
         </div>
+
+        {/* Tipo Fiscal */}
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Tipo Fiscal</h3>
-          <p className="text-lg font-semibold text-purple-600">
-            {venta.tipo_f || 'No especificado'}
-          </p>
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium border ${getTipoFiscalStyle(venta.tipo_f)}`}>
+            Tipo {venta.tipo_f || 'No especificado'}
+          </span>
         </div>
+
+        {/* Estado CAE */}
         <div>
           <h3 className="font-bold text-xl mb-2 text-gray-800">Estado CAE</h3>
           <div className="flex items-center gap-2">
@@ -101,6 +128,37 @@ function InformacionAdicional({ venta, cuenta }) {
               </>
             )}
           </div>
+        </div>
+
+        {/* Empleado */}
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Usuario</h3>
+          <p className="text-lg font-semibold text-blue-600">
+            {venta.empleado_nombre || 'No especificado'}
+          </p>
+        </div>
+
+        {/* Cuenta Destino */}
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Cuenta Destino</h3>
+          <p className="text-lg font-semibold text-blue-600">
+            {cuenta?.nombre || 'No especificado'}
+          </p>
+        </div>
+
+        {/* Observaciones */}
+        <div>
+          <h3 className="font-bold text-xl mb-2 text-gray-800">Observaciones</h3>
+          <p className="text-lg text-gray-700 bg-white p-3 rounded border min-h-[2.5rem] break-words">
+            {venta.observaciones && venta.observaciones !== 'sin observaciones' 
+              ? venta.observaciones 
+              : (
+                <span className="text-gray-400 italic">
+                  Sin observaciones especiales
+                </span>
+              )
+            }
+          </p>
         </div>
       </div>
     </div>
@@ -137,7 +195,7 @@ function TablaProductosEscritorio({ productos }) {
                 <td className="p-2 text-center font-semibold">{cantidad}</td>
                 <td className="p-2 text-right">${precio.toFixed(2)}</td>
                 <td className="p-2 text-right">${ivaValue.toFixed(2)}</td>
-                <td className="p-2 text-right font-semibold">${subtotalSinIva.toFixed(2)}</td>
+                <td className="p-2 text-right font-semibold text-green-600">${subtotalSinIva.toFixed(2)}</td>
               </tr>
             );
           })}
@@ -263,21 +321,6 @@ function ResumenTotales({ productos, venta }) {
   );
 }
 
-// Función helper para formatear fechas
-  const formatearFecha = (fecha) => {
-  if (!fecha) return 'Fecha no disponible';
-  
-  return new Date(fecha).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
-  };
-
 export function ModalDetalleVenta({ 
   venta,
   productos,
@@ -308,31 +351,27 @@ export function ModalDetalleVenta({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="p-4 md:p-6">
+    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg w-full max-w-xs sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+        <div className="p-3 sm:p-4 lg:p-6">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl md:text-2xl font-bold text-gray-800">Detalles de la Venta</h2>
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">
+              Venta #{venta.id}
+            </h2>
             <button 
               onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-2xl"
+              className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
             >
               ✕
             </button>
           </div>
 
           {/* Fecha y Estado */}
-          <div className="mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <h4 className="text-lg font-semibold text-gray-700">
+          <div className="mb-4">
+            <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
               <strong>Fecha:</strong> {formatearFecha(venta.fecha)}
             </h4>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Estado:</span>
-              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                {venta.estado || 'Facturada'}
-              </span>
-            </div>
           </div>
           
           {/* Información del Cliente (colapsable) */}
@@ -346,10 +385,8 @@ export function ModalDetalleVenta({
           <InformacionAdicional venta={venta} cuenta={cuenta} />
           
           {/* Sección de productos */}
-          <div className="mt-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800">Productos de la Venta</h3>
-            </div>
+          <div className="mb-4">
+            <h3 className="text-xl font-semibold mb-4 text-gray-800">Productos de la Venta</h3>
             
             <TablaProductos
               productos={productos}
@@ -359,12 +396,12 @@ export function ModalDetalleVenta({
             <ResumenTotales productos={productos} venta={venta} />
           </div>
           
-          {/* Botones de acción - SIN BOTÓN ANULAR */}
-          <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+          {/* Botones de acción */}
+          <div className="mt-6 flex flex-col sm:flex-row gap-4">
             <button
               onClick={onImprimirFacturaIndividual}
               disabled={generandoPDF}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded flex items-center justify-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3 flex items-center justify-center gap-2"
             >
               {generandoPDF ? (
                 <>
@@ -372,24 +409,24 @@ export function ModalDetalleVenta({
                   Generando...
                 </>
               ) : (
-                'Imprimir Factura'
+                '🖨️ IMPRIMIR FACTURA'
               )}
             </button>
             
             {!venta.cae_id && (
               <button
                 onClick={handleSolicitarCAEDetalle}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded"
+                className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3"
               >
-                Solicitar CAE
+                📋 SOLICITAR CAE
               </button>
             )}
             
             <button
               onClick={handleCerrarModal}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+              className="bg-gray-600 hover:bg-gray-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3"
             >
-              Cerrar
+              ❌ CERRAR
             </button>
           </div>
         </div>
