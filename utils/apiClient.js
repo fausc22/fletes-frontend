@@ -114,12 +114,17 @@ class ApiClient {
       
       // ✅ USAR axiosLogin para evitar interceptores
       const response = await axiosLogin.post('/auth/refresh-token');
-      const { accessToken, empleado, expiresIn } = response.data;
+      const { accessToken, empleado, expiresIn, refreshTokenExpiresIn } = response.data;
       
-      // ✅ Actualizar localStorage
+      // ✅ ACTUALIZACIÓN MEJORADA de localStorage con información de refresh token
       setToStorage('token', accessToken);
       setToStorage('empleado', JSON.stringify(empleado));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
+      
+      // ✅ NUEVO: Guardar información del refresh token si está disponible
+      if (refreshTokenExpiresIn) {
+        setToStorage('refreshTokenExpiry', (Date.now() + (refreshTokenExpiresIn * 1000)).toString());
+      }
       
       console.log('✅ Token renovado exitosamente via refresh token');
       
@@ -132,6 +137,16 @@ class ApiClient {
       
     } catch (refreshError) {
       console.log('❌ Error renovando token:', refreshError.response?.data?.message || refreshError.message);
+      
+      // ✅ DEBUGGING MEJORADO para errores de refresh
+      if (refreshError.response?.data) {
+        const errorData = refreshError.response.data;
+        console.log('❌ Detalles del error de refresh:', {
+          code: errorData.code,
+          message: errorData.message,
+          debug: errorData.debug
+        });
+      }
       
       // ✅ Procesar cola con error
       this.processQueue(refreshError, null);
@@ -168,20 +183,27 @@ class ApiClient {
       });
       
       const response = await axiosLogin.post('/auth/login', credentials);
-      const { token, empleado, expiresIn, hasRefreshToken } = response.data;
+      const { token, empleado, expiresIn, refreshExpiresIn, hasRefreshToken } = response.data;
       
-      // ✅ Guardar en localStorage
+      // ✅ GUARDAR EN LOCALSTORAGE CON INFORMACIÓN COMPLETA
       setToStorage('token', token);
       setToStorage('role', empleado.rol);
       setToStorage('empleado', JSON.stringify(empleado));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
       
-      // ✅ Guardar si hay refresh token disponible
+      // ✅ NUEVO: Guardar información del refresh token
       setToStorage('hasRefreshToken', hasRefreshToken.toString());
       
-      console.log(`✅ Login exitoso - Token expira en: ${expiresIn}, Refresh token: ${hasRefreshToken ? 'SÍ' : 'NO'}`);
+      // ✅ NUEVO: Si tenemos refresh token, calcular y guardar su expiración
+      if (hasRefreshToken && refreshExpiresIn) {
+        const refreshExpiryTime = Date.now() + this.parseExpiration(refreshExpiresIn);
+        setToStorage('refreshTokenExpiry', refreshExpiryTime.toString());
+        console.log(`🔑 Refresh token configurado, expira en: ${refreshExpiresIn} (${new Date(refreshExpiryTime).toLocaleString()})`);
+      }
       
-      return { success: true, data: { token, empleado, expiresIn, hasRefreshToken } };
+      console.log(`✅ Login exitoso - AccessToken expira en: ${expiresIn}, RefreshToken: ${hasRefreshToken ? `SÍ (${refreshExpiresIn})` : 'NO'}`);
+      
+      return { success: true, data: { token, empleado, expiresIn, refreshExpiresIn, hasRefreshToken } };
       
     } catch (error) {
       console.error('❌ Error en login:', error);
@@ -218,7 +240,7 @@ class ApiClient {
     }
   }
 
-  // ✅ UTILIDADES
+  // ✅ UTILIDADES MEJORADAS
   clearLocalStorage() {
     if (!isClient()) return;
     
@@ -227,6 +249,7 @@ class ApiClient {
     removeFromStorage('empleado');
     removeFromStorage('tokenExpiry');
     removeFromStorage('hasRefreshToken');
+    removeFromStorage('refreshTokenExpiry'); // ✅ NUEVO
   }
 
   clearSessionAndRedirect() {
@@ -257,6 +280,19 @@ class ApiClient {
     return (expiryTime - now) < fiveMinutes;
   }
 
+  // ✅ NUEVA FUNCIÓN: Verificar si el refresh token ha expirado
+  isRefreshTokenExpired() {
+    if (!isClient()) return true;
+    
+    const refreshExpiry = getFromStorage('refreshTokenExpiry');
+    if (!refreshExpiry) return true;
+    
+    const expiryTime = parseInt(refreshExpiry);
+    const now = Date.now();
+    
+    return now >= expiryTime;
+  }
+
   hasToken() {
     if (!isClient()) return false;
     return !!getFromStorage('token');
@@ -268,18 +304,26 @@ class ApiClient {
     return hasRefresh === 'true';
   }
 
-  // ✅ Función para parsear tiempo de expiración
+  // ✅ FUNCIÓN DE PARSING MEJORADA para soportar días
   parseExpiration(expiresIn) {
-    const match = expiresIn.match(/^(\d+)([hm])$/);
+    if (!expiresIn) return 60 * 60 * 1000; // Default 1 hora
+    
+    // ✅ SOPORTE COMPLETO para horas (h), minutos (m) Y DÍAS (d)
+    const match = expiresIn.match(/^(\d+)([hmd])$/);
     if (!match) return 60 * 60 * 1000; // Default 1 hora
     
     const value = parseInt(match[1]);
     const unit = match[2];
     
-    return unit === 'h' ? value * 60 * 60 * 1000 : value * 60 * 1000;
+    switch (unit) {
+      case 'h': return value * 60 * 60 * 1000;      // horas a milisegundos
+      case 'm': return value * 60 * 1000;           // minutos a milisegundos
+      case 'd': return value * 24 * 60 * 60 * 1000; // ✅ NUEVO: días a milisegundos
+      default: return 60 * 60 * 1000;               // Default 1 hora
+    }
   }
 
-  // ✅ VERIFICACIÓN PERIÓDICA MEJORADA
+  // ✅ VERIFICACIÓN PERIÓDICA MEJORADA CON LÓGICA DE REFRESH TOKEN
   startTokenCheck() {
     if (!isClient()) return null;
     
@@ -292,18 +336,26 @@ class ApiClient {
         return;
       }
 
-      // Solo intentar renovar si tenemos refresh token y está próximo a expirar
-      if (this.isTokenExpired() && hasRefresh && !this.isRefreshing) {
-        console.log('⏰ Token próximo a expirar con refresh disponible, renovando...');
+      // ✅ LÓGICA MEJORADA: Verificar primero si el refresh token ha expirado
+      if (hasRefresh && this.isRefreshTokenExpired()) {
+        console.log('⏰ Refresh token expirado, cerrando sesión...');
+        this.clearSessionAndRedirect();
+        clearInterval(interval);
+        return;
+      }
+
+      // ✅ Si el access token está próximo a expirar y tenemos refresh token válido
+      if (this.isTokenExpired() && hasRefresh && !this.isRefreshTokenExpired() && !this.isRefreshing) {
+        console.log('⏰ Access token próximo a expirar con refresh token válido, renovando...');
         this.handleTokenRefresh({ url: '/health', headers: {} }).catch(() => {
           clearInterval(interval);
         });
       } else if (this.isTokenExpired() && !hasRefresh) {
-        console.log('⏰ Token expirado sin refresh token, cerrando sesión...');
+        console.log('⏰ Access token expirado sin refresh token, cerrando sesión...');
         this.clearSessionAndRedirect();
         clearInterval(interval);
       }
-    }, 60 * 1000); // Verificar cada minuto
+    }, 30 * 1000); // ✅ OPTIMIZADO: Verificar cada 30 segundos (menos agresivo)
 
     return interval;
   }
@@ -334,11 +386,16 @@ class ApiClient {
   // ✅ Refresh manual
   async refreshToken() {
     const response = await axiosLogin.post('/auth/refresh-token');
-    const { accessToken, empleado, expiresIn } = response.data;
+    const { accessToken, empleado, expiresIn, refreshTokenExpiresIn } = response.data;
     
     setToStorage('token', accessToken);
     setToStorage('empleado', JSON.stringify(empleado));
     setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
+    
+    // ✅ NUEVO: Actualizar información del refresh token si está disponible
+    if (refreshTokenExpiresIn) {
+      setToStorage('refreshTokenExpiry', (Date.now() + (refreshTokenExpiresIn * 1000)).toString());
+    }
     
     return accessToken;
   }
@@ -378,6 +435,65 @@ class ApiClient {
       }
       throw error;
     }
+  }
+
+  // ✅ NUEVA FUNCIÓN: Obtener información de debug del estado de autenticación
+  getAuthDebugInfo() {
+    if (!isClient()) return { error: 'No disponible en SSR' };
+
+    const token = getFromStorage('token');
+    const tokenExpiry = getFromStorage('tokenExpiry');
+    const hasRefreshToken = getFromStorage('hasRefreshToken') === 'true';
+    const refreshTokenExpiry = getFromStorage('refreshTokenExpiry');
+    const empleado = this.getUserFromStorage();
+
+    const now = Date.now();
+    const tokenExpiryTime = tokenExpiry ? parseInt(tokenExpiry) : null;
+    const refreshExpiryTime = refreshTokenExpiry ? parseInt(refreshTokenExpiry) : null;
+
+    return {
+      hasToken: !!token,
+      tokenExpiry: tokenExpiryTime ? new Date(tokenExpiryTime).toLocaleString() : 'N/A',
+      tokenExpiresIn: tokenExpiryTime ? Math.max(0, Math.round((tokenExpiryTime - now) / 1000)) : 0,
+      isTokenExpired: this.isTokenExpired(),
+      
+      hasRefreshToken,
+      refreshTokenExpiry: refreshExpiryTime ? new Date(refreshExpiryTime).toLocaleString() : 'N/A',
+      refreshExpiresIn: refreshExpiryTime ? Math.max(0, Math.round((refreshExpiryTime - now) / 1000)) : 0,
+      isRefreshTokenExpired: this.isRefreshTokenExpired(),
+      
+      user: empleado ? `${empleado.nombre} ${empleado.apellido} (${empleado.rol})` : 'N/A',
+      isRefreshing: this.isRefreshing,
+      
+      recommendations: this.getAuthRecommendations()
+    };
+  }
+
+  // ✅ NUEVA FUNCIÓN: Recomendaciones basadas en el estado
+  getAuthRecommendations() {
+    const recommendations = [];
+
+    if (!this.hasToken()) {
+      recommendations.push('No hay token de acceso - Usuario debe hacer login');
+    } else if (this.isTokenExpired()) {
+      if (this.hasRefreshToken() && !this.isRefreshTokenExpired()) {
+        recommendations.push('Token expirado pero refresh token válido - Se renovará automáticamente');
+      } else if (this.isRefreshTokenExpired()) {
+        recommendations.push('Ambos tokens expirados - Usuario debe hacer login nuevamente');
+      } else {
+        recommendations.push('Token expirado sin refresh token - Usuario debe hacer login');
+      }
+    } else {
+      const tokenExpiry = getFromStorage('tokenExpiry');
+      if (tokenExpiry) {
+        const timeLeft = parseInt(tokenExpiry) - Date.now();
+        if (timeLeft < 10 * 60 * 1000) { // Menos de 10 minutos
+          recommendations.push('Token expira pronto - Se renovará automáticamente si hay refresh token');
+        }
+      }
+    }
+
+    return recommendations;
   }
 }
 
