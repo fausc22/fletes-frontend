@@ -34,20 +34,23 @@ export default function useAuth() {
         const token = localStorage.getItem('token');
         
         if (!token) {
-          console.log('🔒 No hay token, redirigiendo al login');
+          console.log('🔒 PWA: No hay token, redirigiendo al login');
           router.push('/login');
           return;
         }
 
-        // ✅ Cargar datos del usuario sin verificar expiración aquí
-        // El interceptor de axios se encargará de renovar si es necesario
+        // ✅ PWA: Verificar si tenemos refresh token en localStorage
+        const refreshToken = localStorage.getItem('refreshToken');
+        console.log('🔑 PWA: Refresh token disponible:', !!refreshToken);
+
+        // ✅ Cargar datos del usuario
         await loadUserData();
         
-        // ✅ Iniciar verificación periódica
+        // ✅ Iniciar verificación periódica optimizada para PWA
         startTokenVerification();
 
       } catch (error) {
-        console.error('❌ Error inicializando autenticación:', error);
+        console.error('❌ PWA: Error inicializando autenticación:', error);
         await logout();
       } finally {
         setLoading(false);
@@ -63,7 +66,7 @@ export default function useAuth() {
     };
   }, [router.pathname]);
 
-  // ✅ CARGAR DATOS DEL USUARIO - Simplificado
+  // ✅ CARGAR DATOS DEL USUARIO - PWA Compatible
   const loadUserData = async () => {
     if (!isClient()) return;
 
@@ -87,13 +90,12 @@ export default function useAuth() {
       setUser(empleado);
 
     } catch (error) {
-      console.error('❌ Error cargando datos del usuario:', error);
-      // Si falla, el interceptor de axios manejará la renovación de token
+      console.error('❌ PWA: Error cargando datos del usuario:', error);
       throw error;
     }
   };
 
-  // ✅ VERIFICACIÓN PERIÓDICA - Simplificada
+  // ✅ VERIFICACIÓN PERIÓDICA OPTIMIZADA PARA PWA
   const startTokenVerification = () => {
     if (!isClient()) return;
 
@@ -105,10 +107,10 @@ export default function useAuth() {
     setTokenCheckInterval(interval);
   };
 
-  // ✅ FUNCIÓN DE LOGOUT - Simplificada
+  // ✅ FUNCIÓN DE LOGOUT PARA PWA
   const logout = async () => {
     try {
-      console.log('👋 Cerrando sesión...');
+      console.log('👋 PWA: Cerrando sesión...');
       
       // Limpiar intervalo
       if (tokenCheckInterval) {
@@ -129,7 +131,7 @@ export default function useAuth() {
       }
       
     } catch (error) {
-      console.error('❌ Error en logout:', error);
+      console.error('❌ PWA: Error en logout:', error);
       
       // Forzar limpieza local
       if (tokenCheckInterval) {
@@ -146,7 +148,7 @@ export default function useAuth() {
     }
   };
 
-  // ✅ FUNCIÓN DE LOGIN - Simplificada
+  // ✅ FUNCIÓN DE LOGIN MEJORADA PARA PWA
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -161,9 +163,14 @@ export default function useAuth() {
         // Iniciar verificación de tokens
         startTokenVerification();
         
-        // ✅ Toast informativo sobre "recuérdame"
+        // ✅ Toast informativo específico para PWA
         if (result.data.hasRefreshToken) {
-          toast.success(`¡Bienvenido ${empleado.nombre}! Tu sesión se mantendrá activa.`);
+          const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+          if (isPWA) {
+            toast.success(`¡Bienvenido ${empleado.nombre}! Tu sesión se mantendrá activa en la PWA por 7 días.`);
+          } else {
+            toast.success(`¡Bienvenido ${empleado.nombre}! Tu sesión se mantendrá activa por 7 días.`);
+          }
         } else {
           toast.success(`¡Bienvenido ${empleado.nombre}!`);
         }
@@ -174,7 +181,7 @@ export default function useAuth() {
       }
       
     } catch (error) {
-      console.error('❌ Error en login:', error);
+      console.error('❌ PWA: Error en login:', error);
       return { success: false, error: 'Error inesperado durante el login' };
     } finally {
       setLoading(false);
@@ -215,7 +222,7 @@ export default function useAuth() {
     }
   };
 
-  // ✅ FORZAR RENOVACIÓN DE TOKEN
+  // ✅ FORZAR RENOVACIÓN DE TOKEN PARA PWA
   const forceTokenRefresh = async () => {
     try {
       await apiClient.refreshToken();
@@ -227,7 +234,7 @@ export default function useAuth() {
       
       return { success: true };
     } catch (error) {
-      console.error('❌ Error forzando renovación:', error);
+      console.error('❌ PWA: Error forzando renovación:', error);
       
       if (isClient()) {
         toast.error('Error renovando token');
@@ -236,6 +243,79 @@ export default function useAuth() {
       await logout();
       return { success: false, error: error.message };
     }
+  };
+
+  // ✅ NUEVA FUNCIÓN: Obtener información de debug PWA
+  const getAuthDebugInfo = () => {
+    if (!isClient()) return { error: 'No disponible en SSR' };
+    
+    return {
+      ...apiClient.getAuthDebugInfo(),
+      hook: {
+        userLoaded: !!user,
+        loading,
+        intervalActive: !!tokenCheckInterval,
+        initialized: initialized.current
+      }
+    };
+  };
+
+  // ✅ NUEVA FUNCIÓN: Obtener estado de PWA
+  const getPWAStatus = () => {
+    if (!isClient()) return { error: 'No disponible en SSR' };
+    
+    return apiClient.getPWAStatus();
+  };
+
+  // ✅ NUEVA FUNCIÓN: Manejar reactivación de PWA
+  const handlePWAResume = async () => {
+    console.log('🔄 PWA: Handling resume...');
+    
+    try {
+      const token = localStorage.getItem('token');
+      const refreshToken = localStorage.getItem('refreshToken');
+      
+      if (!token && refreshToken) {
+        console.log('🔄 PWA: No access token pero sí refresh token, renovando...');
+        await forceTokenRefresh();
+      } else if (apiClient.isTokenExpired() && refreshToken && !apiClient.isRefreshTokenExpired()) {
+        console.log('🔄 PWA: Token expirado, renovando...');
+        await forceTokenRefresh();
+      } else if (!token && !refreshToken) {
+        console.log('❌ PWA: No hay tokens, redirigiendo a login...');
+        await logout();
+      }
+    } catch (error) {
+      console.error('❌ PWA: Error en resume:', error);
+      await logout();
+    }
+  };
+
+  // ✅ NUEVA FUNCIÓN: Verificar salud de autenticación
+  const checkAuthHealth = () => {
+    if (!isClient()) return { healthy: false, reason: 'SSR' };
+
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    const empleado = localStorage.getItem('empleado');
+
+    if (!token) {
+      return { healthy: false, reason: 'No access token' };
+    }
+
+    if (apiClient.isTokenExpired()) {
+      if (refreshToken && !apiClient.isRefreshTokenExpired()) {
+        return { healthy: true, reason: 'Token expired but refresh available', action: 'refresh' };
+      } else {
+        return { healthy: false, reason: 'Both tokens expired', action: 'login' };
+      }
+    }
+
+    if (!empleado) {
+      return { healthy: false, reason: 'No user data' };
+    }
+
+    return { healthy: true, reason: 'All good' };
   };
 
   return { 
@@ -250,11 +330,19 @@ export default function useAuth() {
     checkConnection,
     forceTokenRefresh,
     
-    // ✅ Debug info simplificada
+    // ✅ NUEVAS FUNCIONES ESPECÍFICAS PARA PWA
+    getAuthDebugInfo,
+    getPWAStatus,
+    handlePWAResume,
+    checkAuthHealth,
+    
+    // ✅ Debug info mejorada para PWA
     debug: {
       hasToken: isClient() ? !!localStorage.getItem('token') : false,
+      hasRefreshToken: isClient() ? !!localStorage.getItem('refreshToken') : false,
       intervalActive: !!tokenCheckInterval,
-      isClient: isClient()
+      isClient: isClient(),
+      isPWA: isClient() ? window.matchMedia('(display-mode: standalone)').matches : false
     }
   };
 }
@@ -291,4 +379,56 @@ export function useCurrentUser() {
   }, []);
 
   return user;
+}
+
+// ✅ NUEVO HOOK: Monitor de PWA
+export function usePWAMonitor() {
+  const [isOnline, setIsOnline] = useState(true);
+  const [pwaStatus, setPwaStatus] = useState(null);
+
+  useEffect(() => {
+    if (!isClient()) return;
+
+    // Monitorear estado online/offline
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log('🌐 PWA: Conexión restaurada');
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.log('📴 PWA: Conexión perdida');
+    };
+
+    // Monitorear cambios de visibilidad (PWA suspend/resume)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ PWA: Visible');
+        setPwaStatus('active');
+      } else {
+        console.log('🙈 PWA: Hidden');
+        setPwaStatus('background');
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Estado inicial
+    setIsOnline(navigator.onLine);
+    setPwaStatus(document.visibilityState === 'visible' ? 'active' : 'background');
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  return {
+    isOnline,
+    pwaStatus,
+    isPWA: isClient() ? window.matchMedia('(display-mode: standalone)').matches : false
+  };
 }
