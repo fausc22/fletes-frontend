@@ -1,4 +1,3 @@
-// pages/pedidos/HistorialPedidos.jsx - VERSIÓN SIMPLIFICADA
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -117,8 +116,13 @@ function HistorialPedidosContent() {
     actualizarProducto,
     actualizarObservaciones, 
     verificarStock, 
-    cerrarEdicion
+    cerrarEdicion,
+    puedeEditarProductos // 🆕 Hook para verificar permisos
   } = useEditarPedido();
+
+  // ✅ VERIFICAR PERMISOS DE EDICIÓN (todos pueden)
+  const esGerente = user?.rol === 'GERENTE';
+  const puedeEditarProductosPedido = true; // Todos pueden editar
 
   // FUNCIONES para anular pedidos
   const handleMostrarConfirmacionAnular = (pedido, productosDelPedido) => {
@@ -194,7 +198,7 @@ function HistorialPedidosContent() {
     cerrarEdicion();
   };
 
-  // Handlers para productos
+  // ✅ HANDLERS PARA PRODUCTOS SIN VALIDACIÓN DE PERMISOS
   const handleAgregarProducto = () => {
     setMostrarModalDetalle(false);
     setTimeout(() => setMostrarModalAgregarProducto(true), 300);
@@ -247,7 +251,7 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalDetalle(true), 300);
   };
 
-  // ✅ HANDLERS SIMPLIFICADOS - El backend maneja los totales automáticamente
+  // ✅ HANDLERS SIMPLIFICADOS SIN VALIDACIÓN DE PERMISOS
   const handleConfirmarAgregarProducto = async (producto, cantidad) => {
     try {
       console.log('🔄 Agregando producto...');
@@ -257,7 +261,6 @@ function HistorialPedidosContent() {
         console.log('✅ Producto agregado exitosamente');
         handleCloseModalAgregarProducto();
         
-        // ✅ SIMPLE: Solo recargar pedidos para actualizar la tabla
         console.log('🔄 Recargando lista de pedidos...');
         await cargarPedidos();
         console.log('✅ Lista de pedidos actualizada');
@@ -283,7 +286,6 @@ function HistorialPedidosContent() {
         console.log('✅ Producto editado exitosamente');
         handleCloseModalEditarProducto();
         
-        // ✅ SIMPLE: Solo recargar pedidos para actualizar la tabla
         console.log('🔄 Recargando lista de pedidos...');
         await cargarPedidos();
         console.log('✅ Lista de pedidos actualizada');
@@ -307,7 +309,6 @@ function HistorialPedidosContent() {
         console.log('✅ Producto eliminado exitosamente');
         handleCloseModalEliminarProducto();
         
-        // ✅ SIMPLE: Solo recargar pedidos para actualizar la tabla
         console.log('🔄 Recargando lista de pedidos...');
         await cargarPedidos();
         console.log('✅ Lista de pedidos actualizada');
@@ -444,6 +445,7 @@ function HistorialPedidosContent() {
           onRowDoubleClick={handleRowDoubleClick}
           loading={loading}
           mostrarPermisos={true}
+          verificarPermisos={() => true} // Todos pueden ver
           isPedidoFacturado={selectedPedido?.estado === 'Facturado'}
         />
         
@@ -468,7 +470,7 @@ function HistorialPedidosContent() {
         />
       </div>
       
-      {/* MODALES */}
+      {/* MODALES - Disponibles para todos */}
       <ModalDetallePedido
         pedido={selectedPedido}
         productos={productos}
@@ -491,6 +493,7 @@ function HistorialPedidosContent() {
         mostrar={mostrarModalAgregarProducto}
         onClose={handleCloseModalAgregarProducto}
         onAgregarProducto={handleConfirmarAgregarProducto}
+        productosActuales={productos}
       />
 
       <ModalEditarProductoPedido

@@ -21,18 +21,32 @@ export function ModalConfirmacionPedido({
             <span className="font-bold text-green-700">${Number(total).toFixed(2)}</span>?
           </p>
         </div>
+        
+        {/* ✅ INDICADOR DE PROCESAMIENTO */}
+        {loading && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-3"></div>
+              <span className="text-blue-700 font-medium">Procesando pedido...</span>
+            </div>
+          </div>
+        )}
+        
         <div className="flex justify-center gap-4">
           <button
             onClick={onConfirmar}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-semibold disabled:opacity-50"
+            className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white px-6 py-2 rounded font-semibold transition-colors flex items-center gap-2"
           >
+            {loading && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            )}
             {loading ? 'Procesando...' : 'Sí, Confirmar'}
           </button>
           <button
             onClick={onCancelar}
             disabled={loading}
-            className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded font-semibold disabled:opacity-50"
+            className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-2 rounded font-semibold transition-colors"
           >
             No, Cancelar
           </button>

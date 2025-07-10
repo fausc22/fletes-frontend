@@ -4,11 +4,12 @@ import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  import { axiosAuth, fetchAuth } from '../../utils/apiClient';
+import { axiosAuth, fetchAuth } from '../../utils/apiClient';
 
 export function useGenerarPDF() {
   const [loading, setLoading] = useState(false);
   const [pdfURL, setPdfURL] = useState(null);
+  const [pdfBlob, setPdfBlob] = useState(null); // Guardamos el blob original
   const [mostrarModalPDF, setMostrarModalPDF] = useState(false);
 
   const generarPdfListaPrecios = async (cliente, productos) => {
@@ -50,7 +51,8 @@ export function useGenerarPDF() {
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       
-      // Guardar la URL del PDF y mostrar el modal
+      // Guardar tanto la URL como el blob original
+      setPdfBlob(blob); // Guardamos el blob para compartir
       setPdfURL(url);
       setMostrarModalPDF(true);
       
@@ -75,42 +77,122 @@ export function useGenerarPDF() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    
+    toast.success('PDF descargado exitosamente');
   };
 
-  // Función para compartir el PDF
+  // Función para compartir el PDF - VERSIÓN CORREGIDA
   const compartirPDF = async (nombreCliente) => {
-    if (!pdfURL) return;
+    if (!pdfBlob) {
+      toast.error('No hay PDF disponible para compartir');
+      return;
+    }
 
     try {
-      // Verificar si el navegador soporta Web Share API
-      if (navigator.share) {
-        // Convertir la URL del blob a un archivo
-        const response = await fetchAuth(pdfURL);
-        const blob = await response.blob();
-        const file = new File([blob], `Lista_Precios_${nombreCliente || 'Cliente'}.pdf`, { type: 'application/pdf' });
-        
+      const fileName = `Lista_Precios_${nombreCliente || 'Cliente'}.pdf`;
+      const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+      // Verificar si el dispositivo soporta la Web Share API con archivos
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Usar Web Share API (móviles principalmente)
         await navigator.share({
-          title: 'Lista de Precios',
-          text: `Lista de Precios para ${nombreCliente}`,
+          title: `Lista de Precios - ${nombreCliente || 'Cliente'}`,
+          text: `Lista de precios generada para ${nombreCliente || 'el cliente'}`,
           files: [file]
         });
+        
+        toast.success('PDF compartido exitosamente');
+      } else if (navigator.share) {
+        // Si soporta Web Share API pero no archivos, crear URL temporal
+        const tempUrl = window.URL.createObjectURL(pdfBlob);
+        await navigator.share({
+          title: `Lista de Precios - ${nombreCliente || 'Cliente'}`,
+          text: `Lista de precios generada para ${nombreCliente || 'el cliente'}`,
+          url: tempUrl
+        });
+        
+        // Limpiar la URL temporal después de un tiempo
+        setTimeout(() => {
+          window.URL.revokeObjectURL(tempUrl);
+        }, 30000); // 30 segundos
+        
+        toast.success('Enlace compartido exitosamente');
       } else {
-        // Fallback para navegadores que no soportan Web Share API
-        toast.info('Compartir no está disponible en este navegador. Por favor descargue el PDF.');
-        descargarPDF(nombreCliente);
+        // Fallback para navegadores de escritorio
+        await compartirFallback(pdfBlob, fileName);
       }
     } catch (error) {
+      if (error.name === 'AbortError') {
+        // Usuario canceló el compartir
+        return;
+      }
+      
       console.error('Error al compartir:', error);
-      toast.error('Error al compartir el PDF');
+      
+      // Si falla todo, intentar fallback
+      try {
+        await compartirFallback(pdfBlob, `Lista_Precios_${nombreCliente || 'Cliente'}.pdf`);
+      } catch (fallbackError) {
+        console.error('Error en fallback:', fallbackError);
+        toast.error('No se pudo compartir el archivo. Intenta descargarlo en su lugar.');
+      }
+    }
+  };
+
+  // Función fallback para compartir en navegadores de escritorio
+  const compartirFallback = async (blob, fileName) => {
+    const url = window.URL.createObjectURL(blob);
+    
+    // Intentar copiar al portapapeles
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success('Enlace copiado al portapapeles. Puedes pegarlo para compartir.');
+        
+        // Limpiar la URL después de un tiempo
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+        }, 300000); // 5 minutos
+        
+        return;
+      } catch (clipboardError) {
+        console.log('No se pudo copiar al portapapeles:', clipboardError);
+      }
+    }
+    
+    // Si no se puede copiar, abrir en nueva ventana
+    const newWindow = window.open(url, '_blank');
+    if (newWindow) {
+      toast.success('El PDF se abrió en una nueva ventana. Puedes compartir desde ahí.');
+      
+      // Limpiar la URL después de un tiempo
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 300000); // 5 minutos
+    } else {
+      // Última alternativa: descargar
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('El archivo se descargó. Puedes compartirlo desde tu gestor de archivos.');
     }
   };
 
   const cerrarModalPDF = () => {
     setMostrarModalPDF(false);
+    
+    // Limpiar las URLs para liberar memoria
     if (pdfURL) {
       window.URL.revokeObjectURL(pdfURL);
       setPdfURL(null);
     }
+    
+    // Limpiar el blob
+    setPdfBlob(null);
   };
 
   return {

@@ -771,6 +771,8 @@ export function ModalAgregarProductoPedido({
   productosActuales = [] // Nueva prop para validaciones
 }) {
   const [productQuantity, setProductQuantity] = useState(1);
+  const [agregandoProducto, setAgregandoProducto] = useState(false); // ✅ NUEVO ESTADO PARA LOADING
+  
   const {
     busqueda,
     setBusqueda,
@@ -810,15 +812,29 @@ export function ModalAgregarProductoPedido({
       return;
     }
 
-    const exito = await onAgregarProducto(productoSeleccionado, productQuantity);
-    if (exito) {
-      setProductQuantity(1);
-      limpiarSeleccion();
-      onClose();
+    // ✅ ACTIVAR ESTADO DE LOADING
+    setAgregandoProducto(true);
+    
+    try {
+      const exito = await onAgregarProducto(productoSeleccionado, productQuantity);
+      if (exito) {
+        setProductQuantity(1);
+        limpiarSeleccion();
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error agregando producto:', error);
+      toast.error('Error al agregar producto');
+    } finally {
+      // ✅ DESACTIVAR ESTADO DE LOADING
+      setAgregandoProducto(false);
     }
   };
 
   const handleClose = () => {
+    // ✅ NO PERMITIR CERRAR SI ESTÁ PROCESANDO
+    if (agregandoProducto) return;
+    
     setProductQuantity(1);
     limpiarSeleccion();
     onClose();
@@ -828,6 +844,9 @@ export function ModalAgregarProductoPedido({
 
   const precio = Number(productoSeleccionado?.precio) || 0;
   const subtotal = precio * productQuantity;
+
+  // ✅ DETERMINAR SI EL BOTÓN DEBE ESTAR DESHABILITADO
+  const botonDeshabilitado = productoEsDuplicado || !stockSuficiente || agregandoProducto;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
@@ -842,11 +861,12 @@ export function ModalAgregarProductoPedido({
               placeholder="Buscar Producto"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
+              disabled={agregandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
             />
             <button 
               onClick={buscarProducto}
-              disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded disabled:opacity-50 transition-colors"
+              disabled={loading || agregandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white p-2 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <MdSearch size={24} />
             </button>
@@ -865,11 +885,13 @@ export function ModalAgregarProductoPedido({
                   return (
                     <div 
                       key={index}
-                      className={`p-2 border-b cursor-pointer transition-colors ${
+                      className={`p-2 border-b transition-colors ${
+                        agregandoProducto ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+                      } ${
                         productoSeleccionado?.id === product.id ? 'bg-blue-100' : 
                         yaExiste ? 'bg-red-50 opacity-50' : 'hover:bg-gray-100'
                       }`}
-                      onClick={() => !yaExiste && seleccionarProducto(product)}
+                      onClick={() => !yaExiste && !agregandoProducto && seleccionarProducto(product)} // ✅ NO PERMITIR SELECCIÓN DURANTE PROCESAMIENTO
                     >
                       <div className="font-medium text-sm">
                         {product.nombre}
@@ -907,19 +929,31 @@ export function ModalAgregarProductoPedido({
                     </div>
                   )}
                   
+                  {/* ✅ INDICADOR DE PROCESAMIENTO */}
+                  {agregandoProducto && (
+                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded">
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        <span>Agregando producto al pedido...</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="mt-4">
                     <label className="block mb-1 font-medium">Cantidad:</label>
                     <div className="flex items-center space-x-2">
                       <button 
                         type="button"
-                        className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
+                        disabled={agregandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                        className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
                         onClick={() => setProductQuantity(Math.max(1, productQuantity - 1))}
                       >
                         -
                       </button>
                       <input 
                         type="number"
-                        className={`border p-2 w-16 rounded text-sm text-center ${
+                        disabled={agregandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                        className={`border p-2 w-16 rounded text-sm text-center disabled:bg-gray-100 disabled:cursor-not-allowed ${
                           !stockSuficiente ? 'border-red-500 bg-red-50' : ''
                         }`}
                         value={productQuantity}
@@ -929,7 +963,8 @@ export function ModalAgregarProductoPedido({
                       />
                       <button 
                         type="button"
-                        className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
+                        disabled={agregandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                        className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
                         onClick={() => setProductQuantity(Math.min(stockDisponible, productQuantity + 1))}
                       >
                         +
@@ -949,18 +984,25 @@ export function ModalAgregarProductoPedido({
                   
                   <button 
                     onClick={handleAgregarProducto}
-                    disabled={productoEsDuplicado || !stockSuficiente}
-                    className={`mt-4 px-4 py-2 rounded w-full transition-colors ${
-                      productoEsDuplicado || !stockSuficiente
+                    disabled={botonDeshabilitado}
+                    className={`mt-4 px-4 py-2 rounded w-full transition-colors flex items-center justify-center gap-2 ${
+                      botonDeshabilitado
                         ? 'bg-gray-400 cursor-not-allowed text-gray-700'
                         : 'bg-blue-600 hover:bg-blue-700 text-white'
                     }`}
                   >
-                    {productoEsDuplicado 
-                      ? 'Producto ya agregado' 
-                      : !stockSuficiente 
-                        ? 'Stock insuficiente'
-                        : 'Agregar Producto'
+                    {/* ✅ SPINNER EN EL BOTÓN CUANDO ESTÁ PROCESANDO */}
+                    {agregandoProducto && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    )}
+                    
+                    {agregandoProducto 
+                      ? 'Agregando...'
+                      : productoEsDuplicado 
+                        ? 'Producto ya agregado' 
+                        : !stockSuficiente 
+                          ? 'Stock insuficiente'
+                          : 'Agregar Producto'
                     }
                   </button>
                 </div>
@@ -973,9 +1015,10 @@ export function ModalAgregarProductoPedido({
           <div className="flex justify-end mt-4">
             <button 
               onClick={handleClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+              disabled={agregandoProducto} // ✅ NO PERMITIR CERRAR DURANTE PROCESAMIENTO
+              className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors"
             >
-              Cancelar
+              {agregandoProducto ? 'Procesando...' : 'Cancelar'}
             </button>
           </div>
         </div>
@@ -990,6 +1033,46 @@ export function ModalEditarProductoPedido({
   onGuardar,
   onChange
 }) {
+  const { user } = useAuth();
+  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
+  const [subtotalConDescuento, setSubtotalConDescuento] = useState(0);
+  const [guardandoProducto, setGuardandoProducto] = useState(false); // ✅ NUEVO ESTADO PARA LOADING
+  
+  // ✅ SOLO VERIFICAR ROL PARA MOSTRAR CAMPOS ESPECIALES
+  const esGerente = user?.rol === 'GERENTE';
+
+  useEffect(() => {
+    if (producto) {
+      // ✅ CARGAR EL DESCUENTO EXISTENTE DEL PRODUCTO
+      const descuentoExistente = Number(producto.descuento_porcentaje) || 0;
+      setDescuentoPorcentaje(descuentoExistente);
+      calcularSubtotalConDescuento(
+        producto.cantidad || 1, 
+        producto.precio || 0, 
+        descuentoExistente
+      );
+    }
+  }, [producto]);
+
+  // Función para calcular subtotal con descuento
+  const calcularSubtotalConDescuento = (cantidad, precio, descuento) => {
+    const subtotalBase = cantidad * precio;
+    const montoDescuento = (subtotalBase * descuento) / 100;
+    const subtotalFinal = subtotalBase - montoDescuento;
+    setSubtotalConDescuento(subtotalFinal);
+    
+    // Actualizar el producto con el nuevo subtotal
+    if (onChange) {
+      onChange({
+        ...producto,
+        subtotal: subtotalFinal.toFixed(2),
+        descuento_porcentaje: descuento,
+        precio: precio,
+        cantidad: cantidad
+      });
+    }
+  };
+
   if (!producto) return null;
 
   // Obtener stock desde la información del producto
@@ -998,6 +1081,9 @@ export function ModalEditarProductoPedido({
   const stockSuficiente = cantidadActual <= stockDisponible;
 
   const handleCantidadChange = (e) => {
+    // ✅ NO PERMITIR CAMBIOS DURANTE PROCESAMIENTO
+    if (guardandoProducto) return;
+    
     const nuevaCantidad = Math.max(1, parseInt(e.target.value) || 1);
     
     // Validar stock antes de permitir el cambio
@@ -1006,45 +1092,83 @@ export function ModalEditarProductoPedido({
       return;
     }
 
-    const precio = Number(producto.precio) || 0;
-    const nuevoSubtotal = (nuevaCantidad * precio).toFixed(2);
-    
-    onChange({
-      ...producto,
-      cantidad: nuevaCantidad,
-      subtotal: nuevoSubtotal
-    });
+    calcularSubtotalConDescuento(nuevaCantidad, producto.precio || 0, descuentoPorcentaje);
   };
 
   const handlePrecioChange = (e) => {
-    const nuevoPrecio = Math.max(0, parseFloat(e.target.value) || 0);
-    const cantidad = Number(producto.cantidad) || 1;
-    const nuevoSubtotal = (cantidad * nuevoPrecio).toFixed(2);
+    // ✅ NO PERMITIR CAMBIOS DURANTE PROCESAMIENTO
+    if (guardandoProducto) return;
     
-    onChange({
-      ...producto,
-      precio: nuevoPrecio,
-      subtotal: nuevoSubtotal
-    });
+    const nuevoPrecio = Math.max(0, parseFloat(e.target.value) || 0);
+    calcularSubtotalConDescuento(producto.cantidad || 1, nuevoPrecio, descuentoPorcentaje);
   };
 
-  const handleGuardar = () => {
+  const handleDescuentoChange = (e) => {
+    // ✅ NO PERMITIR CAMBIOS DURANTE PROCESAMIENTO
+    if (guardandoProducto) return;
+    
+    const nuevoDescuento = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+    setDescuentoPorcentaje(nuevoDescuento);
+    calcularSubtotalConDescuento(producto.cantidad || 1, producto.precio || 0, nuevoDescuento);
+  };
+
+  const handleGuardar = async () => {
     if (!stockSuficiente) {
       toast.error(`No se puede guardar. Stock insuficiente (disponible: ${stockDisponible})`);
       return;
     }
-    onGuardar();
+    
+    // Validar que el precio sea mayor a 0
+    if (!producto.precio || producto.precio <= 0) {
+      toast.error('El precio debe ser mayor a cero');
+      return;
+    }
+    
+    // ✅ ACTIVAR ESTADO DE LOADING
+    setGuardandoProducto(true);
+    
+    try {
+      await onGuardar();
+    } catch (error) {
+      console.error('Error guardando producto:', error);
+      toast.error('Error al guardar cambios');
+    } finally {
+      // ✅ DESACTIVAR ESTADO DE LOADING
+      setGuardandoProducto(false);
+    }
+  };
+
+  const handleClose = () => {
+    // ✅ NO PERMITIR CERRAR SI ESTÁ PROCESANDO
+    if (guardandoProducto) return;
+    
+    onClose();
   };
 
   const precio = Number(producto.precio) || 0;
   const cantidad = Number(producto.cantidad) || 1;
-  const subtotal = cantidad * precio;
+  const subtotalBase = cantidad * precio;
+  const montoDescuento = (subtotalBase * descuentoPorcentaje) / 100;
+
+  // ✅ DETERMINAR SI EL BOTÓN DEBE ESTAR DESHABILITADO
+  const botonDeshabilitado = !stockSuficiente || precio <= 0 || guardandoProducto;
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full">
+      <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
         <div className="p-4 md:p-6">
-          <h2 className="text-xl font-bold mb-4 text-center">Editar Producto</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg sm:text-xl font-bold">🔧 Editar Producto</h2>
+            <button 
+              type="button"
+              onClick={handleClose}
+              disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+              className="text-gray-500 hover:text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-xl p-1 rounded-full hover:bg-gray-100 transition-colors"
+              title={guardandoProducto ? "Procesando..." : "Cerrar"}
+            >
+              ✕
+            </button>
+          </div>
           
           <div className="space-y-4">
             <div>
@@ -1087,35 +1211,59 @@ export function ModalEditarProductoPedido({
               </div>
             </div>
             
-            <div>
-              <label className="block mb-1 font-medium text-sm">Precio ($):</label>
-              <div className="flex items-center">
-                <span className="mr-1">$</span>
-                <input 
-                  type="number"
-                  className="border p-2 w-full rounded text-sm"
-                  value={precio}
-                  onChange={handlePrecioChange}
-                  min="0"
-                  step="0.01"
-                />
+            {/* ✅ CAMPO PRECIO EDITABLE SOLO PARA GERENTES */}
+            {esGerente ? (
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
+                <label className="block mb-1 font-medium text-sm text-yellow-800">
+                  💰 Precio Unitario ($):
+                </label>
+                <div className="flex items-center">
+                  <span className="mr-1 text-yellow-600">$</span>
+                  <input 
+                    type="number"
+                    disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                    className="border border-yellow-300 p-2 w-full rounded text-sm focus:ring-2 focus:ring-yellow-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    value={precio}
+                    onChange={handlePrecioChange}
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-xs text-yellow-600 mt-1">
+                  ⚠️ Precio editable para gerentes
+                </p>
               </div>
-            </div>
+            ) : (
+              <div>
+                <label className="block mb-1 font-medium text-sm">Precio Unitario ($):</label>
+                <div className="flex items-center">
+                  <span className="mr-1 text-gray-600">$</span>
+                  <input 
+                    type="text"
+                    className="border p-2 w-full rounded bg-gray-100 text-sm"
+                    value={precio.toFixed(2)}
+                    disabled
+                  />
+                </div>
+              </div>
+            )}
             
             <div>
               <label className="block mb-1 font-medium text-sm">Cantidad:</label>
               <div className="flex items-center space-x-2">
                 <button 
                   type="button"
-                  className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
+                  disabled={cantidad <= 1 || guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                  className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
                   onClick={() => handleCantidadChange({ target: { value: cantidad - 1 } })}
-                  disabled={cantidad <= 1}
                 >
                   -
                 </button>
                 <input 
                   type="number"
-                  className={`border p-2 w-16 rounded text-sm text-center ${
+                  disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                  className={`border p-2 w-16 rounded text-sm text-center disabled:bg-gray-100 disabled:cursor-not-allowed ${
                     !stockSuficiente ? 'border-red-500 bg-red-50' : ''
                   }`}
                   value={cantidad}
@@ -1125,9 +1273,9 @@ export function ModalEditarProductoPedido({
                 />
                 <button 
                   type="button"
-                  className="bg-gray-300 hover:bg-gray-400 text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
+                  disabled={cantidad >= stockDisponible || guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                  className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
                   onClick={() => handleCantidadChange({ target: { value: cantidad + 1 } })}
-                  disabled={cantidad >= stockDisponible}
                 >
                   +
                 </button>
@@ -1139,38 +1287,86 @@ export function ModalEditarProductoPedido({
                 </p>
               )}
             </div>
-            
-            <div>
-              <label className="block mb-1 font-medium text-sm">Subtotal (sin IVA):</label>
-              <div className="flex items-center">
-                <span className="mr-1">$</span>
-                <input 
-                  type="text"
-                  className="border p-2 w-full rounded bg-gray-100 text-sm"
-                  value={subtotal.toFixed(2)}
-                  disabled
-                />
+
+            {/* ✅ CAMPO DESCUENTO SOLO PARA GERENTES */}
+            {esGerente && (
+              <div className="bg-orange-50 border border-orange-200 p-3 rounded">
+                <label className="block mb-1 font-medium text-sm text-orange-800">
+                  🏷️ Descuento (%):
+                </label>
+                <div className="flex items-center space-x-2">
+                  <input 
+                    type="number"
+                    disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                    className="border border-orange-300 p-2 w-20 rounded text-sm text-center focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    value={descuentoPorcentaje}
+                    onChange={handleDescuentoChange}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    placeholder="0"
+                  />
+                  <span className="text-orange-600">%</span>
+                  <div className="flex-1 text-sm text-orange-700">
+                    Descuento: <span className="font-bold">${montoDescuento.toFixed(2)}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-orange-600 mt-1">
+                  💡 Ingrese un porcentaje de 0 a 100%
+                </p>
+              </div>
+            )}
+
+            {/* RESUMEN DE CÁLCULOS */}
+            <div className="bg-gray-50 border border-gray-200 p-3 rounded">
+              <h4 className="font-medium text-sm mb-2 text-gray-800">📊 Resumen de Cálculos:</h4>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal base:</span>
+                  <span>${subtotalBase.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-orange-600">
+                  <span>Descuento ({descuentoPorcentaje}%):</span>
+                  <span>-${montoDescuento.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between font-bold text-green-600 border-t pt-1">
+                  <span>Subtotal final (sin IVA):</span>
+                  <span>${subtotalConDescuento.toFixed(2)}</span>
+                </div>
               </div>
             </div>
+
+            {/* ✅ INDICADOR DE PROCESAMIENTO */}
+            {guardandoProducto && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded">
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                  <span className="font-medium">Guardando cambios...</span>
+                </div>
+              </div>
+            )}
           </div>
           
-          <div className="flex flex-col sm:flex-row justify-between mt-6 gap-2">
+          {/* ✅ BOTÓN ÚNICO CENTRADO Y RESPONSIVO CON LOADING */}
+          <div className="flex justify-center mt-8">
             <button 
               onClick={handleGuardar}
-              disabled={!stockSuficiente}
-              className={`px-4 py-2 rounded transition-colors ${
-                !stockSuficiente 
+              disabled={botonDeshabilitado}
+              className={`px-8 py-3 rounded-lg text-lg font-bold transition-colors w-full sm:w-auto min-w-[200px] flex items-center justify-center gap-2 ${
+                botonDeshabilitado
                   ? 'bg-gray-400 cursor-not-allowed text-gray-700'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl'
               }`}
             >
-              {!stockSuficiente ? 'Stock Insuficiente' : 'Guardar Cambios'}
-            </button>
-            <button 
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
-            >
-              Cancelar
+              {/* ✅ SPINNER EN EL BOTÓN CUANDO ESTÁ PROCESANDO */}
+              {guardandoProducto && (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              )}
+              
+              {guardandoProducto ? 'Guardando...' :
+               !stockSuficiente ? '❌ Stock Insuficiente' : 
+               precio <= 0 ? '❌ Precio Inválido' : 
+               '✅ GUARDAR CAMBIOS'}
             </button>
           </div>
         </div>
@@ -1184,30 +1380,73 @@ export function ModalEliminarProductoPedido({
   onClose, 
   onConfirmar 
 }) {
+  const [eliminandoProducto, setEliminandoProducto] = useState(false); // ✅ NUEVO ESTADO PARA LOADING
+  
   if (!producto) return null;
+
+  const handleConfirmar = async () => {
+    // ✅ ACTIVAR ESTADO DE LOADING
+    setEliminandoProducto(true);
+    
+    try {
+      await onConfirmar();
+    } catch (error) {
+      console.error('Error eliminando producto:', error);
+      toast.error('Error al eliminar producto');
+    } finally {
+      // ✅ DESACTIVAR ESTADO DE LOADING
+      setEliminandoProducto(false);
+    }
+  };
+
+  const handleClose = () => {
+    // ✅ NO PERMITIR CERRAR SI ESTÁ PROCESANDO
+    if (eliminandoProducto) return;
+    
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
       <div className="bg-white rounded-lg max-w-md w-full">
         <div className="p-4 md:p-6">
-          <h2 className="text-xl font-bold mb-4 text-center">Confirmar Eliminación</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">⚠️ Confirmar Eliminación</h2>
+            <button 
+              type="button"
+              onClick={handleClose}
+              disabled={eliminandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+              className="text-gray-500 hover:text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-xl p-1 rounded-full hover:bg-gray-100 transition-colors"
+              title={eliminandoProducto ? "Procesando..." : "Cerrar"}
+            >
+              ✕
+            </button>
+          </div>
           
           <p className="text-center my-4">
             ¿Estás seguro de que deseas eliminar <strong>{producto.cantidad}</strong> unidades de <strong>{producto.producto_nombre}</strong>?
           </p>
+
+          
           
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-6">
             <button 
-              onClick={onConfirmar}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition-colors"
+              onClick={handleConfirmar}
+              disabled={eliminandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+              className="bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors flex items-center justify-center gap-2"
             >
-              Sí, eliminar
+              {/* ✅ SPINNER EN EL BOTÓN CUANDO ESTÁ PROCESANDO */}
+              {eliminandoProducto && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              )}
+              {eliminandoProducto ? 'Eliminando...' : 'Sí, eliminar'}
             </button>
             <button 
-              onClick={onClose}
-              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors"
+              onClick={handleClose}
+              disabled={eliminandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+              className="bg-gray-500 hover:bg-gray-600 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-4 py-2 rounded transition-colors"
             >
-              No, cancelar
+              {eliminandoProducto ? 'Procesando...' : 'No, cancelar'}
             </button>
           </div>
         </div>
@@ -1227,6 +1466,7 @@ export function TablaProductosEscritorio({ productos, onEditarProducto, onElimin
             <th className="p-2 text-center">UM</th>
             <th className="p-2 text-center">Cant.</th>
             <th className="p-2 text-right">Precio Unit.</th>
+            <th className="p-2 text-center">Desc. %</th> {/* 🆕 COLUMNA DESCUENTO */}
             <th className="p-2 text-right">IVA ($)</th>
             <th className="p-2 text-right">Subtotal</th>
             <th className="p-2 text-center">Acción</th>
@@ -1238,6 +1478,11 @@ export function TablaProductosEscritorio({ productos, onEditarProducto, onElimin
             const cantidad = Number(producto.cantidad) || 0;
             const ivaValue = Number(producto.iva) || 0;
             const subtotalSinIva = Number(producto.subtotal) || (cantidad * precio);
+            const descuentoPorcentaje = Number(producto.descuento_porcentaje) || 0; // ✅ DESCUENTO
+            
+            // 🆕 CALCULAR SUBTOTAL BASE PARA MOSTRAR DESCUENTO
+            const subtotalBase = cantidad * precio;
+            const montoDescuento = (subtotalBase * descuentoPorcentaje) / 100;
             
             return (
               <tr key={producto.id}
@@ -1247,9 +1492,27 @@ export function TablaProductosEscritorio({ productos, onEditarProducto, onElimin
                 <td className="p-2 font-medium">{producto.producto_nombre}</td>
                 <td className="p-2 text-center">{producto.producto_um}</td>
                 <td className="p-2 text-center font-semibold">{cantidad}</td>
-                <td className="p-2 text-right">${precio.toFixed(2)}</td>
+                <td className="p-2 text-right">
+                  <div>${precio.toFixed(2)}</div>
+                </td>
+                <td className="p-2 text-center"> {/* ✅ COLUMNA DESCUENTO CORREGIDA */}
+                  {descuentoPorcentaje > 0 ? (
+                    <div>
+                      <div className="text-orange-600 font-bold">{descuentoPorcentaje}%</div>
+                      <div className="text-xs text-red-600">-${montoDescuento.toFixed(2)}</div>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">0%</span>
+                  )}
+                </td>
                 <td className="p-2 text-right">${ivaValue.toFixed(2)}</td>
-                <td className="p-2 text-right font-semibold text-green-600">${subtotalSinIva.toFixed(2)}</td>
+                <td className="p-2 text-right">
+                  <div className="font-semibold text-green-600">${subtotalSinIva.toFixed(2)}</div>
+                  {/* 🆕 MOSTRAR QUE INCLUYE DESCUENTO */}
+                  {descuentoPorcentaje > 0 && (
+                    <div className="text-xs text-orange-600">Con desc.</div>
+                  )}
+                </td>
                 <td className="p-2 text-center">
                   {canEdit && ( 
                     <button
@@ -1281,6 +1544,11 @@ export function TarjetasProductosMovil({ productos, onEditarProducto, onEliminar
         const cantidad = Number(producto.cantidad) || 0;
         const ivaValue = Number(producto.iva) || 0;
         const subtotalSinIva = Number(producto.subtotal) || (cantidad * precio);
+        const descuentoPorcentaje = Number(producto.descuento_porcentaje) || 0; // ✅ DESCUENTO
+        
+        // 🆕 CALCULAR INFORMACIÓN DEL DESCUENTO
+        const subtotalBase = cantidad * precio;
+        const montoDescuento = (subtotalBase * descuentoPorcentaje) / 100;
         
         return (
           <div key={producto.id} className="bg-white p-3 rounded shadow border">
@@ -1288,6 +1556,12 @@ export function TarjetasProductosMovil({ productos, onEditarProducto, onEliminar
               <div className="flex-1">
                 <h4 className="font-semibold text-gray-800 text-sm">{producto.producto_nombre}</h4>
                 <p className="text-xs text-gray-500">Código: {producto.producto_id}</p>
+                {/* 🆕 MOSTRAR DESCUENTO EN MÓVIL */}
+                {descuentoPorcentaje > 0 && (
+                  <div className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded mt-1 inline-block">
+                    🏷️ {descuentoPorcentaje}% descuento (-${montoDescuento.toFixed(2)})
+                  </div>
+                )}
               </div>
               {canEdit && (
                 <button
@@ -1311,7 +1585,15 @@ export function TarjetasProductosMovil({ productos, onEditarProducto, onEliminar
               </div>
               <div>
                 <span className="text-gray-600 block">Precio:</span>
-                <span className="font-medium">${precio.toFixed(2)}</span>
+                <div>
+                  <span className="font-medium">${precio.toFixed(2)}</span>
+                  {/* 🆕 MOSTRAR PRECIO BASE SI HAY DESCUENTO */}
+                  {descuentoPorcentaje > 0 && (
+                    <div className="text-xs text-gray-500">
+                      Base: ${subtotalBase.toFixed(2)}
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
                 <span className="text-gray-600 block">IVA:</span>
@@ -1322,15 +1604,22 @@ export function TarjetasProductosMovil({ productos, onEditarProducto, onEliminar
             <div className="mt-2 pt-2 border-t border-gray-200">
               <div className="flex justify-between items-center">
                 <span className="text-gray-600 text-xs">Subtotal:</span>
-                <span className="font-semibold text-green-600">${subtotalSinIva.toFixed(2)}</span>
+                <div className="text-right">
+                  <span className="font-semibold text-green-600">${subtotalSinIva.toFixed(2)}</span>
+                  {/* 🆕 INDICAR QUE INCLUYE DESCUENTO */}
+                  {descuentoPorcentaje > 0 && (
+                    <div className="text-xs text-orange-600">Con descuento</div>
+                  )}
+                </div>
               </div>
             </div>
+            
             {canEdit && (
               <button
                 onClick={() => onEditarProducto(producto)}
                 className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-xs transition-colors"
               >
-                Editar
+                {descuentoPorcentaje > 0 ? '✏️ Editar (con desc.)' : 'Editar'}
               </button>
             )}
           </div>
@@ -1339,6 +1628,7 @@ export function TarjetasProductosMovil({ productos, onEditarProducto, onEliminar
     </div>
   );
 }
+
 
 export function TablaProductos({ productos, onEditarProducto, onEliminarProducto, loading, canEdit }) {
   if (loading) {
@@ -1377,6 +1667,7 @@ export function TablaProductos({ productos, onEditarProducto, onEliminarProducto
   );
 }
 
+
 export function ResumenTotales({ productos }) {
   const subtotalNeto = productos.reduce((acc, prod) => {
     return acc + (Number(prod.subtotal) || 0);
@@ -1386,13 +1677,46 @@ export function ResumenTotales({ productos }) {
     return acc + (Number(prod.iva) || 0);
   }, 0);
 
+  // 🆕 CALCULAR DESCUENTOS TOTALES
+  const totalDescuentos = productos.reduce((acc, prod) => {
+    const precio = Number(prod.precio) || 0;
+    const cantidad = Number(prod.cantidad) || 0;
+    const descuento = Number(prod.descuento_porcentaje) || 0;
+    const subtotalBase = precio * cantidad;
+    const montoDescuento = (subtotalBase * descuento) / 100;
+    return acc + montoDescuento;
+  }, 0);
+
   const totalFinal = subtotalNeto + ivaTotal;
+
+  // 🆕 CALCULAR TOTAL SIN DESCUENTOS PARA COMPARACIÓN
+  const totalSinDescuentos = productos.reduce((acc, prod) => {
+    const precio = Number(prod.precio) || 0;
+    const cantidad = Number(prod.cantidad) || 0;
+    const subtotalBase = precio * cantidad;
+    const ivaBase = subtotalBase * 0.21; // Asumiendo 21% IVA
+    return acc + subtotalBase + ivaBase;
+  }, 0);
 
   if (productos.length === 0) return null;
 
   return (
     <div className="mt-4 bg-gray-50 rounded-lg p-3 border-2 border-gray-200">
       <div className="space-y-2">
+        {/* 🆕 MOSTRAR DESCUENTOS SI LOS HAY */}
+        {totalDescuentos > 0 && (
+          <>
+            <div className="flex justify-between items-center py-1 border-b border-gray-300 text-sm">
+              <span className="text-gray-700 font-medium">TOTAL ORIGINAL:</span>
+              <span className="font-semibold text-gray-600">${totalSinDescuentos.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center py-1 border-b border-gray-300 text-sm">
+              <span className="text-orange-700 font-medium">DESCUENTOS APLICADOS:</span>
+              <span className="font-semibold text-orange-600">-${totalDescuentos.toFixed(2)}</span>
+            </div>
+          </>
+        )}
+        
         <div className="flex justify-between items-center py-1 border-b border-gray-300 text-sm">
           <span className="text-gray-700 font-medium">SUBTOTAL (sin IVA):</span>
           <span className="font-semibold text-gray-800">${subtotalNeto.toFixed(2)}</span>
@@ -1404,15 +1728,13 @@ export function ResumenTotales({ productos }) {
         </div>
         
         <div className="flex justify-between items-center py-2 bg-yellow-300 rounded-lg px-3 border-2 border-yellow-400">
-          <span className="text-black font-bold">TOTAL (con IVA):</span>
+          <span className="text-black font-bold">TOTAL FINAL:</span>
           <span className="text-black text-lg font-bold">${totalFinal.toFixed(2)}</span>
         </div>
       </div>
     </div>
   );
 }
-
-
 
 // ModalDetallePedido actualizado
 export function ModalDetallePedido({ 
@@ -1425,7 +1747,7 @@ export function ModalDetallePedido({
   onEliminarProducto,
   onCambiarEstado,
   onGenerarPDF,
-  onActualizarObservaciones, // Nueva prop
+  onActualizarObservaciones,
   generandoPDF,
   mostrarModalFacturacion,
   setMostrarModalFacturacion,
@@ -1436,28 +1758,27 @@ export function ModalDetallePedido({
   
   const { user } = useAuth();
 
-
-
-    // Función helper para formatear fechas
+  // Función helper para formatear fechas
   const formatearFecha = (fecha) => {
-  if (!fecha) return 'Fecha no disponible';
-  
-  return new Date(fecha).toLocaleString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
+    if (!fecha) return 'Fecha no disponible';
+    
+    return new Date(fecha).toLocaleString('es-AR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
   };
-
-
 
   if (!pedido) return null;
   
+  // ✅ CONTROL DE ACCESO REFINADO
+  const esGerente = user?.rol === 'GERENTE';
   const canEdit = !isPedidoFacturado && !isPedidoAnulado;
+  const canEditProducts = canEdit && esGerente; // 🆕 Solo gerentes pueden editar productos
 
   const toggleClienteExpansion = () => {
     setClienteExpandido(!clienteExpandido);
@@ -1488,9 +1809,15 @@ export function ModalDetallePedido({
     }
   };
 
-  
+  // Función para editar producto
+  const handleEditarProductoGerente = (producto) => {
+    onEditarProducto(producto);
+  };
 
-  const esGerente = user?.rol === 'GERENTE';
+  // Función para eliminar producto
+  const handleEliminarProductoGerente = (producto) => {
+    onEliminarProducto(producto);
+  };
 
   return (
     <>
@@ -1508,11 +1835,13 @@ export function ModalDetallePedido({
                 ✕
               </button>
             </div>
+            
             <div className="mb-4">
               <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
                 <strong>Fecha:</strong> {formatearFecha(pedido.fecha)}
               </h4>
             </div>
+            
             <InformacionCliente 
               pedido={pedido} 
               expandido={clienteExpandido}
@@ -1530,7 +1859,7 @@ export function ModalDetallePedido({
             />
 
             <div className="mb-4">
-              <h3 className="text-xl font-semibold mb-4 text-gray-800">Productos del Pedido</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-4">Productos del Pedido</h3>
               
               {canEdit && (
                 <button
@@ -1543,8 +1872,8 @@ export function ModalDetallePedido({
 
               <TablaProductos
                 productos={productos}
-                onEditarProducto={onEditarProducto}
-                onEliminarProducto={onEliminarProducto}
+                onEditarProducto={handleEditarProductoGerente}
+                onEliminarProducto={handleEliminarProductoGerente}
                 loading={loading}
                 canEdit={canEdit}
               />
@@ -1596,8 +1925,6 @@ export function ModalDetallePedido({
           </div>
         </div>
       </div>
-
-      
     </>
   );
 }

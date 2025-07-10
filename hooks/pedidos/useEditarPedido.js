@@ -1,13 +1,14 @@
+// hooks/pedidos/useEditarPedido.js - Con soporte para descuentos de gerente
 import { useState } from 'react';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
-
-import { axiosAuth, fetchAuth } from '../../utils/apiClient';
+import { axiosAuth } from '../../utils/apiClient';
+import useAuth from '../useAuth';
 
 export function useEditarPedido() {
   const [selectedPedido, setSelectedPedido] = useState(null);
   const [productos, setProductos] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   // Cargar productos de un pedido específico
   const cargarProductosPedido = async (pedido) => {
@@ -83,6 +84,7 @@ export function useEditarPedido() {
       precio,
       iva: ivaCalculado, // IVA en pesos
       subtotal: subtotalSinIva, // Subtotal sin IVA
+      descuento_porcentaje: 0, // 🆕 Descuento inicial en 0
       stock_actual: stockDisponible // Guardar stock para validaciones futuras
     };
 
@@ -149,7 +151,7 @@ export function useEditarPedido() {
     }
   };
 
-  // Actualizar producto (cantidad, precio) con validaciones de stock
+  // ✅ ACTUALIZAR PRODUCTO CON DESCUENTO (gerentes tienen campos extras)
   const actualizarProducto = async (producto) => {
     if (!selectedPedido) {
       toast.error('No hay pedido seleccionado');
@@ -158,6 +160,7 @@ export function useEditarPedido() {
 
     const precio = parseFloat(producto.precio) || 0;
     const cantidad = parseInt(producto.cantidad) || 1;
+    const descuentoPorcentaje = parseFloat(producto.descuento_porcentaje) || 0;
 
     // Verificar stock antes de actualizar
     const stockDisponible = await verificarStock(producto.producto_id);
@@ -166,27 +169,33 @@ export function useEditarPedido() {
       return false;
     }
 
-    const subtotalSinIva = parseFloat((precio * cantidad).toFixed(2));
+    // ✅ CALCULAR SUBTOTAL CON DESCUENTO
+    const subtotalBase = precio * cantidad;
+    const montoDescuento = (subtotalBase * descuentoPorcentaje) / 100;
+    const subtotalConDescuento = subtotalBase - montoDescuento;
     
-    // Calcular IVA basado en el porcentaje original del producto
+    // Calcular IVA basado en el subtotal con descuento
     const porcentajeIva = 21; // Por defecto, pero idealmente debería venir del producto
-    const ivaCalculado = parseFloat((subtotalSinIva * (porcentajeIva / 100)).toFixed(2));
+    const ivaCalculado = parseFloat((subtotalConDescuento * (porcentajeIva / 100)).toFixed(2));
 
     const updatedProduct = {
       cantidad,
       precio,
       iva: ivaCalculado,
-      subtotal: subtotalSinIva
+      subtotal: parseFloat(subtotalConDescuento.toFixed(2)),
+      descuento_porcentaje: descuentoPorcentaje // ✅ Enviar descuento al backend
     };
 
     try {
+      console.log('🔄 Enviando datos de actualización:', updatedProduct);
+      
       const response = await axiosAuth.put(
         `/pedidos/actualizar-producto/${producto.id}`,
         updatedProduct
       );
 
       if (response.data.success) {
-        toast.success(`Producto actualizado: ${producto.producto_nombre}`);
+        toast.success(`Producto actualizado: ${producto.producto_nombre} ${descuentoPorcentaje > 0 ? `(${descuentoPorcentaje}% desc.)` : ''}`);
         
         // ✅ SOLO RECARGAR PRODUCTOS - El backend ya actualizó los totales
         await cargarProductosPedido(selectedPedido);
@@ -222,9 +231,6 @@ export function useEditarPedido() {
     return true;
   };
 
-  // ❌ ELIMINAR: Esta función ya no es necesaria porque el backend calcula automáticamente
-  // const actualizarTotalPedido = async () => { ... }
-
   // Actualizar observaciones del pedido
   const actualizarObservaciones = async (nuevasObservaciones) => {
     if (!selectedPedido) return false;
@@ -255,23 +261,39 @@ export function useEditarPedido() {
     setProductos([]);
   };
 
-  // ✅ ACTUALIZAR: Obtener totales calculados dinámicamente (ahora solo para mostrar)
+  // ✅ OBTENER TOTALES CALCULADOS DINÁMICAMENTE (ahora con descuentos)
   const getTotales = () => {
     const subtotal = productos.reduce((acc, prod) => acc + parseFloat(prod.subtotal || 0), 0);
     const ivaTotal = productos.reduce((acc, prod) => acc + parseFloat(prod.iva || 0), 0);
     const total = subtotal + ivaTotal;
     
+    // 🆕 CALCULAR DESCUENTOS TOTALES
+    const totalDescuentos = productos.reduce((acc, prod) => {
+      const precio = parseFloat(prod.precio || 0);
+      const cantidad = parseInt(prod.cantidad || 0);
+      const descuento = parseFloat(prod.descuento_porcentaje || 0);
+      const subtotalBase = precio * cantidad;
+      const montoDescuento = (subtotalBase * descuento) / 100;
+      return acc + montoDescuento;
+    }, 0);
+    
     return {
       subtotal: parseFloat(subtotal.toFixed(2)),
       ivaTotal: parseFloat(ivaTotal.toFixed(2)),
       total: parseFloat(total.toFixed(2)),
-      totalProductos: productos.reduce((acc, prod) => acc + parseInt(prod.cantidad || 0), 0)
+      totalProductos: productos.reduce((acc, prod) => acc + parseInt(prod.cantidad || 0), 0),
+      totalDescuentos: parseFloat(totalDescuentos.toFixed(2)) // 🆕 Total de descuentos aplicados
     };
   };
 
   // Función para obtener la lista de productos actuales (para validaciones)
   const getProductosActuales = () => {
     return productos;
+  };
+
+  // ✅ FUNCIÓN PARA VERIFICAR SI EL USUARIO PUEDE EDITAR PRODUCTOS (todos pueden)
+  const puedeEditarProductos = () => {
+    return true; // Todos pueden editar productos
   };
 
   return {
@@ -284,19 +306,18 @@ export function useEditarPedido() {
     cargarProductosPedido,
     agregarProducto,
     eliminarProducto,
-    actualizarProducto,
+    actualizarProducto, // 🆕 Ahora soporta descuentos
     
     // Funciones auxiliares
     actualizarObservaciones,
     cerrarEdicion,
-    getTotales, // Solo para mostrar en el modal
+    getTotales, // 🆕 Ahora incluye descuentos
     getProductosActuales,
     
     // Funciones de validación
     verificarProductoDuplicado,
     verificarStock,
-    validarStockAntesDeProceder
-    
-    // ❌ ELIMINAR: actualizarTotalPedido ya no es necesaria
+    validarStockAntesDeProceder,
+    puedeEditarProductos // 🆕 Verificar permisos de edición
   };
 }
