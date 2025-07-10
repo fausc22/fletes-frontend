@@ -1034,144 +1034,189 @@ export function ModalEditarProductoPedido({
   onGuardar,
   onChange
 }) {
+  // ✅ TODOS LOS HOOKS AL INICIO - ORDEN FIJO
   const { user } = useAuth();
-  const [descuentoPorcentaje, setDescuentoPorcentaje] = useState(0);
-  const [subtotalConDescuento, setSubtotalConDescuento] = useState(0);
-  const [guardandoProducto, setGuardandoProducto] = useState(false); // ✅ NUEVO ESTADO PARA LOADING
-  
-  // ✅ SOLO VERIFICAR ROL PARA MOSTRAR CAMPOS ESPECIALES
+  const [localCantidad, setLocalCantidad] = useState(1);
+  const [localPrecio, setLocalPrecio] = useState(0);
+  const [localDescuento, setLocalDescuento] = useState(0);
+  const [guardando, setGuardando] = useState(false);
+  const [inicializado, setInicializado] = useState(false);
+
+  // ✅ CONSTANTE CALCULADA
   const esGerente = user?.rol === 'GERENTE';
 
+  // ✅ EFFECT 1: Inicialización cuando cambia producto
   useEffect(() => {
-    if (producto) {
-      // ✅ CARGAR EL DESCUENTO EXISTENTE DEL PRODUCTO
-      const descuentoExistente = Number(producto.descuento_porcentaje) || 0;
-      setDescuentoPorcentaje(descuentoExistente);
-      calcularSubtotalConDescuento(
-        producto.cantidad || 1, 
-        producto.precio || 0, 
-        descuentoExistente
-      );
-    }
-  }, [producto]);
-
-  // Función para calcular subtotal con descuento
-  const calcularSubtotalConDescuento = (cantidad, precio, descuento) => {
-    const subtotalBase = cantidad * precio;
-    const montoDescuento = (subtotalBase * descuento) / 100;
-    const subtotalFinal = subtotalBase - montoDescuento;
-    setSubtotalConDescuento(subtotalFinal);
+    console.log('🔄 Effect inicialización, producto:', producto?.producto_nombre);
     
-    // Actualizar el producto con el nuevo subtotal
-    if (onChange) {
-      onChange({
-        ...producto,
-        subtotal: subtotalFinal.toFixed(2),
-        descuento_porcentaje: descuento,
-        precio: precio,
-        cantidad: cantidad
-      });
+    if (producto && !inicializado) {
+      console.log('📝 Inicializando valores del modal');
+      setLocalCantidad(Number(producto.cantidad) || 1);
+      setLocalPrecio(Number(producto.precio) || 0);
+      setLocalDescuento(Number(producto.descuento_porcentaje) || 0);
+      setGuardando(false);
+      setInicializado(true);
     }
+    
+    if (!producto) {
+      setInicializado(false);
+    }
+  }, [producto, inicializado]);
+
+  // ✅ EFFECT 2: Cleanup cuando se desmonta
+  useEffect(() => {
+    return () => {
+      console.log('🧹 Limpiando modal al desmontar');
+      setGuardando(false);
+      setInicializado(false);
+    };
+  }, []);
+
+  // ✅ EFFECT 3: Escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && !guardando) {
+        onClose();
+      }
+    };
+
+    if (producto) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [producto, guardando, onClose]);
+
+  // ✅ EARLY RETURN DESPUÉS DE TODOS LOS HOOKS
+  if (!producto || !inicializado) {
+    return null;
+  }
+
+  // ✅ CÁLCULOS Y VALORES
+  const stockDisponible = Number(producto.stock_actual) || 0;
+  const stockSuficiente = localCantidad <= stockDisponible;
+  const subtotalBase = localCantidad * localPrecio;
+  const montoDescuento = (subtotalBase * localDescuento) / 100;
+  const subtotalFinal = subtotalBase - montoDescuento;
+  const botonesDeshabilitados = !stockSuficiente || localPrecio <= 0 || guardando;
+
+  // ✅ HANDLERS (NO SON HOOKS)
+  const handleCantidadInput = (e) => {
+    if (guardando) return;
+    const valor = parseInt(e.target.value) || 1;
+    const valorValido = Math.max(1, Math.min(stockDisponible, valor));
+    
+    if (valor > stockDisponible) {
+      toast.error(`Stock insuficiente. Máximo: ${stockDisponible}`);
+    }
+    
+    setLocalCantidad(valorValido);
   };
 
-  if (!producto) return null;
-
-  // Obtener stock desde la información del producto
-  const stockDisponible = Number(producto.stock_actual) || 0;
-  const cantidadActual = Number(producto.cantidad) || 1;
-  const stockSuficiente = cantidadActual <= stockDisponible;
-
-  const handleCantidadChange = (e) => {
-    // ✅ NO PERMITIR CAMBIOS DURANTE PROCESAMIENTO
-    if (guardandoProducto) return;
-    
-    const nuevaCantidad = Math.max(1, parseInt(e.target.value) || 1);
-    
-    // Validar stock antes de permitir el cambio
-    if (nuevaCantidad > stockDisponible) {
-      toast.error(`Stock insuficiente. Máximo disponible: ${stockDisponible}`);
-      return;
-    }
-
-    calcularSubtotalConDescuento(nuevaCantidad, producto.precio || 0, descuentoPorcentaje);
+  const handleCantidadBoton = (incremento) => {
+    if (guardando) return;
+    const nuevaCantidad = localCantidad + incremento;
+    const valorValido = Math.max(1, Math.min(stockDisponible, nuevaCantidad));
+    setLocalCantidad(valorValido);
   };
 
   const handlePrecioChange = (e) => {
-    // ✅ NO PERMITIR CAMBIOS DURANTE PROCESAMIENTO
-    if (guardandoProducto) return;
-    
-    const nuevoPrecio = Math.max(0, parseFloat(e.target.value) || 0);
-    calcularSubtotalConDescuento(producto.cantidad || 1, nuevoPrecio, descuentoPorcentaje);
+    if (guardando) return;
+    const valor = Math.max(0, parseFloat(e.target.value) || 0);
+    setLocalPrecio(valor);
   };
 
   const handleDescuentoChange = (e) => {
-    // ✅ NO PERMITIR CAMBIOS DURANTE PROCESAMIENTO
-    if (guardandoProducto) return;
-    
-    const nuevoDescuento = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
-    setDescuentoPorcentaje(nuevoDescuento);
-    calcularSubtotalConDescuento(producto.cantidad || 1, producto.precio || 0, nuevoDescuento);
+    if (guardando) return;
+    const valor = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+    setLocalDescuento(valor);
   };
 
-  const handleGuardar = async () => {
-    if (!stockSuficiente) {
-      toast.error(`No se puede guardar. Stock insuficiente (disponible: ${stockDisponible})`);
+  const handleGuardarClick = async (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+    
+    if (guardando) {
+      console.log('⚠️ Ya guardando, ignorando');
       return;
     }
-    
-    // Validar que el precio sea mayor a 0
-    if (!producto.precio || producto.precio <= 0) {
+
+    if (!stockSuficiente) {
+      toast.error(`Stock insuficiente. Disponible: ${stockDisponible}`);
+      return;
+    }
+
+    if (localPrecio <= 0) {
       toast.error('El precio debe ser mayor a cero');
       return;
     }
-    
-    // ✅ ACTIVAR ESTADO DE LOADING
-    setGuardandoProducto(true);
-    
+
+    setGuardando(true);
+
     try {
-      await onGuardar();
+      const productoActualizado = {
+        ...producto,
+        cantidad: localCantidad,
+        precio: localPrecio,
+        descuento_porcentaje: localDescuento,
+        subtotal: parseFloat(subtotalFinal.toFixed(2))
+      };
+
+      console.log('💾 Guardando:', productoActualizado.producto_nombre);
+      await onGuardar(productoActualizado);
+      console.log('✅ Guardado exitoso');
+
     } catch (error) {
-      console.error('Error guardando producto:', error);
+      console.error('❌ Error guardando:', error);
       toast.error('Error al guardar cambios');
-    } finally {
-      // ✅ DESACTIVAR ESTADO DE LOADING
-      setGuardandoProducto(false);
+      setGuardando(false);
     }
   };
 
-  const handleClose = () => {
-    // ✅ NO PERMITIR CERRAR SI ESTÁ PROCESANDO
-    if (guardandoProducto) return;
+  const handleCerrarClick = (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
     
+    if (guardando) {
+      console.log('⚠️ No cerrar mientras guarda');
+      return;
+    }
+    
+    console.log('🚪 Cerrando modal');
     onClose();
   };
 
-  const precio = Number(producto.precio) || 0;
-  const cantidad = Number(producto.cantidad) || 1;
-  const subtotalBase = cantidad * precio;
-  const montoDescuento = (subtotalBase * descuentoPorcentaje) / 100;
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget && !guardando) {
+      handleCerrarClick();
+    }
+  };
 
-  // ✅ DETERMINAR SI EL BOTÓN DEBE ESTAR DESHABILITADO
-  const botonDeshabilitado = !stockSuficiente || precio <= 0 || guardandoProducto;
-
+  // ✅ RENDER
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4">
-      <div className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
+    <div 
+      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-4"
+      onClick={handleOverlayClick}
+    >
+      <div 
+        className="bg-white rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-4 md:p-6">
+          {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg sm:text-xl font-bold">🔧 Editar Producto</h2>
             <button 
               type="button"
-              onClick={handleClose}
-              disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+              onClick={handleCerrarClick}
+              disabled={guardando}
               className="text-gray-500 hover:text-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed text-xl p-1 rounded-full hover:bg-gray-100 transition-colors"
-              title={guardandoProducto ? "Procesando..." : "Cerrar"}
             >
               ✕
             </button>
           </div>
           
           <div className="space-y-4">
+            {/* Información básica */}
             <div>
               <label className="block mb-1 font-medium text-sm">Código:</label>
               <input 
@@ -1202,7 +1247,7 @@ export function ModalEditarProductoPedido({
               />
             </div>
 
-            {/* Mostrar stock disponible */}
+            {/* Stock */}
             <div className="bg-blue-50 border border-blue-200 p-3 rounded">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Stock Disponible:</span>
@@ -1212,7 +1257,7 @@ export function ModalEditarProductoPedido({
               </div>
             </div>
             
-            {/* ✅ CAMPO PRECIO EDITABLE SOLO PARA GERENTES */}
+            {/* Precio */}
             {esGerente ? (
               <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
                 <label className="block mb-1 font-medium text-sm text-yellow-800">
@@ -1222,13 +1267,12 @@ export function ModalEditarProductoPedido({
                   <span className="mr-1 text-yellow-600">$</span>
                   <input 
                     type="number"
-                    disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
-                    className="border border-yellow-300 p-2 w-full rounded text-sm focus:ring-2 focus:ring-yellow-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    value={precio}
+                    disabled={guardando}
+                    className="border border-yellow-300 p-2 w-full rounded text-sm focus:ring-2 focus:ring-yellow-500 disabled:bg-gray-100"
+                    value={localPrecio}
                     onChange={handlePrecioChange}
                     min="0"
                     step="0.01"
-                    placeholder="0.00"
                   />
                 </div>
                 <p className="text-xs text-yellow-600 mt-1">
@@ -1243,40 +1287,41 @@ export function ModalEditarProductoPedido({
                   <input 
                     type="text"
                     className="border p-2 w-full rounded bg-gray-100 text-sm"
-                    value={precio.toFixed(2)}
+                    value={localPrecio.toFixed(2)}
                     disabled
                   />
                 </div>
               </div>
             )}
             
+            {/* Cantidad */}
             <div>
               <label className="block mb-1 font-medium text-sm">Cantidad:</label>
               <div className="flex items-center space-x-2">
                 <button 
                   type="button"
-                  disabled={cantidad <= 1 || guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                  disabled={localCantidad <= 1 || guardando}
                   className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
-                  onClick={() => handleCantidadChange({ target: { value: cantidad - 1 } })}
+                  onClick={() => handleCantidadBoton(-1)}
                 >
                   -
                 </button>
                 <input 
                   type="number"
-                  disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
-                  className={`border p-2 w-16 rounded text-sm text-center disabled:bg-gray-100 disabled:cursor-not-allowed ${
+                  disabled={guardando}
+                  className={`border p-2 w-16 rounded text-sm text-center disabled:bg-gray-100 ${
                     !stockSuficiente ? 'border-red-500 bg-red-50' : ''
                   }`}
-                  value={cantidad}
-                  onChange={handleCantidadChange}
+                  value={localCantidad}
+                  onChange={handleCantidadInput}
                   min="1"
                   max={stockDisponible}
                 />
                 <button 
                   type="button"
-                  disabled={cantidad >= stockDisponible || guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
+                  disabled={localCantidad >= stockDisponible || guardando}
                   className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-black w-8 h-8 rounded flex items-center justify-center transition-colors"
-                  onClick={() => handleCantidadChange({ target: { value: cantidad + 1 } })}
+                  onClick={() => handleCantidadBoton(1)}
                 >
                   +
                 </button>
@@ -1289,7 +1334,7 @@ export function ModalEditarProductoPedido({
               )}
             </div>
 
-            {/* ✅ CAMPO DESCUENTO SOLO PARA GERENTES */}
+            {/* Descuento */}
             {esGerente && (
               <div className="bg-orange-50 border border-orange-200 p-3 rounded">
                 <label className="block mb-1 font-medium text-sm text-orange-800">
@@ -1298,47 +1343,45 @@ export function ModalEditarProductoPedido({
                 <div className="flex items-center space-x-2">
                   <input 
                     type="number"
-                    disabled={guardandoProducto} // ✅ DESHABILITAR DURANTE PROCESAMIENTO
-                    className="border border-orange-300 p-2 w-20 rounded text-sm text-center focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    value={descuentoPorcentaje}
+                    disabled={guardando}
+                    className="border border-orange-300 p-2 w-20 rounded text-sm text-center focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100"
+                    value={localDescuento}
                     onChange={handleDescuentoChange}
                     min="0"
                     max="100"
                     step="0.1"
-                    placeholder="0"
                   />
                   <span className="text-orange-600">%</span>
                   <div className="flex-1 text-sm text-orange-700">
                     Descuento: <span className="font-bold">${montoDescuento.toFixed(2)}</span>
                   </div>
                 </div>
-                <p className="text-xs text-orange-600 mt-1">
-                  💡 Ingrese un porcentaje de 0 a 100%
-                </p>
               </div>
             )}
 
-            {/* RESUMEN DE CÁLCULOS */}
+            {/* Resumen */}
             <div className="bg-gray-50 border border-gray-200 p-3 rounded">
-              <h4 className="font-medium text-sm mb-2 text-gray-800">📊 Resumen de Cálculos:</h4>
+              <h4 className="font-medium text-sm mb-2 text-gray-800">📊 Resumen:</h4>
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal base:</span>
                   <span>${subtotalBase.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-orange-600">
-                  <span>Descuento ({descuentoPorcentaje}%):</span>
-                  <span>-${montoDescuento.toFixed(2)}</span>
-                </div>
+                {localDescuento > 0 && (
+                  <div className="flex justify-between text-orange-600">
+                    <span>Descuento ({localDescuento}%):</span>
+                    <span>-${montoDescuento.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-green-600 border-t pt-1">
-                  <span>Subtotal final (sin IVA):</span>
-                  <span>${subtotalConDescuento.toFixed(2)}</span>
+                  <span>Subtotal final:</span>
+                  <span>${subtotalFinal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            {/* ✅ INDICADOR DE PROCESAMIENTO */}
-            {guardandoProducto && (
+            {/* Loading */}
+            {guardando && (
               <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded">
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
@@ -1348,26 +1391,39 @@ export function ModalEditarProductoPedido({
             )}
           </div>
           
-          {/* ✅ BOTÓN ÚNICO CENTRADO Y RESPONSIVO CON LOADING */}
-          <div className="flex justify-center mt-8">
+          {/* Botones */}
+          <div className="flex flex-col sm:flex-row justify-center gap-3 mt-8">
             <button 
-              onClick={handleGuardar}
-              disabled={botonDeshabilitado}
-              className={`px-8 py-3 rounded-lg text-lg font-bold transition-colors w-full sm:w-auto min-w-[200px] flex items-center justify-center gap-2 ${
-                botonDeshabilitado
+              type="button"
+              onClick={handleGuardarClick}
+              disabled={botonesDeshabilitados}
+              className={`px-6 py-3 rounded-lg text-sm font-bold transition-colors w-full sm:w-auto min-w-[160px] flex items-center justify-center gap-2 ${
+                botonesDeshabilitados
                   ? 'bg-gray-400 cursor-not-allowed text-gray-700'
-                  : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl'
+                  : 'bg-green-600 hover:bg-green-700 text-white shadow-lg'
               }`}
             >
-              {/* ✅ SPINNER EN EL BOTÓN CUANDO ESTÁ PROCESANDO */}
-              {guardandoProducto && (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              {guardando && (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
               )}
               
-              {guardandoProducto ? 'Guardando...' :
+              {guardando ? 'Guardando...' :
                !stockSuficiente ? '❌ Stock Insuficiente' : 
-               precio <= 0 ? '❌ Precio Inválido' : 
+               localPrecio <= 0 ? '❌ Precio Inválido' : 
                '✅ GUARDAR CAMBIOS'}
+            </button>
+
+            <button 
+              type="button"
+              onClick={handleCerrarClick}
+              disabled={guardando}
+              className={`px-6 py-3 rounded-lg text-sm font-bold transition-colors w-full sm:w-auto min-w-[160px] flex items-center justify-center gap-2 ${
+                guardando
+                  ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                  : 'bg-red-600 hover:bg-red-700 text-white shadow-lg'
+              }`}
+            >
+              ❌ CANCELAR
             </button>
           </div>
         </div>
@@ -1840,11 +1896,7 @@ export function ModalDetallePedido({
               </button>
             </div>
             
-            <div className="mb-4">
-              <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
-                <strong>Fecha:</strong> {formatearFecha(pedido.fecha)}
-              </h4>
-            </div>
+            
             
             <div className="mb-4">
               <h4 className="text-sm sm:text-lg font-semibold text-gray-700">

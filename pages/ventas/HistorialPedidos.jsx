@@ -223,26 +223,32 @@ function HistorialPedidosContent() {
   };
 
   const handleEditarProducto = async (producto) => {
-    try {
-      console.log('🔍 Consultando stock para producto:', producto.producto_id);
-      const stockActual = await verificarStock(producto.producto_id);
-      console.log('📦 Stock obtenido:', stockActual);
-      
-      const productoConStock = {
-        ...producto,
-        stock_actual: stockActual
-      };
-      
-      setProductoEditando(productoConStock);
-      setMostrarModalDetalle(false);
-      setTimeout(() => setMostrarModalEditarProducto(true), 300);
-    } catch (error) {
-      console.error('❌ Error al obtener stock:', error);
-      toast.error('Error al consultar stock del producto');
-      setProductoEditando({ ...producto, stock_actual: 0 });
-      setMostrarModalDetalle(false);
-      setTimeout(() => setMostrarModalEditarProducto(true), 300);
-    }
+  try {
+    console.log('🔍 Abriendo modal para editar:', producto.producto_nombre);
+    
+    // Consultar stock actual
+    const stockActual = await verificarStock(producto.producto_id);
+    
+    const productoConStock = {
+      ...producto,
+      stock_actual: stockActual,
+      precio: Number(producto.precio) || 0,
+      cantidad: Number(producto.cantidad) || 1,
+      descuento_porcentaje: Number(producto.descuento_porcentaje) || 0
+    };
+    
+    // Cerrar modal de detalle y abrir modal de edición
+    setMostrarModalDetalle(false);
+    setProductoEditando(productoConStock);
+    
+    setTimeout(() => {
+      setMostrarModalEditarProducto(true);
+    }, 100);
+    
+  } catch (error) {
+    console.error('❌ Error al obtener stock:', error);
+    toast.error('Error al consultar stock del producto');
+  }
   };
 
   const handleEliminarProducto = (producto) => {
@@ -258,15 +264,30 @@ function HistorialPedidosContent() {
   };
 
   const handleCloseModalEditarProducto = () => {
-    setMostrarModalEditarProducto(false);
-    setProductoEditando(null);
-    setTimeout(() => setMostrarModalDetalle(true), 300);
+  console.log('🚪 Cerrando modal de editar');
+  
+  // Cerrar modal y limpiar estado
+  setMostrarModalEditarProducto(false);
+  setProductoEditando(null);
+  
+  // Volver al modal de detalle
+  setTimeout(() => {
+    setMostrarModalDetalle(true);
+  }, 100);
   };
 
   const handleCloseModalEliminarProducto = () => {
     setMostrarModalEliminarProducto(false);
     setProductoEliminando(null);
     setTimeout(() => setMostrarModalDetalle(true), 300);
+  };
+
+  const handleProductoChange = (productoModificado) => {
+  // Solo actualizar el estado si es necesario
+  setProductoEditando(prev => ({
+    ...prev,
+    ...productoModificado
+  }));
   };
 
   // HANDLERS PARA CONFIRMACIONES
@@ -293,28 +314,48 @@ function HistorialPedidosContent() {
     }
   };
 
-  const handleConfirmarEditarProducto = async () => {
-    if (!productoEditando) return;
+  const handleConfirmarEditarProducto = async (productoEditado) => {
+  if (!productoEditado) {
+    toast.error('No hay producto para editar');
+    return;
+  }
+  
+  try {
+    console.log('🔄 Guardando producto editado:', productoEditado.producto_nombre);
     
-    try {
-      console.log('🔄 Editando producto...');
+    const exito = await actualizarProducto(productoEditado);
+    
+    if (exito) {
+      console.log('✅ Producto guardado exitosamente');
       
-      const exito = await actualizarProducto(productoEditando);
-      if (exito) {
-        console.log('✅ Producto editado exitosamente');
-        handleCloseModalEditarProducto();
-        
-        console.log('🔄 Recargando lista de pedidos...');
-        await cargarPedidos();
-        console.log('✅ Lista de pedidos actualizada');
-        
-        toast.success('Producto editado correctamente');
-      }
-    } catch (error) {
-      console.error('❌ Error en handleConfirmarEditarProducto:', error);
-      toast.error('Error al editar producto');
+      // ✅ CERRAR MODAL INMEDIATAMENTE
+      setMostrarModalEditarProducto(false);
+      setProductoEditando(null);
+      
+      // Mostrar toast de éxito
+      toast.success('Producto editado correctamente');
+      
+      // Recargar datos
+      await cargarPedidos();
+      
+      // Volver al modal de detalle
+      setTimeout(() => {
+        setMostrarModalDetalle(true);
+      }, 200);
     }
-  };
+  } catch (error) {
+    console.error('❌ Error editando producto:', error);
+    toast.error('Error al editar producto');
+    
+    // Cerrar modal incluso si hay error
+    setMostrarModalEditarProducto(false);
+    setProductoEditando(null);
+    
+    setTimeout(() => {
+      setMostrarModalDetalle(true);
+    }, 200);
+  }
+  };  
 
   const handleConfirmarEliminarProducto = async () => {
     if (!productoEliminando) return;
@@ -541,8 +582,8 @@ function HistorialPedidosContent() {
       <ModalEditarProductoPedido
         producto={productoEditando}
         onClose={handleCloseModalEditarProducto}
-        onGuardar={handleConfirmarEditarProducto}
-        onChange={setProductoEditando}
+        onGuardar={handleConfirmarEditarProducto} // Recibe el producto editado como parámetro
+        onChange={handleProductoChange} // Para actualizar el estado local
       />
 
       <ModalEliminarProductoPedido
