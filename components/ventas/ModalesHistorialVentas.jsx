@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { toast } from 'react-hot-toast';
 import { MdDeleteForever, MdExpandMore, MdExpandLess } from "react-icons/md";
+import { ModalPDFUniversal, BotonGenerarPDFUniversal } from '../shared/ModalPDFUniversal';
 
 // Función helper para formatear fechas
 const formatearFecha = (fecha) => {
@@ -328,7 +329,16 @@ export function ModalDetalleVenta({
   onClose,
   onImprimirFacturaIndividual,
   cuenta,
-  generandoPDF = false
+  generandoPDF = false,
+  // Props para el modal PDF
+  mostrarModalPDF,
+  pdfURL,
+  nombreArchivo,
+  tituloModal,
+  subtituloModal,
+  onDescargarPDF,
+  onCompartirPDF,
+  onCerrarModalPDF
 }) {
   const [clienteExpandido, setClienteExpandido] = useState(false);
 
@@ -351,23 +361,24 @@ export function ModalDetalleVenta({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-lg w-full max-w-xs sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
-        <div className="p-3 sm:p-4 lg:p-6">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">
-              Venta #{venta.id}
-            </h2>
-            <button 
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
-            >
-              ✕
-            </button>
-          </div>
+    <>
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 p-2 sm:p-4">
+        <div className="bg-white rounded-lg w-full max-w-xs sm:max-w-2xl lg:max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+          <div className="p-3 sm:p-4 lg:p-6">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800">
+                Venta #{venta.id}
+              </h2>
+              <button 
+                onClick={onClose}
+                className="text-gray-500 hover:text-gray-700 text-xl sm:text-2xl p-1"
+              >
+                ✕
+              </button>
+            </div>
 
-          {/* Fecha y Estado */}
+            {/* Fecha y Estado */}
           <div className="mb-4">
             <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
               <strong>Fecha:</strong> {formatearFecha(venta.fecha)}
@@ -395,42 +406,48 @@ export function ModalDetalleVenta({
 
             <ResumenTotales productos={productos} venta={venta} />
           </div>
-          
-          {/* Botones de acción */}
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <button
-              onClick={onImprimirFacturaIndividual}
-              disabled={generandoPDF}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3 flex items-center justify-center gap-2"
-            >
-              {generandoPDF ? (
-                <>
-                  <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></span>
-                  Generando...
-                </>
-              ) : (
-                '🖨️ IMPRIMIR FACTURA'
+            
+            {/* Botones de acción */}
+            <div className="mt-6 flex flex-col sm:flex-row gap-4">
+              <BotonGenerarPDFUniversal
+                onGenerar={onImprimirFacturaIndividual}
+                loading={generandoPDF}
+                texto="🖨️ IMPRIMIR FACTURA"
+                className="bg-blue-600 hover:bg-blue-700 w-full sm:w-1/3"
+              />
+              
+              {!venta.cae_id && (
+                <button
+                  onClick={handleSolicitarCAEDetalle}
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3"
+                >
+                  📋 SOLICITAR CAE
+                </button>
               )}
-            </button>
-            
-            {!venta.cae_id && (
+              
               <button
-                onClick={handleSolicitarCAEDetalle}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3"
+                onClick={handleCerrarModal}
+                className="bg-gray-600 hover:bg-gray-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3"
               >
-                📋 SOLICITAR CAE
+                ❌ CERRAR
               </button>
-            )}
-            
-            <button
-              onClick={handleCerrarModal}
-              className="bg-gray-600 hover:bg-gray-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full sm:w-1/3"
-            >
-              ❌ CERRAR
-            </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Modal PDF Unificado */}
+      <ModalPDFUniversal
+        mostrar={mostrarModalPDF}
+        pdfURL={pdfURL}
+        nombreArchivo={nombreArchivo}
+        titulo={tituloModal}
+        subtitulo={subtituloModal}
+        onDescargar={onDescargarPDF}
+        onCompartir={onCompartirPDF}
+        onCerrar={onCerrarModalPDF}
+        zIndex={70}
+      />
+    </>
   );
 }

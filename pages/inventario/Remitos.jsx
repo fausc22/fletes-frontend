@@ -1,4 +1,4 @@
-// pages/inventario/Remitos.jsx - Versión actualizada con responsividad
+// pages/inventario/Remitos.jsx - IMPLEMENTACIÓN COMPLETA CON MODAL PDF
 import { useState } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -63,11 +63,31 @@ function HistorialRemitosContent() {
     cerrarDetalle
   } = useDetalleRemito();
 
+  // ✅ HOOK ADAPTADO para PDFs con modal múltiple
   const {
+    // PDF Individual
     generandoPDF,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    generarPDFIndividualConModal,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF,
+    
+    // PDF Múltiple
     imprimiendoMultiple,
-    generarPDFIndividual,
-    generarPDFsMultiples
+    mostrarModalPDFMultiple,
+    pdfURLMultiple,
+    nombreArchivoMultiple,
+    tituloModalMultiple,
+    subtituloModalMultiple,
+    generarPDFsMultiplesConModal,
+    descargarPDFMultiple,
+    compartirPDFMultiple,
+    cerrarModalPDFMultiple
   } = useGenerarPDFRemito();
 
   // Handlers para eventos de la tabla
@@ -85,17 +105,18 @@ function HistorialRemitosContent() {
     cerrarDetalle();
   };
 
-  // Handlers para PDFs
+  // ✅ HANDLER ADAPTADO para generar PDF individual
   const handleGenerarPDF = async () => {
     if (!selectedRemito || productos.length === 0) {
       toast.error("Seleccione un remito con productos");
       return;
     }
 
-    await generarPDFIndividual(selectedRemito, productos);
+    console.log('🖨️ Generando PDF individual con modal para remito:', selectedRemito.id);
+    await generarPDFIndividualConModal(selectedRemito, productos);
   };
 
-  // Corregir la impresión múltiple: pasar los remitos completos seleccionados
+  // ✅ FUNCIÓN ADAPTADA para imprimir múltiples CON MODAL
   const handleImprimirMultiple = async () => {
     const remitosSeleccionados = remitosFiltrados.filter(remito => 
       selectedRemitos.includes(remito.id)
@@ -106,13 +127,12 @@ function HistorialRemitosContent() {
       return;
     }
 
-    console.log('🖨️ Remitos seleccionados para imprimir:', remitosSeleccionados.map(r => ({ id: r.id, cliente: r.cliente_nombre })));
+    console.log('🖨️ Remitos seleccionados para imprimir con modal:', remitosSeleccionados.map(r => ({ id: r.id, cliente: r.cliente_nombre })));
     
-    const exito = await generarPDFsMultiples(remitosSeleccionados);
+    const exito = await generarPDFsMultiplesConModal(remitosSeleccionados);
     
     if (exito) {
       clearSelection();
-      toast.success('PDFs generados correctamente');
     }
   };
 
@@ -129,13 +149,13 @@ function HistorialRemitosContent() {
   const handleFiltrosChangeConLimpieza = (nuevosFiltros) => {
     handleFiltrosChange(nuevosFiltros);
     clearSelection();
-    cambiarPagina(1); // Reset a primera página
+    cambiarPagina(1);
   };
 
   const handleLimpiarFiltrosConSeleccion = () => {
     limpiarFiltros();
     clearSelection();
-    cambiarPagina(1); // Reset a primera página
+    cambiarPagina(1);
   };
 
   // Mostrar loading mientras se autentica
@@ -193,15 +213,25 @@ function HistorialRemitosContent() {
           onCambiarRegistrosPorPagina={cambiarRegistrosPorPagina}
         />
         
+        {/* ✅ BOTÓN ADAPTADO CON PROPS PARA MODAL MÚLTIPLE */}
         <BotonAccionesRemitos
           selectedRemitos={selectedRemitos}
           onImprimirMultiple={handleImprimirMultiple}
           imprimiendo={imprimiendoMultiple}
           onVolverMenu={handleConfirmarSalida}
+          // ✅ Props para modal PDF múltiple
+          mostrarModalPDFMultiple={mostrarModalPDFMultiple}
+          pdfURLMultiple={pdfURLMultiple}
+          nombreArchivoMultiple={nombreArchivoMultiple}
+          tituloModalMultiple={tituloModalMultiple}
+          subtituloModalMultiple={subtituloModalMultiple}
+          onDescargarPDFMultiple={descargarPDFMultiple}
+          onCompartirPDFMultiple={compartirPDFMultiple}
+          onCerrarModalPDFMultiple={cerrarModalPDFMultiple}
         />
       </div>
       
-      {/* Modal de detalles de remito - SIN PROP onVerDetalleVenta */}
+      {/* ✅ MODAL DE DETALLE ADAPTADO */}
       <ModalDetalleRemito
         remito={selectedRemito}
         productos={productos}
@@ -209,6 +239,15 @@ function HistorialRemitosContent() {
         onClose={handleCloseModalDetalle}
         onGenerarPDF={handleGenerarPDF}
         generandoPDF={generandoPDF}
+        // ✅ Props para modal PDF individual
+        mostrarModalPDF={mostrarModalPDF}
+        pdfURL={pdfURL}
+        nombreArchivo={nombreArchivo}
+        tituloModal={tituloModal}
+        subtituloModal={subtituloModal}
+        onDescargarPDF={descargarPDF}
+        onCompartirPDF={compartirPDF}
+        onCerrarModalPDF={cerrarModalPDF}
       />
 
       {/* Modal confirmación salida */}

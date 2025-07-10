@@ -1,3 +1,4 @@
+// pages/ventas/HistorialPedidos.jsx - PROBLEMA DE TIMING CORREGIDO
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -50,12 +51,31 @@ function HistorialPedidosContent() {
   // Hook para anular pedidos
   const { loading: loadingAnular, anularPedido } = useAnularPedido();
 
-  // Hook para generar PDFs
+  // ✅ Hook para generar PDFs
   const {
+    // PDF Individual
     generandoPDF,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    generarPDFPedidoConModal,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF,
+    
+    // PDF Múltiple
     generandoPDFMultiple,
-    generarPDFPedido,
-    generarPDFsPedidosMultiples
+    mostrarModalPDFMultiple,
+    pdfURLMultiple,
+    nombreArchivoMultiple,
+    tituloModalMultiple,
+    subtituloModalMultiple,
+    generarPDFsPedidosMultiplesConModal,
+    descargarPDFMultiple,
+    compartirPDFMultiple,
+    cerrarModalPDFMultiple
   } = useGenerarPDFPedido();
 
   // Determinar si debe filtrar por empleado
@@ -117,12 +137,12 @@ function HistorialPedidosContent() {
     actualizarObservaciones, 
     verificarStock, 
     cerrarEdicion,
-    puedeEditarProductos // 🆕 Hook para verificar permisos
+    puedeEditarProductos
   } = useEditarPedido();
 
-  // ✅ VERIFICAR PERMISOS DE EDICIÓN (todos pueden)
+  // Verificar permisos de edición
   const esGerente = user?.rol === 'GERENTE';
-  const puedeEditarProductosPedido = true; // Todos pueden editar
+  const puedeEditarProductosPedido = true;
 
   // FUNCIONES para anular pedidos
   const handleMostrarConfirmacionAnular = (pedido, productosDelPedido) => {
@@ -146,7 +166,6 @@ function HistorialPedidosContent() {
       setMostrarModalDetalle(false);
       setPedidoParaAnular(null);
       cerrarEdicion();
-      // ✅ RECARGAR PEDIDOS (necesario para cambios de estado)
       await cargarPedidos();
     }
   };
@@ -172,7 +191,6 @@ function HistorialPedidosContent() {
         toast.success(`Pedido #${selectedPedido.id} marcado como ${nuevoEstado}`);
         setMostrarModalDetalle(false);
         cerrarEdicion();
-        // ✅ RECARGAR PEDIDOS (necesario para cambios de estado)
         await cargarPedidos();
       } else {
         toast.error(response.data.message || 'Error al cambiar estado del pedido');
@@ -198,7 +216,7 @@ function HistorialPedidosContent() {
     cerrarEdicion();
   };
 
-  // ✅ HANDLERS PARA PRODUCTOS SIN VALIDACIÓN DE PERMISOS
+  // HANDLERS PARA PRODUCTOS
   const handleAgregarProducto = () => {
     setMostrarModalDetalle(false);
     setTimeout(() => setMostrarModalAgregarProducto(true), 300);
@@ -251,7 +269,7 @@ function HistorialPedidosContent() {
     setTimeout(() => setMostrarModalDetalle(true), 300);
   };
 
-  // ✅ HANDLERS SIMPLIFICADOS SIN VALIDACIÓN DE PERMISOS
+  // HANDLERS PARA CONFIRMACIONES
   const handleConfirmarAgregarProducto = async (producto, cantidad) => {
     try {
       console.log('🔄 Agregando producto...');
@@ -321,14 +339,15 @@ function HistorialPedidosContent() {
     }
   };
 
-  // Función para generar PDF individual
+  // ✅ FUNCIÓN ADAPTADA para generar PDF individual
   const handleGenerarPDF = async () => {
     if (!selectedPedido || productos.length === 0) {
       toast.error("Seleccione un pedido con productos");
       return;
     }
-     
-    await generarPDFPedido(selectedPedido, productos);
+    
+    console.log('🖨️ Generando PDF individual con modal para pedido:', selectedPedido.id);
+    await generarPDFPedidoConModal(selectedPedido, productos);
   };
 
   const handleActualizarObservaciones = async (nuevasObservaciones) => {
@@ -342,7 +361,6 @@ function HistorialPedidosContent() {
       const exito = await actualizarObservaciones(nuevasObservaciones);
       
       if (exito) {
-        // ✅ RECARGAR PEDIDOS (las observaciones se muestran en la tabla)
         await cargarPedidos();
         toast.success('Observaciones actualizadas correctamente');
         return true;
@@ -355,21 +373,26 @@ function HistorialPedidosContent() {
     }
   };
 
-  // Función para generar PDFs múltiples
+  // ✅ FUNCIÓN CORREGIDA: NO limpiar selección inmediatamente
   const handleImprimirMultiple = async () => {
     if (selectedPedidos.length === 0) {
       toast.error('Seleccione al menos un pedido para imprimir');
       return;
     }
 
-    console.log('🖨️ Iniciando impresión múltiple de pedidos:', selectedPedidos);
+    console.log('🖨️ Iniciando impresión múltiple de pedidos con modal:', selectedPedidos);
     
-    const exito = await generarPDFsPedidosMultiples(selectedPedidos);
+    const exito = await generarPDFsPedidosMultiplesConModal(selectedPedidos);
     
-    if (exito) {
-      clearSelection();
-      toast.success('PDFs generados correctamente');
-    }
+    // ❌ NO limpiar selección aquí - se hará cuando se cierre el modal
+    console.log('✅ PDF múltiple generado, exito:', exito);
+  };
+
+  // ✅ NUEVA FUNCIÓN: Limpiar selección cuando se cierre el modal múltiple
+  const handleCerrarModalPDFMultiple = () => {
+    console.log('🔄 Cerrando modal PDF múltiple y limpiando selección');
+    cerrarModalPDFMultiple(); // Cerrar el modal
+    clearSelection(); // Ahora sí limpiar la selección
   };
 
   // Handlers para navegación
@@ -445,7 +468,7 @@ function HistorialPedidosContent() {
           onRowDoubleClick={handleRowDoubleClick}
           loading={loading}
           mostrarPermisos={true}
-          verificarPermisos={() => true} // Todos pueden ver
+          verificarPermisos={() => true}
           isPedidoFacturado={selectedPedido?.estado === 'Facturado'}
         />
         
@@ -460,6 +483,7 @@ function HistorialPedidosContent() {
           onCambiarRegistrosPorPagina={cambiarRegistrosPorPagina}
         />
         
+        {/* ✅ BOTÓN ADAPTADO CON FUNCIÓN CORREGIDA PARA CERRAR MODAL */}
         <BotonAccionesPedidos
           contexto="historial"
           selectedPedidos={selectedPedidos}
@@ -467,10 +491,19 @@ function HistorialPedidosContent() {
           onVolverMenu={handleConfirmarSalida}
           loading={generandoPDFMultiple || loading}
           mostrarEstadisticas={false}
+          // ✅ Props para modal PDF múltiple
+          mostrarModalPDFMultiple={mostrarModalPDFMultiple}
+          pdfURLMultiple={pdfURLMultiple}
+          nombreArchivoMultiple={nombreArchivoMultiple}
+          tituloModalMultiple={tituloModalMultiple}
+          subtituloModalMultiple={subtituloModalMultiple}
+          onDescargarPDFMultiple={descargarPDFMultiple}
+          onCompartirPDFMultiple={compartirPDFMultiple}
+          onCerrarModalPDFMultiple={handleCerrarModalPDFMultiple} // ✅ Función corregida
         />
       </div>
       
-      {/* MODALES - Disponibles para todos */}
+      {/* MODALES CON PROPS ADAPTADAS PARA PDF */}
       <ModalDetallePedido
         pedido={selectedPedido}
         productos={productos}
@@ -487,6 +520,15 @@ function HistorialPedidosContent() {
         onActualizarObservaciones={handleActualizarObservaciones} 
         isPedidoFacturado={selectedPedido?.estado === 'Facturado'}
         isPedidoAnulado={selectedPedido?.estado === 'Anulado'}
+        // ✅ Props para modal PDF individual
+        mostrarModalPDF={mostrarModalPDF}
+        pdfURL={pdfURL}
+        nombreArchivo={nombreArchivo}
+        tituloModal={tituloModal}
+        subtituloModal={subtituloModal}
+        onDescargarPDF={descargarPDF}
+        onCompartirPDF={compartirPDF}
+        onCerrarModalPDF={cerrarModalPDF}
       />
 
       <ModalAgregarProductoPedido

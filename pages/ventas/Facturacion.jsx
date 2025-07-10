@@ -1,3 +1,4 @@
+// pages/ventas/Facturacion.jsx - IMPLEMENTACIÓN COMPLETA CON MODAL PDF
 import { useState } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -67,11 +68,31 @@ function HistorialVentasContent() {
     limpiarComprobante
   } = useComprobantes();
 
+  // ✅ HOOK ADAPTADO para PDFs con modal múltiple
   const {
+    // PDF Individual
     generandoPDF,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    generarPDFIndividualConModal,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF,
+    
+    // PDF Múltiple
     imprimiendoMultiple,
-    generarPDFIndividual,
-    generarPDFsMultiples
+    mostrarModalPDFMultiple,
+    pdfURLMultiple,
+    nombreArchivoMultiple,
+    tituloModalMultiple,
+    subtituloModalMultiple,
+    generarPDFsMultiplesConModal,
+    descargarPDFMultiple,
+    compartirPDFMultiple,
+    cerrarModalPDFMultiple
   } = useGenerarPDFsVentas();
 
   // Handlers para eventos de la tabla
@@ -125,16 +146,18 @@ function HistorialVentasContent() {
     viewComprobante(selectedVenta.id);
   };
 
-  // Handlers para PDFs
+  // ✅ HANDLER ADAPTADO para generar PDF individual
   const handleGenerarPDF = async () => {
     if (!selectedVenta || productos.length === 0) {
       toast.error("Seleccione una venta con productos");
       return;
     }
 
-    await generarPDFIndividual(selectedVenta, productos);
+    console.log('🖨️ Generando PDF individual con modal para venta:', selectedVenta.id);
+    await generarPDFIndividualConModal(selectedVenta, productos);
   };
 
+  // ✅ FUNCIÓN ADAPTADA para imprimir múltiples CON MODAL
   const handleImprimirMultiple = async () => {
     const ventasSeleccionadas = ventasFiltradas.filter(venta => 
       selectedVentas.includes(venta.id)
@@ -145,13 +168,12 @@ function HistorialVentasContent() {
       return;
     }
 
-    console.log('🖨️ Ventas seleccionadas para imprimir:', ventasSeleccionadas.map(v => ({ id: v.id, cliente: v.cliente_nombre })));
+    console.log('🖨️ Ventas seleccionadas para imprimir con modal:', ventasSeleccionadas.map(v => ({ id: v.id, cliente: v.cliente_nombre })));
     
-    const exito = await generarPDFsMultiples(ventasSeleccionadas);
+    const exito = await generarPDFsMultiplesConModal(ventasSeleccionadas);
     
     if (exito) {
       clearSelection();
-      toast.success('PDFs generados correctamente');
     }
   };
 
@@ -245,6 +267,7 @@ function HistorialVentasContent() {
           onCambiarRegistrosPorPagina={cambiarRegistrosPorPagina}
         />
         
+        {/* ✅ BOTÓN ADAPTADO CON PROPS PARA MODAL MÚLTIPLE */}
         <BotonAcciones
           selectedVentas={selectedVentas}
           onImprimirMultiple={handleImprimirMultiple}
@@ -252,10 +275,19 @@ function HistorialVentasContent() {
           onSolicitarCAE={handleSolicitarCAE}
           solicitando={false}
           onVolverMenu={handleConfirmarSalida}
+          // ✅ Props para modal PDF múltiple
+          mostrarModalPDFMultiple={mostrarModalPDFMultiple}
+          pdfURLMultiple={pdfURLMultiple}
+          nombreArchivoMultiple={nombreArchivoMultiple}
+          tituloModalMultiple={tituloModalMultiple}
+          subtituloModalMultiple={subtituloModalMultiple}
+          onDescargarPDFMultiple={descargarPDFMultiple}
+          onCompartirPDFMultiple={compartirPDFMultiple}
+          onCerrarModalPDFMultiple={cerrarModalPDFMultiple}
         />
       </div>
       
-      {/* Modal de detalles de venta */}
+      {/* ✅ MODAL DE DETALLE ADAPTADO */}
       <ModalDetalleVenta
         venta={selectedVenta}
         productos={productos}
@@ -264,6 +296,15 @@ function HistorialVentasContent() {
         onImprimirFacturaIndividual={handleGenerarPDF}
         generandoPDF={generandoPDF}
         cuenta={cuenta}
+        // ✅ Props para modal PDF individual
+        mostrarModalPDF={mostrarModalPDF}
+        pdfURL={pdfURL}
+        nombreArchivo={nombreArchivo}
+        tituloModal={tituloModal}
+        subtituloModal={subtituloModal}
+        onDescargarPDF={descargarPDF}
+        onCompartirPDF={compartirPDF}
+        onCerrarModalPDF={cerrarModalPDF}
       />
 
       {/* Modal comprobantes */}

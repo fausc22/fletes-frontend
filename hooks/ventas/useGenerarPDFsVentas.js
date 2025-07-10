@@ -1,33 +1,113 @@
 import { useState } from 'react';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-import { axiosAuth, fetchAuth } from '../../utils/apiClient';
+import { axiosAuth } from '../../utils/apiClient';
+import { useGenerarPDFUniversal } from '../shared/useGenerarPDFUniversal';
 
 export function useGenerarPDFsVentas() {
-  const [generandoPDF, setGenerandoPDF] = useState(false);
   const [imprimiendoMultiple, setImprimiendoMultiple] = useState(false);
 
+  // Hook unificado para PDF individual
+  const {
+    loading: generandoPDF,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    generarPDF,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF
+  } = useGenerarPDFUniversal();
+
+  // ✅ NUEVO Hook para PDFs múltiples con modal
+  const {
+    loading: loadingMultiple,
+    pdfURL: pdfURLMultiple,
+    mostrarModalPDF: mostrarModalPDFMultiple,
+    nombreArchivo: nombreArchivoMultiple,
+    tituloModal: tituloModalMultiple,
+    subtituloModal: subtituloModalMultiple,
+    generarPDF: generarPDFMultipleInterno,
+    descargarPDF: descargarPDFMultiple,
+    compartirPDF: compartirPDFMultiple,
+    cerrarModalPDF: cerrarModalPDFMultiple
+  } = useGenerarPDFUniversal();
+
+  // Función para generar PDF individual con modal
+  const generarPDFIndividualConModal = async (venta, productos) => {
+    if (!venta || productos.length === 0) {
+      toast.error("Seleccione una venta con productos");
+      return false;
+    }
+
+    const apiCall = () => axiosAuth.post(
+      `/ventas/generarpdf-factura`,
+      { venta, productos },
+      { responseType: "blob" }
+    );
+
+    const configuracion = {
+      nombreArchivo: `Factura_${venta.cliente_nombre}_${venta.id}.pdf`,
+      titulo: 'Factura Generada',
+      subtitulo: `Factura #${venta.id} - ${venta.cliente_nombre}`,
+      mensajeExito: 'Factura generada con éxito',
+      mensajeError: 'Error al generar la factura'
+    };
+
+    return await generarPDF(apiCall, configuracion);
+  };
+
+  // ✅ NUEVA FUNCIÓN: Generar múltiples PDFs CON MODAL
+  const generarPDFsMultiplesConModal = async (ventasSeleccionadas) => {
+    if (!ventasSeleccionadas || ventasSeleccionadas.length === 0) {
+      toast.error("Seleccione al menos una venta para imprimir");
+      return false;
+    }
+
+    const ventasIds = ventasSeleccionadas.map(venta => {
+      if (typeof venta === 'object' && venta !== null) {
+        return venta.id;
+      }
+      return venta;
+    }).filter(id => id && !isNaN(parseInt(id)));
+
+    if (ventasIds.length === 0) {
+      toast.error("No se encontraron IDs válidos de ventas");
+      return false;
+    }
+
+    const apiCall = () => axiosAuth.post(
+      `/ventas/generarpdf-facturas-multiples`,
+      { ventasIds },
+      { responseType: "blob" }
+    );
+
+    const configuracion = {
+      nombreArchivo: `Facturas-Multiples.pdf`,
+      titulo: 'Facturas Múltiples',
+      subtitulo: `${ventasIds.length} facturas generadas`,
+      mensajeExito: `${ventasIds.length} facturas generadas con éxito`,
+      mensajeError: 'Error al generar las facturas'
+    };
+
+    return await generarPDFMultipleInterno(apiCall, configuracion);
+  };
+
+  // Función original para descargas directas (MANTENER para compatibilidad)
   const generarPDFIndividual = async (venta, productos) => {
     if (!venta || productos.length === 0) {
       toast.error("Seleccione una venta con productos");
       return false;
     }
 
-    setGenerandoPDF(true);
-
     try {
       const response = await axiosAuth.post(
         `/ventas/generarpdf-factura`,
-        {
-          venta,
-          productos,
-        },
+        { venta, productos },
         { responseType: "blob" }
       );
 
-      // Crear un link para descargar el PDF
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -42,11 +122,10 @@ export function useGenerarPDFsVentas() {
       console.error("Error al generar PDF:", error);
       toast.error("Error al generar el PDF");
       return false;
-    } finally {
-      setGenerandoPDF(false);
     }
   };
 
+  // Función original para múltiples (MANTENER para compatibilidad)
   const generarPDFsMultiples = async (ventasSeleccionadas) => {
     if (!ventasSeleccionadas || ventasSeleccionadas.length === 0) {
       toast.error("Seleccione al menos una venta para imprimir");
@@ -56,17 +135,12 @@ export function useGenerarPDFsVentas() {
     setImprimiendoMultiple(true);
 
     try {
-      // 🔧 CORRECCIÓN: Extraer solo los IDs de las ventas seleccionadas
       const ventasIds = ventasSeleccionadas.map(venta => {
-        // Si es un objeto, extraer el ID
         if (typeof venta === 'object' && venta !== null) {
           return venta.id;
         }
-        // Si ya es un ID, devolverlo tal como está
         return venta;
-      }).filter(id => id && !isNaN(parseInt(id))); // Filtrar IDs válidos
-
-      console.log('📋 IDs de ventas para imprimir:', ventasIds);
+      }).filter(id => id && !isNaN(parseInt(id)));
 
       if (ventasIds.length === 0) {
         toast.error("No se encontraron IDs válidos de ventas");
@@ -75,11 +149,10 @@ export function useGenerarPDFsVentas() {
 
       const response = await axiosAuth.post(
         `/ventas/generarpdf-facturas-multiples`,
-        { ventasIds }, // Solo enviar IDs, no objetos completos
+        { ventasIds },
         { responseType: "blob" }
       );
 
-      // Crear un link para descargar el PDF
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -100,8 +173,38 @@ export function useGenerarPDFsVentas() {
   };
 
   return {
+    // Estados del modal PDF individual
     generandoPDF,
-    imprimiendoMultiple,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    
+    // ✅ Estados del modal PDF múltiple
+    imprimiendoMultiple: loadingMultiple,
+    mostrarModalPDFMultiple,
+    pdfURLMultiple,
+    nombreArchivoMultiple,
+    tituloModalMultiple,
+    subtituloModalMultiple,
+    
+    // Estados originales
+    imprimiendoMultipleOriginal: imprimiendoMultiple,
+    
+    // Funciones del modal PDF individual
+    generarPDFIndividualConModal,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF,
+    
+    // ✅ Funciones del modal PDF múltiple
+    generarPDFsMultiplesConModal,
+    descargarPDFMultiple,
+    compartirPDFMultiple,
+    cerrarModalPDFMultiple,
+    
+    // Funciones originales (compatibilidad)
     generarPDFIndividual,
     generarPDFsMultiples
   };

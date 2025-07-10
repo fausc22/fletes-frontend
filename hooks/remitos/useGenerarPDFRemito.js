@@ -1,32 +1,113 @@
-// hooks/remitos/useGenerarPDFRemito.js - Versión actualizada
 import { useState } from 'react';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
-import { axiosAuth, fetchAuth } from '../../utils/apiClient';
-  
+import { axiosAuth } from '../../utils/apiClient';
+import { useGenerarPDFUniversal } from '../shared/useGenerarPDFUniversal';
+
 export function useGenerarPDFRemito() {
-  const [generandoPDF, setGenerandoPDF] = useState(false);
   const [imprimiendoMultiple, setImprimiendoMultiple] = useState(false);
 
+  // Hook unificado para PDF individual
+  const {
+    loading: generandoPDF,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    generarPDF,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF
+  } = useGenerarPDFUniversal();
+
+  // ✅ NUEVO Hook para PDFs múltiples con modal
+  const {
+    loading: loadingMultiple,
+    pdfURL: pdfURLMultiple,
+    mostrarModalPDF: mostrarModalPDFMultiple,
+    nombreArchivo: nombreArchivoMultiple,
+    tituloModal: tituloModalMultiple,
+    subtituloModal: subtituloModalMultiple,
+    generarPDF: generarPDFMultipleInterno,
+    descargarPDF: descargarPDFMultiple,
+    compartirPDF: compartirPDFMultiple,
+    cerrarModalPDF: cerrarModalPDFMultiple
+  } = useGenerarPDFUniversal();
+
+  // Función para generar PDF individual con modal
+  const generarPDFIndividualConModal = async (remito, productos) => {
+    if (!remito || productos.length === 0) {
+      toast.error("Seleccione un remito con productos");
+      return false;
+    }
+
+    const apiCall = () => axiosAuth.post(
+      `/productos/generarpdf-remito`,
+      { remito, productos },
+      { responseType: "blob" }
+    );
+
+    const configuracion = {
+      nombreArchivo: `Remito_${remito.cliente_nombre}_${remito.id}.pdf`,
+      titulo: 'Remito Generado',
+      subtitulo: `Remito #${remito.id} - ${remito.cliente_nombre}`,
+      mensajeExito: 'Remito generado con éxito',
+      mensajeError: 'Error al generar el remito'
+    };
+
+    return await generarPDF(apiCall, configuracion);
+  };
+
+  // ✅ NUEVA FUNCIÓN: Generar múltiples PDFs CON MODAL
+  const generarPDFsMultiplesConModal = async (remitosSeleccionados) => {
+    if (!remitosSeleccionados || remitosSeleccionados.length === 0) {
+      toast.error("Seleccione al menos un remito para imprimir");
+      return false;
+    }
+
+    const remitosIds = remitosSeleccionados.map(remito => {
+      if (typeof remito === 'object' && remito !== null) {
+        return remito.id;
+      }
+      return remito;
+    }).filter(id => id && !isNaN(parseInt(id)));
+
+    if (remitosIds.length === 0) {
+      toast.error("No se encontraron IDs válidos de remitos");
+      return false;
+    }
+
+    const apiCall = () => axiosAuth.post(
+      `/productos/generarpdf-remitos-multiples`,
+      { remitosIds },
+      { responseType: "blob" }
+    );
+
+    const configuracion = {
+      nombreArchivo: `Remitos-Multiples.pdf`,
+      titulo: 'Remitos Múltiples',
+      subtitulo: `${remitosIds.length} remitos generados`,
+      mensajeExito: `${remitosIds.length} remitos generados con éxito`,
+      mensajeError: 'Error al generar los remitos'
+    };
+
+    return await generarPDFMultipleInterno(apiCall, configuracion);
+  };
+
+  // Función original para descargas directas (MANTENER para compatibilidad)
   const generarPDFIndividual = async (remito, productos) => {
     if (!remito || productos.length === 0) {
       toast.error("Seleccione un remito con productos");
       return false;
     }
 
-    setGenerandoPDF(true);
-
     try {
       const response = await axiosAuth.post(
         `/productos/generarpdf-remito`,
-        {
-          remito,
-          productos,
-        },
+        { remito, productos },
         { responseType: "blob" }
       );
 
-      // Crear un link para descargar el PDF
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -41,11 +122,10 @@ export function useGenerarPDFRemito() {
       console.error("Error al generar PDF del remito:", error);
       toast.error("Error al generar el PDF del remito");
       return false;
-    } finally {
-      setGenerandoPDF(false);
     }
   };
 
+  // Función original para múltiples (MANTENER para compatibilidad)
   const generarPDFsMultiples = async (remitosSeleccionados) => {
     if (!remitosSeleccionados || remitosSeleccionados.length === 0) {
       toast.error("Seleccione al menos un remito para imprimir");
@@ -55,17 +135,12 @@ export function useGenerarPDFRemito() {
     setImprimiendoMultiple(true);
 
     try {
-      // Extraer solo los IDs de los remitos seleccionados
       const remitosIds = remitosSeleccionados.map(remito => {
-        // Si es un objeto, extraer el ID
         if (typeof remito === 'object' && remito !== null) {
           return remito.id;
         }
-        // Si ya es un ID, devolverlo tal como está
         return remito;
-      }).filter(id => id && !isNaN(parseInt(id))); // Filtrar IDs válidos
-
-      console.log('📋 IDs de remitos para imprimir:', remitosIds);
+      }).filter(id => id && !isNaN(parseInt(id)));
 
       if (remitosIds.length === 0) {
         toast.error("No se encontraron IDs válidos de remitos");
@@ -74,11 +149,10 @@ export function useGenerarPDFRemito() {
 
       const response = await axiosAuth.post(
         `/productos/generarpdf-remitos-multiples`,
-        { remitosIds }, // Solo enviar IDs, no objetos completos
+        { remitosIds },
         { responseType: "blob" }
       );
 
-      // Crear un link para descargar el PDF
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const a = document.createElement("a");
       a.href = url;
@@ -99,8 +173,38 @@ export function useGenerarPDFRemito() {
   };
 
   return {
+    // Estados del modal PDF individual
     generandoPDF,
-    imprimiendoMultiple,
+    pdfURL,
+    mostrarModalPDF,
+    nombreArchivo,
+    tituloModal,
+    subtituloModal,
+    
+    // ✅ Estados del modal PDF múltiple
+    imprimiendoMultiple: loadingMultiple,
+    mostrarModalPDFMultiple,
+    pdfURLMultiple,
+    nombreArchivoMultiple,
+    tituloModalMultiple,
+    subtituloModalMultiple,
+    
+    // Estados originales
+    imprimiendoMultipleOriginal: imprimiendoMultiple,
+    
+    // Funciones del modal PDF individual
+    generarPDFIndividualConModal,
+    descargarPDF,
+    compartirPDF,
+    cerrarModalPDF,
+    
+    // ✅ Funciones del modal PDF múltiple
+    generarPDFsMultiplesConModal,
+    descargarPDFMultiple,
+    compartirPDFMultiple,
+    cerrarModalPDFMultiple,
+    
+    // Funciones originales (compatibilidad)
     generarPDFIndividual,
     generarPDFsMultiples
   };

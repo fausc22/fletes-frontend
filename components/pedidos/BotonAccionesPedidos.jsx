@@ -1,5 +1,5 @@
-// components/pedidos/BotonAccionesPedidos.jsx - Componente actualizado para mostrar solo IMPRIMIR en historial
 import { useState } from 'react';
+import { ModalPDFUniversal, BotonGenerarPDFUniversal } from '../shared/ModalPDFUniversal';
 
 export function BotonAccionesPedidos({ 
   // Props comunes
@@ -11,7 +11,17 @@ export function BotonAccionesPedidos({
   onCambiarEstado,
   onEliminarMultiple,
   onExportarPedidos,
-  onImprimirMultiple, // NUEVA PROP para imprimir múltiples pedidos
+  onImprimirMultiple, // Función original para compatibilidad
+  
+  // ✅ NUEVAS PROPS para modal PDF múltiple
+  mostrarModalPDFMultiple = false,
+  pdfURLMultiple = null,
+  nombreArchivoMultiple = '',
+  tituloModalMultiple = 'PDFs Generados Exitosamente',
+  subtituloModalMultiple = '',
+  onDescargarPDFMultiple,
+  onCompartirPDFMultiple,
+  onCerrarModalPDFMultiple,
   
   // Props para nuevo pedido
   onConfirmarPedido,
@@ -52,114 +62,42 @@ export function BotonAccionesPedidos({
     setMostrarMenuEstados(false);
   };
 
-  // Componente MODIFICADO para operaciones múltiples (historial)
-  // Ahora solo muestra el botón de IMPRIMIR cuando hay pedidos seleccionados
+  // ✅ COMPONENTE ADAPTADO para operaciones múltiples con modal PDF
   const AccionesMultiples = () => {
     if (selectedPedidos.length === 0) return null;
 
     return (
-      <div className="flex flex-wrap gap-2">
-        {/* ÚNICO BOTÓN: Imprimir Múltiples Pedidos */}
-        {onImprimirMultiple && (
-          <button 
-            className={`px-6 py-3 rounded text-white font-semibold flex items-center gap-2 ${
-              loading 
-                ? "bg-gray-500 cursor-not-allowed" 
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
-            onClick={onImprimirMultiple}
-            disabled={loading}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                {textos.imprimiendo}
-              </div>
-            ) : (
-              <>
-                🖨️ {textos.imprimir} ({selectedPedidos.length})
-              </>
-            )}
-          </button>
-        )}
-
-        {/* COMENTADO: Botones originales que ya no se necesitan */}
-        {/* 
-        // Cambiar Estado
-        {onCambiarEstado && (
-          <div className="relative">
-            <button 
-              className={`px-4 py-2 rounded text-white font-semibold ${
+      <>
+        <div className="flex flex-wrap gap-2">
+          {/* ✅ BOTÓN ADAPTADO: Imprimir Múltiples Pedidos con Modal */}
+          {onImprimirMultiple && (
+            <BotonGenerarPDFUniversal
+              onGenerar={onImprimirMultiple}
+              loading={loading}
+              texto={`🖨️ ${textos.imprimir} (${selectedPedidos.length})`}
+              className={`px-6 py-3 rounded text-white font-semibold flex items-center gap-2 ${
                 loading 
                   ? "bg-gray-500 cursor-not-allowed" 
                   : "bg-blue-600 hover:bg-blue-700"
               }`}
-              onClick={() => setMostrarMenuEstados(!mostrarMenuEstados)}
               disabled={loading}
-            >
-              🔄 {textos.cambiarEstado} ({selectedPedidos.length})
-            </button>
-            
-            // Dropdown de estados
-            {mostrarMenuEstados && (
-              <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10 min-w-40">
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-yellow-50 text-yellow-700 font-medium"
-                  onClick={() => handleCambiarEstado('Exportado')}
-                >
-                  📤 Exportado
-                </button>
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-green-50 text-green-700 font-medium"
-                  onClick={() => handleCambiarEstado('Facturado')}
-                >
-                  ✅ Facturado
-                </button>
-                <button
-                  className="w-full px-4 py-2 text-left hover:bg-red-50 text-red-700 font-medium"
-                  onClick={() => handleCambiarEstado('Anulado')}
-                >
-                  ❌ Anulado
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+            />
+          )}
+        </div>
 
-        // Exportar Pedidos  
-        {onExportarPedidos && (
-          <button 
-            className={`px-4 py-2 rounded text-white font-semibold ${
-              loading 
-                ? "bg-gray-500 cursor-not-allowed" 
-                : "bg-purple-600 hover:bg-purple-700"
-            }`}
-            onClick={onExportarPedidos}
-            disabled={loading}
-          >
-            📄 {textos.exportar} ({selectedPedidos.length})
-          </button>
-        )}
-
-        // Eliminar Múltiple
-        {onEliminarMultiple && (
-          <button 
-            className={`px-4 py-2 rounded text-white font-semibold ${
-              loading 
-                ? "bg-gray-500 cursor-not-allowed" 
-                : "bg-red-600 hover:bg-red-700"
-            }`}
-            onClick={onEliminarMultiple}
-            disabled={loading}
-          >
-            🗑️ {textos.eliminar} ({selectedPedidos.length})
-          </button>
-        )}
-        */}
-      </div>
+        {/* ✅ MODAL PDF para impresiones múltiples */}
+        <ModalPDFUniversal
+          mostrar={mostrarModalPDFMultiple}
+          pdfURL={pdfURLMultiple}
+          nombreArchivo={nombreArchivoMultiple}
+          titulo={tituloModalMultiple}
+          subtitulo={subtituloModalMultiple}
+          onDescargar={onDescargarPDFMultiple}
+          onCompartir={onCompartirPDFMultiple}
+          onCerrar={onCerrarModalPDFMultiple}
+          zIndex={60}
+        />
+      </>
     );
   };
 
@@ -277,24 +215,5 @@ export function BotonAccionesPedidos({
         </div>
       </div>
     </div>
-  );
-}
-
-// Componentes simplificados para casos específicos (SIN CAMBIOS)
-export function BotonesNuevoPedido(props) {
-  return (
-    <BotonAccionesPedidos 
-      {...props} 
-      contexto="nuevo"
-    />
-  );
-}
-
-export function BotonesHistorialPedidos(props) {
-  return (
-    <BotonAccionesPedidos 
-      {...props} 
-      contexto="historial"
-    />
   );
 }

@@ -6,6 +6,7 @@ import { usePedidos } from '../../hooks/pedidos/usePedidos';
 import { useProductoSearch } from 'hooks/useBusquedaProductos';
 import useAuth from '../../hooks/useAuth';
 import { useFacturacion } from '../../hooks/pedidos/useFacturacion';
+import { ModalPDFUniversal, BotonGenerarPDFUniversal } from '../shared/ModalPDFUniversal';
 
 // Modal de descuentos corregido
 export function ModalDescuentos({
@@ -1736,6 +1737,8 @@ export function ResumenTotales({ productos }) {
   );
 }
 
+
+
 // ModalDetallePedido actualizado
 export function ModalDetallePedido({ 
   pedido,
@@ -1752,7 +1755,16 @@ export function ModalDetallePedido({
   mostrarModalFacturacion,
   setMostrarModalFacturacion,
   isPedidoFacturado,
-  isPedidoAnulado
+  isPedidoAnulado,
+  // Props para el modal PDF
+  mostrarModalPDF,
+  pdfURL,
+  nombreArchivo,
+  tituloModal,
+  subtituloModal,
+  onDescargarPDF,
+  onCompartirPDF,
+  onCerrarModalPDF
 }) {
   const [clienteExpandido, setClienteExpandido] = useState(false);
   
@@ -1775,10 +1787,10 @@ export function ModalDetallePedido({
 
   if (!pedido) return null;
   
-  // ✅ CONTROL DE ACCESO REFINADO
+  // Control de acceso refinado
   const esGerente = user?.rol === 'GERENTE';
   const canEdit = !isPedidoFacturado && !isPedidoAnulado;
-  const canEditProducts = canEdit && esGerente; // 🆕 Solo gerentes pueden editar productos
+  const canEditProducts = canEdit && esGerente;
 
   const toggleClienteExpansion = () => {
     setClienteExpandido(!clienteExpandido);
@@ -1792,14 +1804,6 @@ export function ModalDetallePedido({
     onCambiarEstado('Facturado');
     setMostrarModalFacturacion(false);
     toast.success(`¡Pedido #${pedido.id} facturado exitosamente! Venta ID: ${datosFacturacion.ventaId}`);
-  };
-
-  const handleImprimir = () => {
-    if (onGenerarPDF) {
-      onGenerarPDF(pedido.id);
-    } else {
-      toast.error('Función de impresión no implementada');
-    }
   };
 
   // Función para abrir el modal de agregar producto
@@ -1834,6 +1838,12 @@ export function ModalDetallePedido({
               >
                 ✕
               </button>
+            </div>
+            
+            <div className="mb-4">
+              <h4 className="text-sm sm:text-lg font-semibold text-gray-700">
+                <strong>Fecha:</strong> {formatearFecha(pedido.fecha)}
+              </h4>
             </div>
             
             <div className="mb-4">
@@ -1892,15 +1902,14 @@ export function ModalDetallePedido({
                 </button>
               )}
               
-              <button 
-                onClick={handleImprimir}
-                className={`bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-lg font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors w-full ${
-                    esGerente && !isPedidoFacturado ? 'sm:w-1/3' : (isPedidoFacturado || !esGerente ? 'sm:w-1/2' : '')
+              <BotonGenerarPDFUniversal 
+                onGenerar={onGenerarPDF}
+                loading={generandoPDF}
+                texto="🖨️ IMPRIMIR"
+                className={`bg-blue-600 hover:bg-blue-700 ${
+                  esGerente && !isPedidoFacturado ? 'sm:w-1/3' : (isPedidoFacturado || !esGerente ? 'sm:w-1/2' : '')
                 }`}
-                disabled={generandoPDF}
-              >
-                {generandoPDF ? 'Generando PDF...' : '🖨️ IMPRIMIR'}
-              </button>
+              />
 
               {esGerente && !isPedidoFacturado && (
                 <button 
@@ -1925,6 +1934,19 @@ export function ModalDetallePedido({
           </div>
         </div>
       </div>
+
+      {/* Modal PDF Unificado con z-index más alto */}
+      <ModalPDFUniversal
+        mostrar={mostrarModalPDF}
+        pdfURL={pdfURL}
+        nombreArchivo={nombreArchivo}
+        titulo={tituloModal}
+        subtitulo={subtituloModal}
+        onDescargar={onDescargarPDF}
+        onCompartir={onCompartirPDF}
+        onCerrar={onCerrarModalPDF}
+        zIndex={70}
+      />
     </>
   );
 }
