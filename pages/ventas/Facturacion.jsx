@@ -1,4 +1,4 @@
-// pages/ventas/Facturacion.jsx - IMPLEMENTACIÓN COMPLETA CON MODAL PDF
+// pages/ventas/Facturacion.jsx - IMPLEMENTACIÓN COMPLETA CON RANKING DE VENTAS
 import { useState } from 'react';
 import Head from 'next/head';
 import { toast } from 'react-hot-toast';
@@ -30,7 +30,7 @@ function HistorialVentasContent() {
   const { user, loading: authLoading } = useAuth();
 
   // Hooks personalizados
-  const { ventas, selectedVentas, loading, handleSelectVenta, handleSelectAllVentas, clearSelection } = useHistorialVentas();
+  const { ventas, selectedVentas, loading, handleSelectVenta, handleSelectAllVentas, clearSelection, getVentasSeleccionadas } = useHistorialVentas();
   
   // Hook de filtros para ventas
   const { filtros, ventasFiltradas, handleFiltrosChange, limpiarFiltros } = useFiltrosVentas(ventas);
@@ -68,7 +68,7 @@ function HistorialVentasContent() {
     limpiarComprobante
   } = useComprobantes();
 
-  // ✅ HOOK ADAPTADO para PDFs con modal múltiple
+  // ✅ HOOK ACTUALIZADO con ranking de ventas
   const {
     // PDF Individual
     generandoPDF,
@@ -92,7 +92,19 @@ function HistorialVentasContent() {
     generarPDFsMultiplesConModal,
     descargarPDFMultiple,
     compartirPDFMultiple,
-    cerrarModalPDFMultiple
+    cerrarModalPDFMultiple,
+
+    // 🆕 Ranking de Ventas
+    generandoRanking,
+    mostrarModalRanking,
+    pdfURLRanking,
+    nombreArchivoRanking,
+    tituloModalRanking,
+    subtituloModalRanking,
+    generarRankingVentas,
+    descargarRanking,
+    compartirRanking,
+    cerrarModalRanking
   } = useGenerarPDFsVentas();
 
   // Handlers para eventos de la tabla
@@ -174,6 +186,32 @@ function HistorialVentasContent() {
     
     if (exito) {
       clearSelection();
+    }
+  };
+
+  // 🆕 NUEVO HANDLER para generar ranking de ventas
+  const handleGenerarRankingVentas = async () => {
+    const ventasSeleccionadas = ventasFiltradas.filter(venta => 
+      selectedVentas.includes(venta.id)
+    );
+    
+    if (ventasSeleccionadas.length === 0) {
+      toast.error("Seleccione al menos una venta para generar el ranking");
+      return;
+    }
+
+    console.log('📊 Generando ranking de ventas para:', ventasSeleccionadas.map(v => ({ 
+      id: v.id, 
+      cliente: v.cliente_nombre,
+      total: v.total 
+    })));
+    
+    const exito = await generarRankingVentas(ventasSeleccionadas);
+    
+    if (exito) {
+      // Optionalmente limpiar selección después del éxito
+      // clearSelection();
+      console.log('✅ Ranking de ventas generado exitosamente');
     }
   };
 
@@ -267,7 +305,7 @@ function HistorialVentasContent() {
           onCambiarRegistrosPorPagina={cambiarRegistrosPorPagina}
         />
         
-        {/* ✅ BOTÓN ADAPTADO CON PROPS PARA MODAL MÚLTIPLE */}
+        {/* ✅ BOTÓN ACTUALIZADO CON PROPS PARA RANKING */}
         <BotonAcciones
           selectedVentas={selectedVentas}
           onImprimirMultiple={handleImprimirMultiple}
@@ -284,6 +322,17 @@ function HistorialVentasContent() {
           onDescargarPDFMultiple={descargarPDFMultiple}
           onCompartirPDFMultiple={compartirPDFMultiple}
           onCerrarModalPDFMultiple={cerrarModalPDFMultiple}
+          // 🆕 Props para ranking de ventas
+          onGenerarRankingVentas={handleGenerarRankingVentas}
+          generandoRanking={generandoRanking}
+          mostrarModalRanking={mostrarModalRanking}
+          pdfURLRanking={pdfURLRanking}
+          nombreArchivoRanking={nombreArchivoRanking}
+          tituloModalRanking={tituloModalRanking}
+          subtituloModalRanking={subtituloModalRanking}
+          onDescargarRanking={descargarRanking}
+          onCompartirRanking={compartirRanking}
+          onCerrarModalRanking={cerrarModalRanking}
         />
       </div>
       

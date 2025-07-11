@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { axiosAuth } from '../../utils/apiClient';
 import { useGenerarPDFUniversal } from '../shared/useGenerarPDFUniversal';
+import { useRankingVentas } from './useRankingVentas';
 
 export function useGenerarPDFsVentas() {
   const [imprimiendoMultiple, setImprimiendoMultiple] = useState(false);
@@ -20,7 +21,7 @@ export function useGenerarPDFsVentas() {
     cerrarModalPDF
   } = useGenerarPDFUniversal();
 
-  // ✅ NUEVO Hook para PDFs múltiples con modal
+  // ✅ Hook para PDFs múltiples con modal
   const {
     loading: loadingMultiple,
     pdfURL: pdfURLMultiple,
@@ -33,6 +34,20 @@ export function useGenerarPDFsVentas() {
     compartirPDF: compartirPDFMultiple,
     cerrarModalPDF: cerrarModalPDFMultiple
   } = useGenerarPDFUniversal();
+
+  // 🆕 Hook para ranking de ventas
+  const {
+    generandoRanking,
+    pdfURLRanking,
+    mostrarModalRanking,
+    nombreArchivoRanking,
+    tituloModalRanking,
+    subtituloModalRanking,
+    generarRankingVentas,
+    descargarRanking,
+    compartirRanking,
+    cerrarModalRanking
+  } = useRankingVentas();
 
   // Función para generar PDF individual con modal
   const generarPDFIndividualConModal = async (venta, productos) => {
@@ -58,7 +73,7 @@ export function useGenerarPDFsVentas() {
     return await generarPDF(apiCall, configuracion);
   };
 
-  // ✅ NUEVA FUNCIÓN: Generar múltiples PDFs CON MODAL
+  // ✅ Generar múltiples PDFs CON MODAL
   const generarPDFsMultiplesConModal = async (ventasSeleccionadas) => {
     if (!ventasSeleccionadas || ventasSeleccionadas.length === 0) {
       toast.error("Seleccione al menos una venta para imprimir");
@@ -189,6 +204,14 @@ export function useGenerarPDFsVentas() {
     tituloModalMultiple,
     subtituloModalMultiple,
     
+    // 🆕 Estados del ranking de ventas
+    generandoRanking,
+    mostrarModalRanking,
+    pdfURLRanking,
+    nombreArchivoRanking,
+    tituloModalRanking,
+    subtituloModalRanking,
+    
     // Estados originales
     imprimiendoMultipleOriginal: imprimiendoMultiple,
     
@@ -203,6 +226,12 @@ export function useGenerarPDFsVentas() {
     descargarPDFMultiple,
     compartirPDFMultiple,
     cerrarModalPDFMultiple,
+    
+    // 🆕 Funciones del ranking de ventas
+    generarRankingVentas,
+    descargarRanking,
+    compartirRanking,
+    cerrarModalRanking,
     
     // Funciones originales (compatibilidad)
     generarPDFIndividual,
