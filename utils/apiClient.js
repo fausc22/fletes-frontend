@@ -55,11 +55,11 @@ class ApiClient {
     // Solo configurar interceptors en el cliente
     if (isClient()) {
       this.setupInterceptors();
-      this.setupPWAListeners(); // ✅ NUEVO: Listeners específicos para PWA
+      this.setupPWAListeners();
     }
   }
 
-  // ✅ NUEVO: Configurar listeners específicos para PWA
+  // ✅ CONFIGURAR listeners específicos para PWA
   setupPWAListeners() {
     // Detectar cuando la PWA se reactiva
     document.addEventListener('visibilitychange', () => {
@@ -81,7 +81,7 @@ class ApiClient {
     });
   }
 
-  // ✅ NUEVO: Verificar autenticación al reactivar PWA
+  // ✅ VERIFICAR autenticación al reactivar PWA
   async checkAuthOnPWAResume() {
     const token = getFromStorage('token');
     const refreshToken = getFromStorage('refreshToken');
@@ -145,7 +145,7 @@ class ApiClient {
     );
   }
 
-  // ✅ MANEJO DE REFRESH TOKEN MODIFICADO PARA PWA (localStorage)
+  // ✅ MANEJO DE REFRESH TOKEN MODIFICADO PARA PWA
   async handleTokenRefresh(originalRequest) {
     if (this.isRefreshing) {
       return new Promise((resolve, reject) => {
@@ -156,12 +156,12 @@ class ApiClient {
     this.isRefreshing = true;
 
     try {
-      console.log('🔄 PWA: Token expirado, intentando renovar con localStorage...');
+      console.log('🔄 PWA: Token expirado, intentando renovar...');
       
       const refreshToken = getFromStorage('refreshToken');
       
       if (!refreshToken) {
-        throw new Error('No refresh token disponible en localStorage');
+        throw new Error('No refresh token disponible');
       }
 
       // ✅ PWA: Enviar refresh token en el body
@@ -169,11 +169,11 @@ class ApiClient {
         refreshToken: refreshToken
       });
       
-      const { accessToken, empleado, expiresIn, refreshTokenExpiresIn } = response.data;
+      const { accessToken, usuario, expiresIn, refreshTokenExpiresIn } = response.data;
       
-      // ✅ ACTUALIZAR localStorage
+      // ✅ ACTUALIZAR localStorage - ADAPTADO PARA FLETES
       setToStorage('token', accessToken);
-      setToStorage('empleado', JSON.stringify(empleado));
+      setToStorage('usuario', JSON.stringify(usuario));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
       
       // ✅ Actualizar información del refresh token si está disponible
@@ -181,7 +181,7 @@ class ApiClient {
         setToStorage('refreshTokenExpiry', (Date.now() + (refreshTokenExpiresIn * 1000)).toString());
       }
       
-      console.log('✅ PWA: Token renovado exitosamente via localStorage');
+      console.log('✅ PWA: Token renovado exitosamente');
       
       // ✅ Procesar cola de requests fallidos
       this.processQueue(null, accessToken);
@@ -219,7 +219,7 @@ class ApiClient {
     this.failedQueue = [];
   }
 
-  // ✅ LOGIN MODIFICADO PARA PWA (localStorage)
+  // ✅ LOGIN MODIFICADO PARA PWA - ADAPTADO PARA FLETES
   async login(credentials) {
     try {
       console.log('🔐 PWA Login con credenciales:', { 
@@ -228,12 +228,11 @@ class ApiClient {
       });
       
       const response = await axiosLogin.post('/auth/login', credentials);
-      const { token, refreshToken, empleado, expiresIn, refreshExpiresIn, hasRefreshToken } = response.data;
+      const { token, refreshToken, usuario, expiresIn, refreshExpiresIn, hasRefreshToken } = response.data;
       
-      // ✅ GUARDAR TODO EN LOCALSTORAGE (PWA COMPATIBLE)
+      // ✅ GUARDAR TODO EN LOCALSTORAGE - ADAPTADO PARA FLETES
       setToStorage('token', token);
-      setToStorage('role', empleado.rol);
-      setToStorage('empleado', JSON.stringify(empleado));
+      setToStorage('usuario', JSON.stringify(usuario));
       setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
       
       // ✅ PWA: Guardar refresh token en localStorage si está disponible
@@ -244,15 +243,15 @@ class ApiClient {
         if (refreshExpiresIn) {
           const refreshExpiryTime = Date.now() + this.parseExpiration(refreshExpiresIn);
           setToStorage('refreshTokenExpiry', refreshExpiryTime.toString());
-          console.log(`🔑 PWA: Refresh token guardado en localStorage, expira en: ${refreshExpiresIn} (${new Date(refreshExpiryTime).toLocaleString()})`);
+          console.log(`🔑 PWA: Refresh token guardado, expira en: ${refreshExpiresIn} (${new Date(refreshExpiryTime).toLocaleString()})`);
         }
       } else {
         setToStorage('hasRefreshToken', 'false');
       }
       
-      console.log(`✅ PWA Login exitoso - AccessToken: ${expiresIn}, RefreshToken: ${hasRefreshToken ? `${refreshExpiresIn} (localStorage)` : 'NO'}`);
+      console.log(`✅ PWA Login exitoso - AccessToken: ${expiresIn}, RefreshToken: ${hasRefreshToken ? `${refreshExpiresIn}` : 'NO'}`);
       
-      return { success: true, data: { token, empleado, expiresIn, refreshExpiresIn, hasRefreshToken } };
+      return { success: true, data: { token, usuario, expiresIn, refreshExpiresIn, hasRefreshToken } };
       
     } catch (error) {
       console.error('❌ PWA Error en login:', error);
@@ -282,21 +281,20 @@ class ApiClient {
       console.log('✅ PWA: Logout exitoso en backend');
       
     } catch (error) {
-      console.error('⚠️ PWA: Error en logout del backend (continuando con limpieza local):', error.response?.data?.message || error.message);
+      console.error('⚠️ PWA: Error en logout del backend:', error.response?.data?.message || error.message);
     } finally {
       // ✅ Siempre limpiar localStorage
       this.clearLocalStorage();
     }
   }
 
-  // ✅ UTILIDADES MEJORADAS PARA PWA
+  // ✅ UTILIDADES MEJORADAS PARA PWA - ADAPTADAS PARA FLETES
   clearLocalStorage() {
     if (!isClient()) return;
     
     removeFromStorage('token');
-    removeFromStorage('refreshToken'); // ✅ PWA: Limpiar refresh token de localStorage
-    removeFromStorage('role');
-    removeFromStorage('empleado');
+    removeFromStorage('refreshToken');
+    removeFromStorage('usuario'); // ✅ Cambio: usuario en lugar de empleado
     removeFromStorage('tokenExpiry');
     removeFromStorage('hasRefreshToken');
     removeFromStorage('refreshTokenExpiry');
@@ -400,7 +398,7 @@ class ApiClient {
       // ✅ Si el access token está próximo a expirar y tenemos refresh token válido
       if (this.isTokenExpired() && hasRefresh && !this.isRefreshTokenExpired() && !this.isRefreshing) {
         console.log('⏰ PWA: Access token próximo a expirar, renovando...');
-        this.handleTokenRefresh({ url: '/health', headers: {} }).catch(() => {
+        this.handleTokenRefresh({ url: '/auth/health', headers: {} }).catch(() => {
           clearInterval(interval);
         });
       } else if (this.isTokenExpired() && !hasRefresh) {
@@ -408,27 +406,23 @@ class ApiClient {
         this.clearSessionAndRedirect();
         clearInterval(interval);
       }
-    }, 30 * 1000); // ✅ Verificar cada 30 segundos (optimizado para PWA)
+    }, 30 * 1000); // ✅ Verificar cada 30 segundos
 
     return interval;
   }
 
-  // ✅ Función auxiliar para obtener usuario
+  // ✅ Función auxiliar para obtener usuario - ADAPTADA PARA FLETES
   getUserFromStorage() {
     if (!isClient()) return null;
     
-    const empleadoData = getFromStorage('empleado');
-    const role = getFromStorage('role');
+    const usuarioData = getFromStorage('usuario');
     
-    if (empleadoData) {
+    if (usuarioData) {
       try {
-        const empleado = JSON.parse(empleadoData);
-        return {
-          ...empleado,
-          rol: role || empleado.rol
-        };
+        const usuario = JSON.parse(usuarioData);
+        return usuario;
       } catch (error) {
-        console.error('Error parseando datos del empleado:', error);
+        console.error('Error parseando datos del usuario:', error);
         return null;
       }
     }
@@ -441,17 +435,17 @@ class ApiClient {
     const refreshToken = getFromStorage('refreshToken');
     
     if (!refreshToken) {
-      throw new Error('No refresh token disponible en localStorage');
+      throw new Error('No refresh token disponible');
     }
 
     const response = await axiosLogin.post('/auth/refresh-token', {
       refreshToken: refreshToken
     });
     
-    const { accessToken, empleado, expiresIn, refreshTokenExpiresIn } = response.data;
+    const { accessToken, usuario, expiresIn, refreshTokenExpiresIn } = response.data;
     
     setToStorage('token', accessToken);
-    setToStorage('empleado', JSON.stringify(empleado));
+    setToStorage('usuario', JSON.stringify(usuario)); // ✅ Cambio: usuario en lugar de empleado
     setToStorage('tokenExpiry', (Date.now() + this.parseExpiration(expiresIn)).toString());
     
     // ✅ Actualizar información del refresh token si está disponible
@@ -460,43 +454,6 @@ class ApiClient {
     }
     
     return accessToken;
-  }
-
-  // ✅ WRAPPER PARA FETCH CON AUTH (para compatibilidad)
-  async fetchWithAuth(endpoint, options = {}) {
-    if (!isClient()) {
-      throw new Error('fetchWithAuth solo puede usarse en el cliente');
-    }
-    
-    const token = getFromStorage('token');
-    
-    const config = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-        ...options.headers
-      },
-      credentials: 'include',
-      ...options
-    };
-
-    try {
-      const response = await fetch(`${this.baseURL}${endpoint}`, config);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      // Para errores 401, usar axios que tiene el interceptor configurado
-      if (error.message.includes('401')) {
-        const axiosResponse = await axiosAuth.get(endpoint);
-        return axiosResponse.data;
-      }
-      throw error;
-    }
   }
 
   // ✅ FUNCIÓN DE DEBUG MEJORADA PARA PWA
@@ -508,7 +465,7 @@ class ApiClient {
     const tokenExpiry = getFromStorage('tokenExpiry');
     const hasRefreshToken = getFromStorage('hasRefreshToken') === 'true';
     const refreshTokenExpiry = getFromStorage('refreshTokenExpiry');
-    const empleado = this.getUserFromStorage();
+    const usuario = this.getUserFromStorage();
 
     const now = Date.now();
     const tokenExpiryTime = tokenExpiry ? parseInt(tokenExpiry) : null;
@@ -532,8 +489,8 @@ class ApiClient {
       refreshExpiresIn: refreshExpiryTime ? Math.max(0, Math.round((refreshExpiryTime - now) / 1000)) : 0,
       isRefreshTokenExpired: this.isRefreshTokenExpired(),
       
-      // Información del usuario
-      user: empleado ? `${empleado.nombre} ${empleado.apellido} (${empleado.rol})` : 'N/A',
+      // Información del usuario - ADAPTADA PARA FLETES
+      user: usuario ? `${usuario.usuario} (ID: ${usuario.id})` : 'N/A',
       isRefreshing: this.isRefreshing,
       
       // ✅ Información específica de PWA
@@ -583,7 +540,7 @@ class ApiClient {
     return recommendations;
   }
 
-  // ✅ NUEVA FUNCIÓN: Verificar estado de PWA
+  // ✅ VERIFICAR estado de PWA
   getPWAStatus() {
     if (!isClient()) return { error: 'No disponible en SSR' };
 

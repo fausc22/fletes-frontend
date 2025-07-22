@@ -94,18 +94,18 @@ export default function InstallButton() {
         console.log('Error during installation:', error);
         // Fallback a instrucciones si falla la instalación automática
         if (isAndroid) {
-          alert('Para instalar VERTIMAR:\n\n1. Busca el ícono "⊕" o "Instalar" en la barra de direcciones\n2. O ve al menú (⋮) → "Instalar aplicación"\n3. Confirma la instalación');
+          alert('Para instalar SISTEMA DE FLETES:\n\n1. Busca el ícono "⊕" o "Instalar" en la barra de direcciones\n2. O ve al menú (⋮) → "Instalar aplicación"\n3. Confirma la instalación');
         }
       }
     } else if (isIOS) {
       // 📱 iOS: INSTRUCCIONES (único método disponible)
-      alert('Para instalar VERTIMAR en tu iPhone/iPad:\n\n1. Toca el botón "Compartir" (⬆️) en la parte inferior de Safari\n2. Desliza hacia abajo en el menú\n3. Selecciona "Añadir a pantalla de inicio"\n4. Toca "Añadir" para confirmar\n\n¡La app aparecerá en tu pantalla de inicio!');
+      alert('Para instalar SISTEMA DE FLETES en tu iPhone/iPad:\n\n1. Toca el botón "Compartir" (⬆️) en la parte inferior de Safari\n2. Desliza hacia abajo en el menú\n3. Selecciona "Añadir a pantalla de inicio"\n4. Toca "Añadir" para confirmar\n\n¡La app aparecerá en tu pantalla de inicio!');
     } else if (isAndroid && (isChrome || isEdge)) {
       // 🤖 Android Chrome: INSTRUCCIONES si no hay evento automático
-      alert('Para instalar VERTIMAR:\n\n1. Busca el ícono "⊕" o "Instalar" en la barra de direcciones del navegador\n2. O toca el menú (⋮) del navegador\n3. Selecciona "Instalar aplicación" o "Añadir a pantalla de inicio"\n4. Confirma la instalación\n\n¡La app aparecerá en tu dispositivo!');
+      alert('Para instalar SISTEMA DE FLETES:\n\n1. Busca el ícono "⊕" o "Instalar" en la barra de direcciones del navegador\n2. O toca el menú (⋮) del navegador\n3. Selecciona "Instalar aplicación" o "Añadir a pantalla de inicio"\n4. Confirma la instalación\n\n¡La app aparecerá en tu dispositivo!');
     } else if (isDesktop && (isChrome || isEdge)) {
       // 💻 Desktop Chrome/Edge: INSTRUCCIONES si no hay evento
-      alert('Para instalar VERTIMAR:\n\n1. Busca el ícono "⊕" en la barra de direcciones\n2. O ve al menú (⋮) → "Instalar VERTIMAR..."\n3. Confirma la instalación\n\n¡La app aparecerá como programa en tu computadora!');
+      alert('Para instalar SISTEMA DE FLETES:\n\n1. Busca el ícono "⊕" en la barra de direcciones\n2. O ve al menú (⋮) → "Instalar SISTEMA DE FLETES..."\n3. Confirma la instalación\n\n¡La app aparecerá como programa en tu computadora!');
     } else {
       // 🌐 Otros navegadores: INSTRUCCIONES generales
       alert('Para instalar esta aplicación:\n\n1. Ve al menú de tu navegador\n2. Busca "Instalar aplicación" o "Añadir a pantalla de inicio"\n3. Sigue las instrucciones del navegador\n\nNota: Algunos navegadores no soportan instalación de aplicaciones web.');
@@ -129,14 +129,14 @@ export default function InstallButton() {
 
   const buttonText = getButtonText();
 
-  // ⭐ EL BOTÓN SIEMPRE SE MUESTRA
+  // ⭐ EL BOTÓN SIEMPRE SE MUESTRA CON TEMA NARANJA DE FLETES
   return (
     <button
       onClick={handleInstall}
       className={`
         ${isStandalone 
           ? 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800' 
-          : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+          : 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800'
         }
         text-white 
         px-3 py-2 md:px-4 md:py-2 
@@ -147,7 +147,7 @@ export default function InstallButton() {
         transition-all duration-300 
         transform hover:scale-105 
         shadow-md hover:shadow-lg
-        border ${isStandalone ? 'border-green-500' : 'border-blue-500'}
+        border ${isStandalone ? 'border-green-500' : 'border-orange-500'}
         whitespace-nowrap
         cursor-pointer
       `}
@@ -155,7 +155,7 @@ export default function InstallButton() {
         isStandalone 
           ? 'Aplicación ya instalada' 
           : deferredPrompt 
-            ? 'Instalar VERTIMAR automáticamente' 
+            ? 'Instalar SISTEMA DE FLETES automáticamente' 
             : 'Ver instrucciones de instalación'
       }
     >
@@ -174,12 +174,12 @@ export default function InstallButton() {
             d="M5 13l4 4L19 7" 
           />
         ) : (
-          // ↓ Icono de descarga cuando no está instalado
+          // 📱 Icono de móvil/app cuando no está instalado (tema fletes)
           <path 
             strokeLinecap="round" 
             strokeLinejoin="round" 
             strokeWidth={2} 
-            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+            d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" 
           />
         )}
       </svg>

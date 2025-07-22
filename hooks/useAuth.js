@@ -66,7 +66,7 @@ export default function useAuth() {
     };
   }, [router.pathname]);
 
-  // ✅ CARGAR DATOS DEL USUARIO - PWA Compatible
+  // ✅ CARGAR DATOS DEL USUARIO - ADAPTADO PARA FLETES
   const loadUserData = async () => {
     if (!isClient()) return;
 
@@ -81,13 +81,12 @@ export default function useAuth() {
 
       // Si no hay datos locales, obtener del backend
       const profileResponse = await apiClient.axiosAuth.get('/auth/profile');
-      const empleado = profileResponse.data.empleado;
+      const usuario = profileResponse.data.usuario;
       
-      // Actualizar localStorage
-      localStorage.setItem('empleado', JSON.stringify(empleado));
-      localStorage.setItem('role', empleado.rol);
+      // ✅ Actualizar localStorage con estructura simplificada
+      localStorage.setItem('usuario', JSON.stringify(usuario));
       
-      setUser(empleado);
+      setUser(usuario);
 
     } catch (error) {
       console.error('❌ PWA: Error cargando datos del usuario:', error);
@@ -148,7 +147,7 @@ export default function useAuth() {
     }
   };
 
-  // ✅ FUNCIÓN DE LOGIN MEJORADA PARA PWA
+  // ✅ FUNCIÓN DE LOGIN MEJORADA PARA PWA - ADAPTADA PARA FLETES
   const login = async (credentials) => {
     try {
       setLoading(true);
@@ -156,9 +155,9 @@ export default function useAuth() {
       const result = await apiClient.login(credentials);
       
       if (result.success) {
-        const { empleado } = result.data;
+        const { usuario } = result.data;
         
-        setUser(empleado);
+        setUser(usuario);
         
         // Iniciar verificación de tokens
         startTokenVerification();
@@ -167,15 +166,15 @@ export default function useAuth() {
         if (result.data.hasRefreshToken) {
           const isPWA = window.matchMedia('(display-mode: standalone)').matches;
           if (isPWA) {
-            toast.success(`¡Bienvenido ${empleado.nombre}! Tu sesión se mantendrá activa en la PWA por 7 días.`);
+            toast.success(`¡Bienvenido ${usuario.usuario}! Tu sesión se mantendrá activa en la PWA por 7 días.`);
           } else {
-            toast.success(`¡Bienvenido ${empleado.nombre}! Tu sesión se mantendrá activa por 7 días.`);
+            toast.success(`¡Bienvenido ${usuario.usuario}! Tu sesión se mantendrá activa por 7 días.`);
           }
         } else {
-          toast.success(`¡Bienvenido ${empleado.nombre}!`);
+          toast.success(`¡Bienvenido ${usuario.usuario}!`);
         }
         
-        return { success: true, empleado };
+        return { success: true, usuario };
       } else {
         return { success: false, error: result.error };
       }
@@ -188,21 +187,7 @@ export default function useAuth() {
     }
   };
 
-  // ✅ FUNCIONES DE AUTORIZACIÓN - Sin cambios
-  const hasRole = (roles) => {
-    if (!user) return false;
-    if (typeof roles === 'string') {
-      return user.rol === roles;
-    }
-    if (Array.isArray(roles)) {
-      return roles.includes(user.rol);
-    }
-    return false;
-  };
-
-  const isManager = () => hasRole('GERENTE');
-  const canSell = () => hasRole(['GERENTE', 'VENDEDOR']);
-  
+  // ✅ FUNCIONES DE VERIFICACIÓN SIMPLIFICADAS PARA FLETES
   const isAuthenticated = () => {
     if (!isClient()) return false;
     const token = localStorage.getItem('token');
@@ -212,7 +197,7 @@ export default function useAuth() {
   // ✅ VERIFICAR CONECTIVIDAD
   const checkConnection = async () => {
     try {
-      await apiClient.axiosAuth.get('/health');
+      await apiClient.axiosAuth.get('/auth/health');
       return { success: true, message: 'Conexión exitosa' };
     } catch (error) {
       return { 
@@ -297,7 +282,7 @@ export default function useAuth() {
 
     const token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
-    const empleado = localStorage.getItem('empleado');
+    const usuario = localStorage.getItem('usuario');
 
     if (!token) {
       return { healthy: false, reason: 'No access token' };
@@ -311,7 +296,7 @@ export default function useAuth() {
       }
     }
 
-    if (!empleado) {
+    if (!usuario) {
       return { healthy: false, reason: 'No user data' };
     }
 
@@ -323,9 +308,6 @@ export default function useAuth() {
     loading, 
     login,
     logout, 
-    hasRole, 
-    isManager, 
-    canSell,
     isAuthenticated,
     checkConnection,
     forceTokenRefresh,
@@ -363,7 +345,7 @@ export function useAuthSimple() {
   }, [router.pathname]);
 }
 
-// ✅ HOOK PARA OBTENER USUARIO ACTUAL
+// ✅ HOOK PARA OBTENER USUARIO ACTUAL - ADAPTADO PARA FLETES
 export function useCurrentUser() {
   const [user, setUser] = useState(null);
 
