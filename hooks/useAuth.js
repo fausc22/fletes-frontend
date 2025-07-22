@@ -1,3 +1,4 @@
+// hooks/useAuth.js - CON MEJOR LOGGING PARA DEBUG
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiClient } from '../utils/apiClient';
@@ -25,23 +26,36 @@ export default function useAuth() {
 
     const initializeAuth = async () => {
       try {
+        console.log('🔍 SISTEMA DE FLETES - Inicializando auth...', {
+          pathname: router.pathname,
+          isClient: isClient()
+        });
+
         // Si estamos en login, no verificar auth
         if (router.pathname === '/login') {
+          console.log('📍 En página de login, no verificar auth');
           setLoading(false);
           return;
         }
 
         const token = localStorage.getItem('token');
+        const usuario = localStorage.getItem('usuario');
         
+        console.log('🔍 Verificando localStorage:', {
+          hasToken: !!token,
+          hasUsuario: !!usuario,
+          tokenStart: token ? token.substring(0, 20) + '...' : 'NO',
+        });
+
         if (!token) {
-          console.log('🔒 PWA: No hay token, redirigiendo al login');
+          console.log('🔒 SISTEMA DE FLETES: No hay token, redirigiendo al login');
           router.push('/login');
           return;
         }
 
         // ✅ PWA: Verificar si tenemos refresh token en localStorage
         const refreshToken = localStorage.getItem('refreshToken');
-        console.log('🔑 PWA: Refresh token disponible:', !!refreshToken);
+        console.log('🔑 SISTEMA DE FLETES: Refresh token disponible:', !!refreshToken);
 
         // ✅ Cargar datos del usuario
         await loadUserData();
@@ -50,7 +64,7 @@ export default function useAuth() {
         startTokenVerification();
 
       } catch (error) {
-        console.error('❌ PWA: Error inicializando autenticación:', error);
+        console.error('❌ SISTEMA DE FLETES: Error inicializando autenticación:', error);
         await logout();
       } finally {
         setLoading(false);
@@ -71,17 +85,24 @@ export default function useAuth() {
     if (!isClient()) return;
 
     try {
+      console.log('👤 SISTEMA DE FLETES: Cargando datos del usuario...');
+      
       // Primero intentar obtener del localStorage
       const user = apiClient.getUserFromStorage();
       
       if (user) {
+        console.log('✅ Usuario encontrado en localStorage:', user);
         setUser(user);
         return;
       }
 
+      console.log('🌐 Usuario no en localStorage, consultando backend...');
+      
       // Si no hay datos locales, obtener del backend
       const profileResponse = await apiClient.axiosAuth.get('/auth/profile');
       const usuario = profileResponse.data.usuario;
+      
+      console.log('✅ Usuario obtenido del backend:', usuario);
       
       // ✅ Actualizar localStorage con estructura simplificada
       localStorage.setItem('usuario', JSON.stringify(usuario));
@@ -89,7 +110,7 @@ export default function useAuth() {
       setUser(usuario);
 
     } catch (error) {
-      console.error('❌ PWA: Error cargando datos del usuario:', error);
+      console.error('❌ SISTEMA DE FLETES: Error cargando datos del usuario:', error);
       throw error;
     }
   };
@@ -109,7 +130,7 @@ export default function useAuth() {
   // ✅ FUNCIÓN DE LOGOUT PARA PWA
   const logout = async () => {
     try {
-      console.log('👋 PWA: Cerrando sesión...');
+      console.log('👋 SISTEMA DE FLETES: Cerrando sesión...');
       
       // Limpiar intervalo
       if (tokenCheckInterval) {
@@ -130,7 +151,7 @@ export default function useAuth() {
       }
       
     } catch (error) {
-      console.error('❌ PWA: Error en logout:', error);
+      console.error('❌ SISTEMA DE FLETES: Error en logout:', error);
       
       // Forzar limpieza local
       if (tokenCheckInterval) {
@@ -152,10 +173,14 @@ export default function useAuth() {
     try {
       setLoading(true);
       
+      console.log('🔐 SISTEMA DE FLETES: Intentando login...');
+      
       const result = await apiClient.login(credentials);
       
       if (result.success) {
         const { usuario } = result.data;
+        
+        console.log('✅ SISTEMA DE FLETES: Login exitoso para:', usuario.usuario);
         
         setUser(usuario);
         
@@ -176,11 +201,12 @@ export default function useAuth() {
         
         return { success: true, usuario };
       } else {
+        console.log('❌ SISTEMA DE FLETES: Login fallido:', result.error);
         return { success: false, error: result.error };
       }
       
     } catch (error) {
-      console.error('❌ PWA: Error en login:', error);
+      console.error('❌ SISTEMA DE FLETES: Error en login:', error);
       return { success: false, error: 'Error inesperado durante el login' };
     } finally {
       setLoading(false);
@@ -219,7 +245,7 @@ export default function useAuth() {
       
       return { success: true };
     } catch (error) {
-      console.error('❌ PWA: Error forzando renovación:', error);
+      console.error('❌ SISTEMA DE FLETES: Error forzando renovación:', error);
       
       if (isClient()) {
         toast.error('Error renovando token');
@@ -254,24 +280,24 @@ export default function useAuth() {
 
   // ✅ NUEVA FUNCIÓN: Manejar reactivación de PWA
   const handlePWAResume = async () => {
-    console.log('🔄 PWA: Handling resume...');
+    console.log('🔄 SISTEMA DE FLETES: Handling resume...');
     
     try {
       const token = localStorage.getItem('token');
       const refreshToken = localStorage.getItem('refreshToken');
       
       if (!token && refreshToken) {
-        console.log('🔄 PWA: No access token pero sí refresh token, renovando...');
+        console.log('🔄 SISTEMA DE FLETES: No access token pero sí refresh token, renovando...');
         await forceTokenRefresh();
       } else if (apiClient.isTokenExpired() && refreshToken && !apiClient.isRefreshTokenExpired()) {
-        console.log('🔄 PWA: Token expirado, renovando...');
+        console.log('🔄 SISTEMA DE FLETES: Token expirado, renovando...');
         await forceTokenRefresh();
       } else if (!token && !refreshToken) {
-        console.log('❌ PWA: No hay tokens, redirigiendo a login...');
+        console.log('❌ SISTEMA DE FLETES: No hay tokens, redirigiendo a login...');
         await logout();
       }
     } catch (error) {
-      console.error('❌ PWA: Error en resume:', error);
+      console.error('❌ SISTEMA DE FLETES: Error en resume:', error);
       await logout();
     }
   };
@@ -374,21 +400,21 @@ export function usePWAMonitor() {
     // Monitorear estado online/offline
     const handleOnline = () => {
       setIsOnline(true);
-      console.log('🌐 PWA: Conexión restaurada');
+      console.log('🌐 SISTEMA DE FLETES: Conexión restaurada');
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      console.log('📴 PWA: Conexión perdida');
+      console.log('📴 SISTEMA DE FLETES: Conexión perdida');
     };
 
     // Monitorear cambios de visibilidad (PWA suspend/resume)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('👁️ PWA: Visible');
+        console.log('👁️ SISTEMA DE FLETES: Visible');
         setPwaStatus('active');
       } else {
-        console.log('🙈 PWA: Hidden');
+        console.log('🙈 SISTEMA DE FLETES: Hidden');
         setPwaStatus('background');
       }
     };

@@ -1,6 +1,7 @@
 {
-  "name": "distri-front",
-  "version": "0.1.0",
+  "name": "sistema-fletes-front",
+  "version": "1.0.0",
+  "description": "Sistema de gestión de fletes y transporte",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",

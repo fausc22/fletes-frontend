@@ -1,10 +1,11 @@
+// components/AuthProvider.js - SISTEMA DE FLETES SIMPLIFICADO
 import React, { createContext, useContext } from 'react';
 import useAuth from '../hooks/useAuth';
 
 // ✅ Crear contexto
 const AuthContext = createContext();
 
-// ✅ Provider simplificado
+// ✅ Provider simplificado SIN ROLES
 export function AuthProvider({ children }) {
   const auth = useAuth();
 
@@ -26,16 +27,16 @@ export function useAuthContext() {
   return context;
 }
 
-// ✅ HOC para proteger rutas (opcional)
-export function withAuth(Component, requiredRoles = []) {
+// ✅ HOC SIMPLIFICADO PARA FLETES - SIN LÓGICA DE ROLES
+export function withAuth(Component) {
   return function AuthenticatedComponent(props) {
-    const { user, loading, hasRole } = useAuthContext();
+    const { user, loading } = useAuthContext();
 
     if (loading) {
       return (
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3">Cargando...</span>
+        <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+          <span className="ml-3 text-orange-800">Cargando...</span>
         </div>
       );
     }
@@ -49,24 +50,6 @@ export function withAuth(Component, requiredRoles = []) {
             </h2>
             <p className="text-gray-600">
               Por favor, inicie sesión para continuar
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    if (requiredRoles.length > 0 && !hasRole(requiredRoles)) {
-      return (
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              Permisos insuficientes
-            </h2>
-            <p className="text-gray-600">
-              No tienes permisos para acceder a esta página
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Roles requeridos: {requiredRoles.join(', ')}
             </p>
           </div>
         </div>

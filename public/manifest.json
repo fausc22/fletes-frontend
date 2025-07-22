@@ -1,11 +1,11 @@
 {
-  "name": "VERTIMAR ERP",
-  "short_name": "VERTIMAR",
-  "description": "Sistema ERP de VERTIMAR",
-  "start_url": "/inicio",
+  "name": "SISTEMA DE FLETES",
+  "short_name": "FLETES",
+  "description": "Sistema de gestión de fletes y transporte",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#ea580c",
   "orientation": "portrait",
   "icons": [
     {
