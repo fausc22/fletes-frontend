@@ -1,4 +1,4 @@
-// pages/inicio.js - SISTEMA DE FLETES
+// pages/inicio.js - SISTEMA DE FLETES - VERSIÓN SIMPLIFICADA PARA PERSONAS MAYORES
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -28,7 +28,6 @@ export default function Inicio() {
             setUsuario(parsedUsuario);
           } catch (error) {
             console.error('Error parsing usuario data:', error);
-            // Si hay error parseando, usar datos básicos
             setUsuario({
               usuario: 'Transportista',
               id: 1
@@ -70,7 +69,7 @@ export default function Inicio() {
         <meta name="description" content="Panel principal del sistema de gestión de fletes" />
       </Head>
       
-      {/* Header de bienvenida con tema de fletes */}
+      {/* Header de bienvenida simplificado */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl p-6 mb-8 shadow-xl">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div className="flex items-center space-x-4">
@@ -86,274 +85,132 @@ export default function Inicio() {
                 {getGreeting()}, {usuario?.usuario}
               </h1>
               <p className="text-orange-100 flex items-center space-x-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                <span>Sistema de Gestión de Fletes</span>
+                <span>¿Qué necesita hacer hoy?</span>
               </p>
             </div>
           </div>
-          <div className="mt-4 md:mt-0 text-right">
+          <div className="mt-4 md:mt-0 flex flex-col items-end">
             <div className="mb-3">
               <InstallButton />
             </div>
-            <p className="text-orange-100 text-sm">
+            <p className="text-orange-100 text-sm text-right">
               {new Date().toLocaleDateString('es-AR', {
                 weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+                day: 'numeric',
+                month: 'long'
               })}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Panel de accesos rápidos con tema de fletes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Menú principal simplificado - 4 botones grandes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         
-        {/* VIAJES */}
-        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-orange-500">
-          <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-orange-100 to-orange-200 p-3 rounded-xl">
-              <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"/>
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 ml-3">Viajes</h3>
-          </div>
-          <p className="text-gray-600 mb-4">Gestión completa de tus viajes de flete</p>
-          <div className="space-y-2">
-            <Link href="/viajes/nuevo" className="block text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Nuevo Viaje</span>
-            </Link>
-            <Link href="/viajes/activos" className="block text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Viajes Activos</span>
-            </Link>
-            <Link href="/viajes/historial" className="block text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Historial de Viajes</span>
-            </Link>
-            <Link href="/viajes/planificar" className="block text-orange-600 hover:text-orange-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Planificar Viaje</span>
-            </Link>
-          </div>
-        </div>
-
         {/* CAMIONES */}
-        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-blue-500">
-          <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-3 rounded-xl">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
+        <Link href="/camiones" className="block">
+          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-8 border-blue-500 min-h-[200px] flex flex-col justify-center items-center text-center cursor-pointer group">
+            <div className="bg-gradient-to-r from-blue-100 to-blue-200 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
+              <svg className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
                 <circle cx="7" cy="19" r="2"/>
                 <circle cx="17" cy="19" r="2"/>
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 ml-3">Camiones</h3>
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">MIS CAMIONES</h2>
+            <p className="text-gray-600 text-lg">Ver camiones, agregar gastos y mantenimientos</p>
           </div>
-          <p className="text-gray-600 mb-4">Control y gestión de tu flota de camiones</p>
-          <div className="space-y-2">
-            <Link href="/camiones/lista" className="block text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Mi Flota</span>
-            </Link>
-            <Link href="/camiones/nuevo" className="block text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Agregar Camión</span>
-            </Link>
-            <Link href="/camiones/mantenimiento" className="block text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Mantenimientos</span>
-            </Link>
-            <Link href="/camiones/documentos" className="block text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Documentación</span>
-            </Link>
-          </div>
-        </div>
+        </Link>
 
-        {/* INGRESOS */}
-        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-green-500">
-          <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-green-100 to-green-200 p-3 rounded-xl">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 ml-3">Ingresos</h3>
-          </div>
-          <p className="text-gray-600 mb-4">Registro y control de ingresos por fletes</p>
-          <div className="space-y-2">
-            <Link href="/ingresos/registrar" className="block text-green-600 hover:text-green-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Registrar Ingreso</span>
-            </Link>
-            <Link href="/ingresos/historial" className="block text-green-600 hover:text-green-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Historial de Ingresos</span>
-            </Link>
-            <Link href="/ingresos/por-camion" className="block text-green-600 hover:text-green-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Ingresos por Camión</span>
-            </Link>
-            <Link href="/ingresos/facturas" className="block text-green-600 hover:text-green-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Facturas Pendientes</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* GASTOS */}
-        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-red-500">
-          <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-red-100 to-red-200 p-3 rounded-xl">
-              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 ml-3">Gastos</h3>
-          </div>
-          <p className="text-gray-600 mb-4">Control detallado de todos tus gastos</p>
-          <div className="space-y-2">
-            <Link href="/gastos/registrar" className="block text-red-600 hover:text-red-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Registrar Gasto</span>
-            </Link>
-            <Link href="/gastos/historial" className="block text-red-600 hover:text-red-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Historial de Gastos</span>
-            </Link>
-            <Link href="/gastos/por-categoria" className="block text-red-600 hover:text-red-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Gastos por Categoría</span>
-            </Link>
-            <Link href="/gastos/combustible" className="block text-red-600 hover:text-red-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Control Combustible</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* RUTAS */}
-        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-purple-500">
-          <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-3 rounded-xl">
-              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* VIAJES */}
+        <Link href="/viajes" className="block">
+          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-8 border-green-500 min-h-[200px] flex flex-col justify-center items-center text-center cursor-pointer group">
+            <div className="bg-gradient-to-r from-green-100 to-green-200 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
+              <svg className="w-16 h-16 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"/>
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 ml-3">Rutas</h3>
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">MIS VIAJES</h2>
+            <p className="text-gray-600 text-lg">Iniciar viajes, ver activos y finalizar</p>
           </div>
-          <p className="text-gray-600 mb-4">Gestión de rutas y tramos frecuentes</p>
-          <div className="space-y-2">
-            <Link href="/rutas/lista" className="block text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Mis Rutas</span>
-            </Link>
-            <Link href="/rutas/nueva" className="block text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Nueva Ruta</span>
-            </Link>
-            <Link href="/rutas/calculadora" className="block text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Calculadora de Distancias</span>
-            </Link>
-            <Link href="/rutas/rentabilidad" className="block text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Rentabilidad por Ruta</span>
-            </Link>
-          </div>
-        </div>
+        </Link>
 
-        {/* ESTADÍSTICAS */}
-        <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-indigo-500">
-          <div className="flex items-center mb-4">
-            <div className="bg-gradient-to-r from-indigo-100 to-indigo-200 p-3 rounded-xl">
-              <svg className="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* DINERO (INGRESOS Y GASTOS) */}
+        <Link href="/dinero" className="block">
+          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-8 border-purple-500 min-h-[200px] flex flex-col justify-center items-center text-center cursor-pointer group">
+            <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
+              <svg className="w-16 h-16 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">DINERO</h2>
+            <p className="text-gray-600 text-lg">Registrar ingresos y gastos</p>
+          </div>
+        </Link>
+
+        {/* REPORTES (ESTADÍSTICAS) */}
+        <Link href="/reportes" className="block">
+          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-8 border-indigo-500 min-h-[200px] flex flex-col justify-center items-center text-center cursor-pointer group">
+            <div className="bg-gradient-to-r from-indigo-100 to-indigo-200 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
+              <svg className="w-16 h-16 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-gray-800 ml-3">Estadísticas</h3>
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">REPORTES</h2>
+            <p className="text-gray-600 text-lg">Ver estadísticas y análisis</p>
           </div>
-          <p className="text-gray-600 mb-4">Análisis y reportes de tu negocio</p>
-          <div className="space-y-2">
-            <Link href="/estadisticas/dashboard" className="block text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Dashboard General</span>
-            </Link>
-            <Link href="/estadisticas/mensuales" className="block text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Reportes Mensuales</span>
-            </Link>
-            <Link href="/estadisticas/por-camion" className="block text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Estadísticas por Camión</span>
-            </Link>
-            <Link href="/estadisticas/rentabilidad" className="block text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center space-x-2">
-              <span>•</span><span>Análisis de Rentabilidad</span>
-            </Link>
+        </Link>
+      </div>
+
+      {/* Información rápida */}
+      <div className="mt-8 max-w-4xl mx-auto">
+        <div className="bg-white rounded-xl shadow-lg p-6 border border-orange-200">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
+            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Estado del Sistema</span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span><strong>Usuario:</strong> {usuario?.usuario || 'N/A'}</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
+                <circle cx="7" cy="19" r="2"/>
+                <circle cx="17" cy="19" r="2"/>
+              </svg>
+              <span><strong>Sistema:</strong> Fletes</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+              </svg>
+              <span><strong>Modo:</strong> {typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches ? 'PWA' : 'Web'}</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Información del sistema con tema de fletes */}
-      <div className="mt-8 bg-white rounded-xl shadow-lg p-6 border border-orange-200">
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-          <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          <span>Información del Sistema</span>
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-          <div className="flex items-center space-x-2">
-            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-            </svg>
-            <span><strong>Usuario:</strong> {usuario?.usuario || 'N/A'}</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <span><strong>Tipo:</strong> Sistema de Fletes</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-            </svg>
-            <span><strong>Modo:</strong> {typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches ? 'PWA Instalada' : 'Navegador Web'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats rápidos */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold">2</div>
-          <div className="text-sm text-orange-100">Camiones</div>
-        </div>
-        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold">--</div>
-          <div className="text-sm text-green-100">Viajes Este Mes</div>
-        </div>
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold">--</div>
-          <div className="text-sm text-blue-100">Rutas Activas</div>
-        </div>
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold">--</div>
-          <div className="text-sm text-purple-100">Km Este Mes</div>
-        </div>
-      </div>
-
-      {/* Accesos rápidos móvil */}
-      <div className="mt-6 md:hidden">
-        <h3 className="text-lg font-bold text-gray-800 mb-4">Accesos Rápidos</h3>
+      {/* Accesos rápidos para móvil */}
+      <div className="mt-6 md:hidden max-w-4xl mx-auto">
+        <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">Accesos Rápidos</h3>
         <div className="grid grid-cols-2 gap-3">
-          <Link href="/viajes/nuevo" className="bg-orange-500 text-white p-4 rounded-lg text-center hover:bg-orange-600 transition-colors">
+          <Link href="/viajes/nuevo" className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:from-green-600 hover:to-green-700 transition-colors shadow-lg">
             <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
             </svg>
             <div className="text-sm font-medium">Nuevo Viaje</div>
           </Link>
-          <Link href="/gastos/registrar" className="bg-red-500 text-white p-4 rounded-lg text-center hover:bg-red-600 transition-colors">
+          <Link href="/dinero/gasto" className="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:from-red-600 hover:to-red-700 transition-colors shadow-lg">
             <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
             </svg>
-            <div className="text-sm font-medium">Nuevo Gasto</div>
-          </Link>
-          <Link href="/ingresos/registrar" className="bg-green-500 text-white p-4 rounded-lg text-center hover:bg-green-600 transition-colors">
-            <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
-            </svg>
-            <div className="text-sm font-medium">Nuevo Ingreso</div>
-          </Link>
-          <Link href="/estadisticas/dashboard" className="bg-indigo-500 text-white p-4 rounded-lg text-center hover:bg-indigo-600 transition-colors">
-            <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-            </svg>
-            <div className="text-sm font-medium">Ver Reportes</div>
+            <div className="text-sm font-medium">Agregar Gasto</div>
           </Link>
         </div>
       </div>
