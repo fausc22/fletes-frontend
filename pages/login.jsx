@@ -18,21 +18,23 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [mounted, setMounted] = useState(false);
 
-  // Evitar hydration mismatch
+  // ✅ Evitar hydration mismatch
   useEffect(() => {
     setMounted(true);
-    
-    // Verificar si ya está logueado (solo en cliente)
-    if (isClient()) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        console.log('🔄 Usuario ya logueado, redirigiendo...');
-        router.push('/inicio');
-      }
-    }
-  }, [router]);
+  }, []);
 
-  // No renderizar hasta que esté montado en el cliente
+  // ✅ Verificar si ya está logueado solo cuando esté montado
+  useEffect(() => {
+    if (!mounted || !isClient()) return;
+    
+    const token = localStorage.getItem('token');
+    if (token) {
+      console.log('🔄 Usuario ya logueado, redirigiendo...');
+      router.push('/inicio');
+    }
+  }, [router, mounted]);
+
+  // ✅ NO RENDERIZAR HASTA QUE ESTÉ MONTADO - SPINNER CONSISTENTE
   if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700">
@@ -40,6 +42,7 @@ export default function Login() {
           <title>SISTEMA DE FLETES | INICIAR SESIÓN</title>
         </Head>
         <div className="text-center">
+          {/* ✅ SPINNER CONSISTENTE - SIEMPRE NARANJA PARA FLETES */}
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-400 mx-auto"></div>
           <p className="mt-4 text-white">Cargando...</p>
         </div>
@@ -164,8 +167,9 @@ export default function Login() {
             <div className="flex items-center justify-center mb-4">
               <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-3 rounded-full shadow-lg">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
+                  <circle cx="7" cy="19" r="2"/>
+                  <circle cx="17" cy="19" r="2"/>
                 </svg>
               </div>
             </div>
@@ -284,6 +288,7 @@ export default function Login() {
             >
               {loading || authLoading ? (
                 <div className="flex items-center justify-center">
+                  {/* ✅ SPINNER CONSISTENTE - SIEMPRE GRIS */}
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

@@ -1,21 +1,28 @@
-// hooks/useAuth.js - CON MEJOR LOGGING PARA DEBUG
+// hooks/useAuth.js - VERSIÓN CORREGIDA PARA EVITAR ERRORES DE HIDRATACIÓN
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { apiClient } from '../utils/apiClient';
 import { toast } from 'react-hot-toast';
 
-// ✅ HELPER PARA SSR
+// ✅ HELPER PARA SSR - EVITAR HIDRATION MISMATCH
 const isClient = () => typeof window !== 'undefined';
 
 export default function useAuth() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false); // ✅ NUEVA STATE
   const [tokenCheckInterval, setTokenCheckInterval] = useState(null);
   const initialized = useRef(false);
 
+  // ✅ EVITAR HYDRATION MISMATCH
   useEffect(() => {
-    if (!isClient()) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // ✅ Solo inicializar en el cliente y cuando esté montado
+    if (!isClient() || !mounted) {
       setLoading(false);
       return;
     }
@@ -28,7 +35,8 @@ export default function useAuth() {
       try {
         console.log('🔍 SISTEMA DE FLETES - Inicializando auth...', {
           pathname: router.pathname,
-          isClient: isClient()
+          isClient: isClient(),
+          mounted
         });
 
         // Si estamos en login, no verificar auth
@@ -78,11 +86,11 @@ export default function useAuth() {
         clearInterval(tokenCheckInterval);
       }
     };
-  }, [router.pathname]);
+  }, [router.pathname, mounted]); // ✅ AGREGAR mounted COMO DEPENDENCIA
 
   // ✅ CARGAR DATOS DEL USUARIO - ADAPTADO PARA FLETES
   const loadUserData = async () => {
-    if (!isClient()) return;
+    if (!isClient() || !mounted) return;
 
     try {
       console.log('👤 SISTEMA DE FLETES: Cargando datos del usuario...');
@@ -117,7 +125,7 @@ export default function useAuth() {
 
   // ✅ VERIFICACIÓN PERIÓDICA OPTIMIZADA PARA PWA
   const startTokenVerification = () => {
-    if (!isClient()) return;
+    if (!isClient() || !mounted) return;
 
     if (tokenCheckInterval) {
       clearInterval(tokenCheckInterval);
@@ -145,7 +153,7 @@ export default function useAuth() {
       setUser(null);
       
       // Redirigir al login
-      if (isClient()) {
+      if (isClient() && mounted) {
         router.push('/login');
         toast.success('Sesión cerrada correctamente');
       }
@@ -162,7 +170,7 @@ export default function useAuth() {
       apiClient.clearLocalStorage();
       setUser(null);
       
-      if (isClient()) {
+      if (isClient() && mounted) {
         router.push('/login');
       }
     }
@@ -189,7 +197,7 @@ export default function useAuth() {
         
         // ✅ Toast informativo específico para PWA
         if (result.data.hasRefreshToken) {
-          const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+          const isPWA = mounted && window.matchMedia('(display-mode: standalone)').matches;
           if (isPWA) {
             toast.success(`¡Bienvenido ${usuario.usuario}! Tu sesión se mantendrá activa en la PWA por 7 días.`);
           } else {
@@ -215,7 +223,7 @@ export default function useAuth() {
 
   // ✅ FUNCIONES DE VERIFICACIÓN SIMPLIFICADAS PARA FLETES
   const isAuthenticated = () => {
-    if (!isClient()) return false;
+    if (!isClient() || !mounted) return false;
     const token = localStorage.getItem('token');
     return !!token && !!user;
   };
@@ -239,7 +247,7 @@ export default function useAuth() {
       await apiClient.refreshToken();
       await loadUserData();
       
-      if (isClient()) {
+      if (isClient() && mounted) {
         toast.success('Token renovado exitosamente');
       }
       
@@ -247,7 +255,7 @@ export default function useAuth() {
     } catch (error) {
       console.error('❌ SISTEMA DE FLETES: Error forzando renovación:', error);
       
-      if (isClient()) {
+      if (isClient() && mounted) {
         toast.error('Error renovando token');
       }
       
@@ -258,13 +266,14 @@ export default function useAuth() {
 
   // ✅ NUEVA FUNCIÓN: Obtener información de debug PWA
   const getAuthDebugInfo = () => {
-    if (!isClient()) return { error: 'No disponible en SSR' };
+    if (!isClient() || !mounted) return { error: 'No disponible en SSR' };
     
     return {
       ...apiClient.getAuthDebugInfo(),
       hook: {
         userLoaded: !!user,
         loading,
+        mounted,
         intervalActive: !!tokenCheckInterval,
         initialized: initialized.current
       }
@@ -273,13 +282,15 @@ export default function useAuth() {
 
   // ✅ NUEVA FUNCIÓN: Obtener estado de PWA
   const getPWAStatus = () => {
-    if (!isClient()) return { error: 'No disponible en SSR' };
+    if (!isClient() || !mounted) return { error: 'No disponible en SSR' };
     
     return apiClient.getPWAStatus();
   };
 
   // ✅ NUEVA FUNCIÓN: Manejar reactivación de PWA
   const handlePWAResume = async () => {
+    if (!mounted) return;
+    
     console.log('🔄 SISTEMA DE FLETES: Handling resume...');
     
     try {
@@ -304,7 +315,7 @@ export default function useAuth() {
 
   // ✅ NUEVA FUNCIÓN: Verificar salud de autenticación
   const checkAuthHealth = () => {
-    if (!isClient()) return { healthy: false, reason: 'SSR' };
+    if (!isClient() || !mounted) return { healthy: false, reason: 'SSR' };
 
     const token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
@@ -332,6 +343,7 @@ export default function useAuth() {
   return { 
     user, 
     loading, 
+    mounted, // ✅ EXPORTAR mounted para que otros componentes puedan usarlo
     login,
     logout, 
     isAuthenticated,
@@ -346,11 +358,12 @@ export default function useAuth() {
     
     // ✅ Debug info mejorada para PWA
     debug: {
-      hasToken: isClient() ? !!localStorage.getItem('token') : false,
-      hasRefreshToken: isClient() ? !!localStorage.getItem('refreshToken') : false,
+      hasToken: isClient() && mounted ? !!localStorage.getItem('token') : false,
+      hasRefreshToken: isClient() && mounted ? !!localStorage.getItem('refreshToken') : false,
       intervalActive: !!tokenCheckInterval,
       isClient: isClient(),
-      isPWA: isClient() ? window.matchMedia('(display-mode: standalone)').matches : false
+      mounted,
+      isPWA: isClient() && mounted ? window.matchMedia('(display-mode: standalone)').matches : false
     }
   };
 }
@@ -358,9 +371,14 @@ export default function useAuth() {
 // ✅ HOOK SIMPLE PARA VERIFICAR AUTH SIN LÓGICA COMPLETA
 export function useAuthSimple() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isClient()) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient() || !mounted) return;
     
     if (router.pathname === '/login') return;
     
@@ -368,15 +386,20 @@ export function useAuthSimple() {
     if (!token) {
       router.push('/login');
     }
-  }, [router.pathname]);
+  }, [router.pathname, mounted]);
 }
 
 // ✅ HOOK PARA OBTENER USUARIO ACTUAL - ADAPTADO PARA FLETES
 export function useCurrentUser() {
   const [user, setUser] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isClient()) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient() || !mounted) return;
 
     const loadUser = () => {
       const user = apiClient.getUserFromStorage();
@@ -384,7 +407,7 @@ export function useCurrentUser() {
     };
 
     loadUser();
-  }, []);
+  }, [mounted]);
 
   return user;
 }
@@ -393,9 +416,14 @@ export function useCurrentUser() {
 export function usePWAMonitor() {
   const [isOnline, setIsOnline] = useState(true);
   const [pwaStatus, setPwaStatus] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isClient()) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient() || !mounted) return;
 
     // Monitorear estado online/offline
     const handleOnline = () => {
@@ -432,11 +460,12 @@ export function usePWAMonitor() {
       window.removeEventListener('offline', handleOffline);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [mounted]);
 
   return {
     isOnline,
     pwaStatus,
-    isPWA: isClient() ? window.matchMedia('(display-mode: standalone)').matches : false
+    mounted,
+    isPWA: isClient() && mounted ? window.matchMedia('(display-mode: standalone)').matches : false
   };
 }

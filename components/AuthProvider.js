@@ -1,4 +1,4 @@
-// components/AuthProvider.js - SISTEMA DE FLETES SIMPLIFICADO
+// components/AuthProvider.js - SISTEMA DE FLETES SIMPLIFICADO - VERSIÓN CORREGIDA
 import React, { createContext, useContext } from 'react';
 import useAuth from '../hooks/useAuth';
 
@@ -27,10 +27,15 @@ export function useAuthContext() {
   return context;
 }
 
-// ✅ HOC SIMPLIFICADO PARA FLETES - SIN LÓGICA DE ROLES
+// ✅ HOC SIMPLIFICADO PARA FLETES - SIN LÓGICA DE ROLES - CORREGIDO PARA HIDRATACIÓN
 export function withAuth(Component) {
   return function AuthenticatedComponent(props) {
-    const { user, loading } = useAuthContext();
+    const { user, loading, mounted } = useAuthContext();
+
+    // ✅ NO RENDERIZAR HASTA QUE ESTÉ MONTADO
+    if (!mounted) {
+      return null;
+    }
 
     if (loading) {
       return (

@@ -9,23 +9,37 @@ function AppHeader() {
   const [showMenu, setShowMenu] = useState(false);
   const [usuario, setUsuario] = useState(null);
   const [openSubMenu, setOpenSubMenu] = useState(null);
+  const [mounted, setMounted] = useState(false); // ✅ NUEVA STATE
   const router = useRouter();
   const { logout } = useAuthContext();
 
+  // ✅ EVITAR HYDRATION MISMATCH
   useEffect(() => {
-    // Obtener datos del usuario adaptado para fletes
-    const usuarioFromStorage = localStorage.getItem("usuario");
-    
-    if (usuarioFromStorage) {
-      try {
-        const usuarioData = JSON.parse(usuarioFromStorage);
-        setUsuario(usuarioData);
-      } catch (error) {
-        console.error('Error parsing usuario data:', error);
-        setUsuario(null);
-      }
-    }
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    // ✅ Solo ejecutar cuando esté montado en el cliente
+    if (!mounted) return;
+
+    // Obtener datos del usuario adaptado para fletes
+    try {
+      const usuarioFromStorage = localStorage.getItem("usuario");
+      
+      if (usuarioFromStorage) {
+        try {
+          const usuarioData = JSON.parse(usuarioFromStorage);
+          setUsuario(usuarioData);
+        } catch (error) {
+          console.error('Error parsing usuario data:', error);
+          setUsuario(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error accessing localStorage:', error);
+      setUsuario(null);
+    }
+  }, [mounted]); // ✅ DEPENDENCIA DE mounted
 
   // Cerrar menús al cambiar de ruta
   useEffect(() => {
@@ -99,6 +113,32 @@ function AppHeader() {
       </Link>
     );
   };
+
+  // ✅ NO RENDERIZAR HASTA QUE ESTÉ MONTADO
+  if (!mounted) {
+    return (
+      <nav className="bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 sticky top-0 z-50 shadow-lg">
+        <div className="container mx-auto flex justify-between items-center px-4">
+          <div className="flex items-center space-x-2 text-xl sm:text-2xl font-bold">
+            <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
+              <circle cx="7" cy="19" r="2"/>
+              <circle cx="17" cy="19" r="2"/>
+            </svg>
+            <span className="hidden sm:inline">SISTEMA DE FLETES</span>
+            <span className="sm:hidden">FLETES</span>
+          </div>
+          
+          <div className="hidden sm:flex items-center space-x-4">
+            <div className="text-right text-sm">
+              <p className="font-medium">Cargando...</p>
+              <p className="text-orange-200 text-xs">Transportista</p>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <>
