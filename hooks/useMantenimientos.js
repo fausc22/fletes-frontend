@@ -1,6 +1,6 @@
 // hooks/useMantenimientos.js - SISTEMA DE FLETES - CORREGIDO
 import { useState, useEffect } from 'react';
-import { axiosAuth } from '../utils/apiClient'; // ✅ IMPORTAR DIRECTAMENTE axiosAuth
+import { axiosAuth } from '../utils/apiClient';
 import { toast } from 'react-hot-toast';
 
 export const useMantenimientos = (camionId = null, autoLoad = true) => {
@@ -110,7 +110,7 @@ export const useMantenimientos = (camionId = null, autoLoad = true) => {
     }
   };
 
-  // ✅ OBTENER TODOS LOS MANTENIMIENTOS
+  // ✅ OBTENER TODOS LOS MANTENIMIENTOS - CORREGIDO
   const getAllMantenimientos = async (filtros = {}) => {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
@@ -303,17 +303,26 @@ export const useMantenimientos = (camionId = null, autoLoad = true) => {
     setState(prev => ({ ...prev, error: null }));
   };
 
-  // ✅ CARGAR AUTOMÁTICAMENTE AL MONTAR
+  // ✅ CARGAR AUTOMÁTICAMENTE AL MONTAR - CORREGIDO
   useEffect(() => {
     if (autoLoad) {
       console.log('🚀 Cargando mantenimientos automáticamente...');
+      
+      // ✅ FIX: Si hay camionId específico, cargar solo para ese camión
+      // Si no hay camionId, cargar TODOS los mantenimientos
       if (camionId) {
+        console.log('📍 Cargando mantenimientos para camión:', camionId);
         getMantenimientosByCamion(camionId);
+      } else {
+        console.log('📍 Cargando TODOS los mantenimientos');
+        getAllMantenimientos();
       }
+      
+      // Siempre cargar alertas y estadísticas
       getAlertas();
       getEstadisticas();
     }
-  }, [camionId, autoLoad]);
+  }, [camionId, autoLoad]); // ✅ Dependencias correctas
 
   return {
     // Estado
