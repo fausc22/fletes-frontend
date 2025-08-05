@@ -49,7 +49,7 @@ export default function DineroForm({
       });
       setShowDescripcion(!!movimiento.descripcion);
     }
-  }, [movimiento, getCamiones]);
+  }, [movimiento]);
 
   useEffect(() => {
   const loadCategorias = async () => {
@@ -60,7 +60,7 @@ export default function DineroForm({
   };
   
   loadCategorias();
-}, [tipo, getCategorias]);
+}, [tipo]);
 
   // ✅ MANEJAR CAMBIOS EN EL FORMULARIO
   const handleChange = useCallback((e) => {
