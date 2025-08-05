@@ -1,24 +1,8 @@
 // components/dinero/DineroForm.jsx - SISTEMA DE FLETES
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCamiones } from '../../hooks/useCamiones';
+import { useDinero } from '../../hooks/useDinero';
 
-const CATEGORIAS_GASTOS = [
-  { id: 1, nombre: 'COMBUSTIBLE', descripcion: 'Gastos en combustible y lubricantes' },
-  { id: 2, nombre: 'MANTENIMIENTO', descripcion: 'Reparaciones, service y mantenimiento preventivo' },
-  { id: 3, nombre: 'PEAJES', descripcion: 'Gastos en peajes y autopistas' },
-  { id: 4, nombre: 'NEUMÁTICOS', descripcion: 'Compra y reparación de neumáticos' },
-  { id: 5, nombre: 'SEGURO', descripcion: 'Seguros del vehículo y responsabilidad civil' },
-  { id: 6, nombre: 'DOCUMENTACIÓN', descripcion: 'RTO, licencias, permisos, infracciones' },
-  { id: 7, nombre: 'COMIDA/VIÁTICOS', descripcion: 'Gastos de comida y alojamiento del conductor' },
-  { id: 8, nombre: 'MULTAS', descripcion: 'Multas e infracciones de tránsito' },
-  { id: 9, nombre: 'OTROS', descripcion: 'Otros gastos no categorizados' }
-];
-
-const CATEGORIAS_INGRESOS = [
-  { id: 10, nombre: 'FLETE', descripcion: 'Cobro principal del viaje de flete' },
-  { id: 11, nombre: 'ADICIONALES', descripcion: 'Extras, esperas, descargas especiales' },
-  { id: 12, nombre: 'OTROS', descripcion: 'Otros ingresos no categorizados' }
-];
 
 export default function DineroForm({ 
   tipo = 'GASTO', // 'GASTO' o 'INGRESO'
@@ -44,10 +28,9 @@ export default function DineroForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDescripcion, setShowDescripcion] = useState(false);
 
-  // ✅ CATEGORÍAS SEGÚN TIPO
-  const categorias = useMemo(() => {
-    return tipo === 'GASTO' ? CATEGORIAS_GASTOS : CATEGORIAS_INGRESOS;
-  }, [tipo]);
+  const { getCategorias } = useDinero(false);
+  const [categorias, setCategorias] = useState([]);
+
 
   // ✅ CARGAR DATOS INICIALES
   useEffect(() => {
@@ -67,6 +50,17 @@ export default function DineroForm({
       setShowDescripcion(!!movimiento.descripcion);
     }
   }, [movimiento, getCamiones]);
+
+  useEffect(() => {
+  const loadCategorias = async () => {
+    const result = await getCategorias(tipo);
+    if (result.success) {
+      setCategorias(result.data);
+    }
+  };
+  
+  loadCategorias();
+}, [tipo, getCategorias]);
 
   // ✅ MANEJAR CAMBIOS EN EL FORMULARIO
   const handleChange = useCallback((e) => {

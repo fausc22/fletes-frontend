@@ -33,7 +33,7 @@ export const useGastos = (autoLoad = true) => {
       if (filtros.hasta) params.append('hasta', filtros.hasta);
       
       const queryString = params.toString();
-      const url = `/gastos${queryString ? `?${queryString}` : ''}`;
+      const url = `/dinero/gastos${queryString ? `?${queryString}` : ''}`;
       
       console.log('🔍 Obteniendo gastos de:', url);
       const response = await axiosAuth.get(url);
@@ -73,7 +73,7 @@ export const useGastos = (autoLoad = true) => {
     
     try {
       console.log('🔍 Obteniendo gasto ID:', id);
-      const response = await axiosAuth.get(`/gastos/${id}`);
+      const response = await axiosAuth.get(`/dinero/gastos/${id}`);
       
       setState(prev => ({ ...prev, loading: false }));
       
@@ -100,7 +100,7 @@ export const useGastos = (autoLoad = true) => {
     
     try {
       console.log('📝 Creando gasto:', gastoData);
-      const response = await axiosAuth.post('/gastos', gastoData);
+      const response = await axiosAuth.post('/dinero/gastos', gastoData);
       
       // Actualizar lista local
       setState(prev => ({ 
@@ -135,7 +135,7 @@ export const useGastos = (autoLoad = true) => {
     
     try {
       console.log('📝 Actualizando gasto ID:', id, gastoData);
-      const response = await axiosAuth.put(`/gastos/${id}`, gastoData);
+      const response = await axiosAuth.put(`/dinero/gastos/${id}`, gastoData);
       
       // Actualizar lista local
       setState(prev => ({
@@ -172,7 +172,7 @@ export const useGastos = (autoLoad = true) => {
     
     try {
       console.log('🗑️ Eliminando gasto ID:', id);
-      const response = await axiosAuth.delete(`/gastos/${id}`);
+      const response = await axiosAuth.delete(`/dinero/gastos/${id}`);
       
       // Actualizar lista local
       setState(prev => ({
@@ -205,7 +205,7 @@ export const useGastos = (autoLoad = true) => {
   const getCategorias = async () => {
     try {
       console.log('📂 Obteniendo categorías de gastos...');
-      const response = await axiosAuth.get('/gastos/categorias');
+      const response = await axiosAuth.get('/dinero/categorias?tipo=GASTO');
       
       setState(prev => ({ 
         ...prev, 
@@ -228,7 +228,7 @@ export const useGastos = (autoLoad = true) => {
   const getEstadisticas = async () => {
     try {
       console.log('📊 Obteniendo estadísticas de gastos...');
-      const response = await axiosAuth.get('/gastos/estadisticas');
+      const response = await axiosAuth.get('/dinero/estadisticas');
       
       setState(prev => ({ 
         ...prev, 
