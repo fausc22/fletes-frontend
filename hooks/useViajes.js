@@ -1,4 +1,4 @@
-// hooks/useViajes.js - SISTEMA DE FLETES
+// hooks/useViajes.js - SISTEMA DE FLETES - VERSIÓN CORREGIDA
 import { useState, useEffect } from 'react';
 import { axiosAuth } from '../utils/apiClient';
 import { toast } from 'react-hot-toast';
@@ -330,21 +330,17 @@ export const useViajes = (autoLoad = true) => {
     refresh,
     clearError,
     
-    // Utilidades
+    // Utilidades corregidas
     totalViajes: state.viajes.length,
     viajesActivosCount: state.viajesActivos.length,
     viajesCompletados: state.viajes.filter(v => v.estado === 'COMPLETADO').length,
     viajesCancelados: state.viajes.filter(v => v.estado === 'CANCELADO').length,
-    viajesPendientes: state.viajes.filter(v => v.estado === 'PENDIENT  E').length,
-    viajesEnCurso: state.viajes.filter(v => v.estado === 'EN CURSO').length,
-    viajesPorCamion: (camionId) => state.viajes.filter(v => v.camion_id === camionId),
-    viajesPorEstado: (estado) => state.viajes.filter(v => v.estado ===  estado),
-    viajesPorFecha: (fecha) => state.viajes.filter(v => new Date(v  .fecha) >= new Date(fecha)),
-    viajesPorMes: (mes) => state.viajes.filter(v => new Date(v.fecha).getMonth() + 1 === mes),
-    viajesPorAño: (año) => state.viajes.filter(v => new Date(v.fecha).getFullYear() === año),
-    viajesPorCamionYEstado: (camionId, estado) => state.viajes.filter(v => v.camion_id === camionId && v.estado === estado),
-    viajesPorFechaYEstado: (fecha, estado) => state.viajes.filter(v => new Date(v.fecha) >= new Date(fecha) && v.estado === estado),
-    viajesPorMesYEstado: (mes, estado) => state.viajes.filter(v => new Date(v.fecha).getMonth() + 1 === mes && v.estado === estado),
-    viajesPorAñoYEstado: (año, estado) => state.viajes.filter(v => new Date(v.fecha).getFullYear() === año && v.estado === estado)
+    viajesEnCurso: state.viajes.filter(v => v.estado === 'EN_CURSO').length,
+    
+    // Paginación
+    hasNextPage: (state.pagination.offset + state.pagination.limit) < state.pagination.total,
+    hasPrevPage: state.pagination.offset > 0,
+    currentPage: Math.floor(state.pagination.offset / state.pagination.limit) + 1,
+    totalPages: Math.ceil(state.pagination.total / state.pagination.limit)
   };
-}
+};
