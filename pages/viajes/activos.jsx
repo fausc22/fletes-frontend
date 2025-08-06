@@ -1,4 +1,4 @@
-// pages/viajes/activos.jsx - VIAJES ACTIVOS SIMPLIFICADO
+// pages/viajes/activos.jsx - VIAJES ACTIVOS CON DATOS REALES
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -8,7 +8,13 @@ import { useViajes } from '../../hooks/useViajes';
 
 export default function ViajesActivos() {
   const router = useRouter();
-  const { viajesActivos, getViajesActivos, loading, refresh } = useViajes(false);
+  const { 
+    viajesActivos, 
+    getViajesActivos, 
+    cancelarViaje,
+    loading, 
+    refresh 
+  } = useViajes(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -49,6 +55,22 @@ export default function ViajesActivos() {
     if (diasEnViaje <= 2) return 'bg-green-100 text-green-800 border-green-200';
     if (diasEnViaje <= 5) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     return 'bg-red-100 text-red-800 border-red-200';
+  };
+
+  const handleCancelarViaje = async (viajeId, patente) => {
+    const motivo = prompt(`¿Por qué desea cancelar el viaje del camión ${patente}?\n\nIngrese el motivo de cancelación:`);
+    
+    if (!motivo) return; // Usuario canceló
+    
+    try {
+      const result = await cancelarViaje(viajeId, motivo);
+      if (result.success) {
+        toast.success(`Viaje del camión ${patente} cancelado exitosamente`);
+        await refresh(); // Recargar datos
+      }
+    } catch (error) {
+      console.error('Error cancelando viaje:', error);
+    }
   };
 
   if (!mounted) {
@@ -256,12 +278,7 @@ export default function ViajesActivos() {
                         </Link>
 
                         <button
-                          onClick={() => {
-                            if (confirm(`¿Está seguro de cancelar el viaje del camión ${viaje.patente}?`)) {
-                              // Implementar cancelación
-                              toast.error('Funcionalidad en desarrollo');
-                            }
-                          }}
+                          onClick={() => handleCancelarViaje(viaje.id, viaje.patente)}
                           className="text-gray-600 hover:text-gray-800 font-medium flex items-center space-x-1"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
