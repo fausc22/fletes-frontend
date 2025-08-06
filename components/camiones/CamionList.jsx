@@ -159,7 +159,7 @@ export default function CamionList({
             </span>
             {filtros.busqueda && (
               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                Busqueda: "{filtros.busqueda}"
+                Busqueda: {filtros.busqueda}
               </span>
             )}
             {filtros.estado !== 'todos' && (

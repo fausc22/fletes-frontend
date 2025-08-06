@@ -616,16 +616,7 @@ export default function FinalizarViaje() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
             </div>
-            <div>
-              <h3 className="text-lg font-bold mb-2">💡 Consejos para Finalizar el Viaje</h3>
-              <ul className="space-y-1 text-blue-100 text-sm">
-                <li>• Verifique que el kilometraje final sea correcto para mantener el control de mantenimiento</li>
-                <li>• Si registra el cobro automáticamente, se creará un ingreso vinculado a este viaje</li>
-                <li>• Las observaciones finales ayudan a llevar un registro detallado del viaje</li>
-                <li>• Una vez finalizado, el camión estará disponible para nuevos viajes</li>
-                <li>• Puede agregar gastos adicionales del viaje desde la sección "Dinero"</li>
-              </ul>
-            </div>
+            
           </div>
         </div>
       </div>
