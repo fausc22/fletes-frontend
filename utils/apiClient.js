@@ -126,7 +126,7 @@ class ApiClient {
         // Solo manejar errores 401 que no sean del refresh endpoint
         if (error.response?.status === 401 && 
             !originalRequest._retry && 
-            !originalRequest.url?.includes('/auth/refresh-token')) {
+            !originalRequest.url?.includes('/authFletes/refresh-token')) {
           
           originalRequest._retry = true;
 
@@ -165,7 +165,7 @@ class ApiClient {
       }
 
       // ✅ PWA: Enviar refresh token en el body
-      const response = await axiosLogin.post('/auth/refresh-token', {
+      const response = await axiosLogin.post('/authFletes/refresh-token', {
         refreshToken: refreshToken
       });
       
@@ -227,7 +227,7 @@ class ApiClient {
         remember: credentials.remember 
       });
       
-      const response = await axiosLogin.post('/auth/login', credentials);
+      const response = await axiosLogin.post('/authFletes/login', credentials);
       const { token, refreshToken, usuario, expiresIn, refreshExpiresIn, hasRefreshToken } = response.data;
       
       // ✅ GUARDAR TODO EN LOCALSTORAGE - ADAPTADO PARA FLETES
@@ -277,7 +277,7 @@ class ApiClient {
       console.log('👋 PWA: Cerrando sesión...');
       
       // ✅ Intentar logout en backend
-      await axiosLogin.post('/auth/logout');
+      await axiosLogin.post('/authFletes/logout');
       console.log('✅ PWA: Logout exitoso en backend');
       
     } catch (error) {
@@ -398,7 +398,7 @@ class ApiClient {
       // ✅ Si el access token está próximo a expirar y tenemos refresh token válido
       if (this.isTokenExpired() && hasRefresh && !this.isRefreshTokenExpired() && !this.isRefreshing) {
         console.log('⏰ PWA: Access token próximo a expirar, renovando...');
-        this.handleTokenRefresh({ url: '/auth/health', headers: {} }).catch(() => {
+        this.handleTokenRefresh({ url: '/authFletes/health', headers: {} }).catch(() => {
           clearInterval(interval);
         });
       } else if (this.isTokenExpired() && !hasRefresh) {
@@ -438,7 +438,7 @@ class ApiClient {
       throw new Error('No refresh token disponible');
     }
 
-    const response = await axiosLogin.post('/auth/refresh-token', {
+    const response = await axiosLogin.post('/authFletes/refresh-token', {
       refreshToken: refreshToken
     });
     

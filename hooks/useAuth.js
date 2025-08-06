@@ -107,7 +107,7 @@ export default function useAuth() {
       console.log('🌐 Usuario no en localStorage, consultando backend...');
       
       // Si no hay datos locales, obtener del backend
-      const profileResponse = await apiClient.axiosAuth.get('/auth/profile');
+      const profileResponse = await apiClient.axiosAuth.get('/authFletes/profile');
       const usuario = profileResponse.data.usuario;
       
       console.log('✅ Usuario obtenido del backend:', usuario);
@@ -231,7 +231,7 @@ export default function useAuth() {
   // ✅ VERIFICAR CONECTIVIDAD
   const checkConnection = async () => {
     try {
-      await apiClient.axiosAuth.get('/auth/health');
+      await apiClient.axiosAuth.get('/authFletes/health');
       return { success: true, message: 'Conexión exitosa' };
     } catch (error) {
       return { 
