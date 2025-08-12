@@ -468,7 +468,7 @@ export default function NuevoViaje() {
                     <div>
                       <h4 className="font-bold text-green-800 mb-1">✅ Listo para Iniciar</h4>
                       <p className="text-green-700 text-sm">
-                        Al confirmar, el viaje se iniciará automáticamente y el camión quedará marcado como "en viaje". 
+                        Al confirmar, el viaje se iniciará automáticamente y el camión quedará marcado como EN VIAJE. 
                         Podrá registrar gastos durante el trayecto y finalizar el viaje cuando llegue al destino.
                       </p>
                     </div>

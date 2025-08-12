@@ -439,36 +439,7 @@ export default function DetalleRuta() {
           )}
         </div>
 
-        {/* Recomendaciones - RESPONSIVE */}
-        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-xl p-4 sm:p-6 mt-6 sm:mt-8">
-          <div className="flex flex-col sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-4">
-            <div className="bg-white bg-opacity-20 p-2 rounded-lg flex-shrink-0 self-start">
-              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-              </svg>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold mb-2">💡 Análisis de esta Ruta</h3>
-              <div className="space-y-1 text-indigo-100 text-sm sm:text-base">
-                {ruta.total_viajes === 0 && (
-                  <p>• Esta ruta es nueva. Úsela en algunos viajes para generar estadísticas.</p>
-                )}
-                {ruta.total_viajes > 0 && ruta.total_viajes < 5 && (
-                  <p>• Con más viajes ({5 - ruta.total_viajes} adicionales) esta ruta aparecerá en "Populares".</p>
-                )}
-                {ruta.total_viajes >= 5 && (
-                  <p>• ¡Excelente! Esta es una ruta popular con {ruta.total_viajes} viajes realizados.</p>
-                )}
-                {ruta.es_rentable && (
-                  <p>• Esta ruta es rentable. Considere usarla con mayor frecuencia.</p>
-                )}
-                {!ruta.distancia_km && (
-                  <p>• Agregue la distancia y tiempo estimado para mejorar la planificación.</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        
       </div>
     </div>
   );

@@ -175,7 +175,7 @@ export default function CamionList({
               <div className="flex flex-wrap gap-2">
                 {filtros.busqueda && (
                   <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                    Búsqueda: "{filtros.busqueda}"
+                    Búsqueda: {filtros.busqueda}
                   </span>
                 )}
                 {filtros.estado !== 'todos' && (
