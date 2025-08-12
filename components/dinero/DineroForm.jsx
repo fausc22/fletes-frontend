@@ -1,8 +1,7 @@
-// components/dinero/DineroForm.jsx - SISTEMA DE FLETES
+// components/dinero/DineroForm.jsx - SISTEMA DE FLETES - VERSIÓN MEJORADA
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCamiones } from '../../hooks/useCamiones';
 import { useDinero } from '../../hooks/useDinero';
-
 
 export default function DineroForm({ 
   tipo = 'GASTO', // 'GASTO' o 'INGRESO'
@@ -31,7 +30,6 @@ export default function DineroForm({
   const { getCategorias } = useDinero(false);
   const [categorias, setCategorias] = useState([]);
 
-
   // ✅ CARGAR DATOS INICIALES
   useEffect(() => {
     getCamiones();
@@ -52,15 +50,15 @@ export default function DineroForm({
   }, [movimiento]);
 
   useEffect(() => {
-  const loadCategorias = async () => {
-    const result = await getCategorias(tipo);
-    if (result.success) {
-      setCategorias(result.data);
-    }
-  };
-  
-  loadCategorias();
-}, [tipo]);
+    const loadCategorias = async () => {
+      const result = await getCategorias(tipo);
+      if (result.success) {
+        setCategorias(result.data);
+      }
+    };
+    
+    loadCategorias();
+  }, [tipo]);
 
   // ✅ MANEJAR CAMBIOS EN EL FORMULARIO
   const handleChange = useCallback((e) => {
@@ -166,7 +164,7 @@ export default function DineroForm({
     return Object.keys(newErrors).length === 0;
   }, [formData, tipo, categorias]);
 
-  // ✅ ENVIAR FORMULARIO
+  // ✅ ENVIAR FORMULARIO - CORREGIDO PARA GASTOS GENERALES
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     
@@ -177,17 +175,19 @@ export default function DineroForm({
     setIsSubmitting(true);
 
     try {
-      // Preparar datos para envío
+      // ✅ PREPARAR DATOS PARA ENVÍO - CORRIGIENDO EL BUG
       const dataToSend = {
         fecha: formData.fecha,
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim() || null,
         total: parseFloat(formData.total),
         observaciones: formData.observaciones.trim() || null,
-        camion_id: formData.esGastoGeneral ? null : (formData.camion_id || null),
+        // ✅ FIX: Si esGastoGeneral es true O camion_id está vacío, enviar null
+        camion_id: (formData.esGastoGeneral || !formData.camion_id) ? null : parseInt(formData.camion_id),
         categoria_id: parseInt(formData.categoria_id)
       };
 
+      console.log('📤 Enviando datos:', dataToSend);
       await onSave(dataToSend);
     } catch (error) {
       console.error('Error en formulario:', error);
@@ -207,21 +207,22 @@ export default function DineroForm({
   }, [formData, showDescripcion]);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Header del formulario */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">
+    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+      {/* Header del formulario - MEJORADO PARA MÓVIL */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 sm:mb-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
             {movimiento ? `Editar ${tipo}` : `Registrar ${tipo}`}
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 text-sm sm:text-base mt-1">
             {tipo === 'GASTO' ? 'Registre un gasto de su negocio' : 'Registre un ingreso de su negocio'}
           </p>
         </div>
         <button
           type="button"
           onClick={onCancel}
-          className="text-gray-500 hover:text-gray-700"
+          className="self-end sm:self-auto text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
+          aria-label="Cerrar formulario"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
@@ -229,13 +230,13 @@ export default function DineroForm({
         </button>
       </div>
 
-      {/* Información básica */}
-      <div className="bg-gray-50 rounded-lg p-6">
+      {/* Información básica - MEJORADO GRID RESPONSIVE */}
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Información básica</h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           {/* Fecha */}
-          <div>
+          <div className="sm:col-span-1">
             <label htmlFor="fecha" className="block text-sm font-medium text-gray-700 mb-2">
               Fecha *
             </label>
@@ -245,7 +246,7 @@ export default function DineroForm({
               name="fecha"
               value={formData.fecha}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                 errors.fecha ? 'border-red-300' : 'border-gray-300'
               }`}
               disabled={isSubmitting || loading}
@@ -256,7 +257,7 @@ export default function DineroForm({
           </div>
 
           {/* Monto */}
-          <div>
+          <div className="sm:col-span-1">
             <label htmlFor="total" className="block text-sm font-medium text-gray-700 mb-2">
               Monto * ($)
             </label>
@@ -266,7 +267,7 @@ export default function DineroForm({
               name="total"
               value={formData.total}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                 errors.total ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder="Ej: 15000"
@@ -275,13 +276,13 @@ export default function DineroForm({
             {errors.total && (
               <p className="mt-1 text-sm text-red-600">{errors.total}</p>
             )}
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-xs sm:text-sm text-gray-500">
               Ingrese solo números. Máximo: ${tipo === 'GASTO' ? '500,000' : '1,000,000'}
             </p>
           </div>
 
-          {/* Nombre/Concepto */}
-          <div className="md:col-span-2">
+          {/* Nombre/Concepto - FULL WIDTH EN MÓVIL */}
+          <div className="sm:col-span-2">
             <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-2">
               Concepto *
             </label>
@@ -291,7 +292,7 @@ export default function DineroForm({
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                 errors.nombre ? 'border-red-300' : 'border-gray-300'
               }`}
               placeholder={tipo === 'GASTO' ? 'Ej: Carga de combustible YPF' : 'Ej: Viaje Buenos Aires - Córdoba'}
@@ -305,10 +306,10 @@ export default function DineroForm({
       </div>
 
       {/* Categorización */}
-      <div className="bg-gray-50 rounded-lg p-6">
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Categorización</h3>
         
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {/* Categoría */}
           <div>
             <label htmlFor="categoria_id" className="block text-sm font-medium text-gray-700 mb-2">
@@ -319,7 +320,7 @@ export default function DineroForm({
               name="categoria_id"
               value={formData.categoria_id}
               onChange={handleChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                 errors.categoria_id ? 'border-red-300' : 'border-gray-300'
               }`}
               disabled={isSubmitting || loading}
@@ -348,7 +349,7 @@ export default function DineroForm({
                 rows="3"
                 value={formData.descripcion}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base ${
                   errors.descripcion ? 'border-red-300' : 'border-gray-300'
                 }`}
                 placeholder="Describa el gasto o ingreso..."
@@ -362,23 +363,23 @@ export default function DineroForm({
         </div>
       </div>
 
-      {/* Asociación con camión */}
-      <div className="bg-gray-50 rounded-lg p-6">
+      {/* Asociación con camión - MEJORADO */}
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Asociación con camión (opcional)</h3>
         
         <div className="space-y-4">
-          {/* Checkbox para gasto general */}
-          <div className="flex items-center">
+          {/* Checkbox para gasto general - MEJORADO PARA MÓVIL */}
+          <div className="flex items-start space-x-3">
             <input
               type="checkbox"
               id="esGastoGeneral"
               name="esGastoGeneral"
               checked={formData.esGastoGeneral}
               onChange={handleChange}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mt-1"
               disabled={isSubmitting || loading}
             />
-            <label htmlFor="esGastoGeneral" className="ml-2 block text-sm text-gray-700">
+            <label htmlFor="esGastoGeneral" className="text-sm text-gray-700 leading-5">
               Es un {tipo.toLowerCase()} general (no asociado a un camión específico)
             </label>
           </div>
@@ -394,7 +395,7 @@ export default function DineroForm({
                 name="camion_id"
                 value={formData.camion_id}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
                 disabled={isSubmitting || loading}
               >
                 <option value="">Seleccione un camión</option>
@@ -404,7 +405,7 @@ export default function DineroForm({
                   </option>
                 ))}
               </select>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-xs sm:text-sm text-gray-500">
                 Seleccionar un camión ayuda a generar mejores reportes
               </p>
             </div>
@@ -413,7 +414,7 @@ export default function DineroForm({
       </div>
 
       {/* Información adicional */}
-      <div className="bg-gray-50 rounded-lg p-6">
+      <div className="bg-gray-50 rounded-lg p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Información adicional</h3>
         
         <div>
@@ -426,19 +427,19 @@ export default function DineroForm({
             rows="3"
             value={formData.observaciones}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm sm:text-base"
             placeholder="Información adicional, número de factura, etc..."
             disabled={isSubmitting || loading}
           />
         </div>
       </div>
 
-      {/* Botones de acción */}
-      <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+      {/* Botones de acción - MEJORADOS PARA MÓVIL */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+          className="w-full sm:w-auto px-6 py-3 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors text-sm sm:text-base"
           disabled={isSubmitting || loading}
         >
           Cancelar
@@ -447,7 +448,7 @@ export default function DineroForm({
         <button
           type="submit"
           disabled={isSubmitting || loading || !isFormValid}
-          className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+          className={`w-full sm:w-auto px-6 py-3 rounded-lg font-medium transition-all duration-200 text-sm sm:text-base ${
             isSubmitting || loading || !isFormValid
               ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
               : tipo === 'GASTO'
@@ -456,7 +457,7 @@ export default function DineroForm({
           }`}
         >
           {isSubmitting || loading ? (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center justify-center space-x-2">
               <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

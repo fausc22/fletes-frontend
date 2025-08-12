@@ -163,6 +163,14 @@ function AppHeader() {
               <span>VIAJES</span>
             </Link>
 
+            {/* ✅ NUEVA SECCIÓN: RUTAS */}
+            <Link href="/rutas" className="flex items-center space-x-2 text-white hover:text-orange-200 transition-colors font-medium">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"/>
+              </svg>
+              <span>RUTAS</span>
+            </Link>
+
             <Link href="/dinero" className="flex items-center space-x-2 text-white hover:text-orange-200 transition-colors font-medium">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
@@ -205,6 +213,44 @@ function AppHeader() {
 
             {/* Enlaces principales */}
             <div className="space-y-3">
+              {/* ✅ CAMIONES - AHORA VISIBLE EN MÓVIL */}
+              <Link 
+                href="/camiones" 
+                className="flex items-center space-x-3 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+                onClick={() => setShowMenu(false)}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
+                  <circle cx="7" cy="19" r="2"/>
+                  <circle cx="17" cy="19" r="2"/>
+                </svg>
+                <span className="text-lg font-medium">CAMIONES</span>
+              </Link>
+
+              {/* ✅ VIAJES - AHORA VISIBLE EN MÓVIL */}
+              <Link 
+                href="/viajes" 
+                className="flex items-center space-x-3 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+                onClick={() => setShowMenu(false)}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"/>
+                </svg>
+                <span className="text-lg font-medium">VIAJES</span>
+              </Link>
+
+              {/* ✅ RUTAS - NUEVO EN MÓVIL */}
+              <Link 
+                href="/rutas" 
+                className="flex items-center space-x-3 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors"
+                onClick={() => setShowMenu(false)}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"/>
+                </svg>
+                <span className="text-lg font-medium">RUTAS</span>
+              </Link>
+
               <Link 
                 href="/dinero" 
                 className="flex items-center space-x-3 text-white py-3 px-4 rounded-lg hover:bg-orange-600 transition-colors"

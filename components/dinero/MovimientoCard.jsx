@@ -1,4 +1,4 @@
-// components/dinero/MovimientoCard.jsx - SISTEMA DE FLETES
+// components/dinero/MovimientoCard.jsx - SISTEMA DE FLETES - VERSIÓN RESPONSIVE
 import { useState } from 'react';
 
 export default function MovimientoCard({ 
@@ -44,13 +44,13 @@ export default function MovimientoCard({
   const getTipoIcon = () => {
     if (movimiento.tipo === 'INGRESO') {
       return (
-        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12"/>
         </svg>
       );
     } else {
       return (
-        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6"/>
         </svg>
       );
@@ -58,7 +58,7 @@ export default function MovimientoCard({
   };
 
   const getTipoBadge = () => {
-    const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+    const baseClasses = "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium";
     
     if (movimiento.tipo === 'INGRESO') {
       return `${baseClasses} bg-green-100 text-green-800`;
@@ -76,44 +76,45 @@ export default function MovimientoCard({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
-          <div className={`p-2 rounded-lg ${movimiento.tipo === 'INGRESO' ? 'bg-green-100' : 'bg-red-100'}`}>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
+      {/* Header - RESPONSIVE LAYOUT */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
+        <div className="flex items-center space-x-3 min-w-0 flex-1">
+          <div className={`p-2 rounded-lg flex-shrink-0 ${movimiento.tipo === 'INGRESO' ? 'bg-green-100' : 'bg-red-100'}`}>
             {getTipoIcon()}
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">{movimiento.nombre}</h3>
-            <div className="flex items-center space-x-2 mt-1">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">{movimiento.nombre}</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mt-1 space-y-1 sm:space-y-0">
               <span className={getTipoBadge()}>
                 {movimiento.tipo}
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-xs sm:text-sm text-gray-500">
                 {formatDate(movimiento.fecha)}
               </span>
             </div>
           </div>
         </div>
         
-        <div className="text-right">
-          <p className={`text-2xl font-bold ${getAmountColor()}`}>
+        {/* Monto - RESPONSIVE */}
+        <div className="text-right sm:ml-4 flex-shrink-0">
+          <p className={`text-xl sm:text-2xl font-bold ${getAmountColor()}`}>
             {getAmountPrefix()}{formatMoney(Math.abs(movimiento.total))}
           </p>
         </div>
       </div>
 
-      {/* Información adicional */}
+      {/* Información adicional - MEJORADA PARA MÓVIL */}
       <div className="space-y-2 mb-4">
         {/* Camión */}
         {movimiento.patente && (
-          <div className="flex items-center text-sm text-gray-600">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start text-sm text-gray-600">
+            <svg className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
               <circle cx="7" cy="19" r="2"/>
               <circle cx="17" cy="19" r="2"/>
             </svg>
-            <span>
+            <span className="break-words">
               {movimiento.patente} - {movimiento.marca} {movimiento.modelo}
             </span>
           </div>
@@ -121,8 +122,8 @@ export default function MovimientoCard({
 
         {/* Categoría */}
         {movimiento.categoria_nombre && (
-          <div className="flex items-center text-sm text-gray-600">
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start text-sm text-gray-600">
+            <svg className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c1.1 0 2 .9 2 2v1M9 21h6c1.1 0 2-.9 2-2V9a2 2 0 00-2-2H9a2 2 0 00-2 2v10c0 1.1.9 2 2 2z"/>
             </svg>
             <span>{movimiento.categoria_nombre}</span>
@@ -132,20 +133,30 @@ export default function MovimientoCard({
         {/* Descripción */}
         {movimiento.descripcion && (
           <div className="flex items-start text-sm text-gray-600">
-            <svg className="w-4 h-4 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
-            <span>{movimiento.descripcion}</span>
+            <span className="break-words">{movimiento.descripcion}</span>
+          </div>
+        )}
+
+        {/* Observaciones */}
+        {movimiento.observaciones && (
+          <div className="flex items-start text-sm text-gray-600">
+            <svg className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span className="break-words">{movimiento.observaciones}</span>
           </div>
         )}
       </div>
 
-      {/* Acciones */}
+      {/* Acciones - BOTONES RESPONSIVOS */}
       {showActions && (
-        <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-100">
           <button
             onClick={() => onEdit(movimiento)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
+            className="w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-2 text-blue-600 hover:text-blue-800 text-sm font-medium py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors"
             disabled={loading}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,20 +167,25 @@ export default function MovimientoCard({
           
           <button
             onClick={handleDelete}
-            className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center space-x-1"
+            className="w-full sm:w-auto flex items-center justify-center sm:justify-start space-x-2 text-red-600 hover:text-red-800 text-sm font-medium py-2 px-3 rounded-lg hover:bg-red-50 transition-colors"
             disabled={loading}
           >
             {loading ? (
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Eliminando...</span>
+              </>
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                <span>Eliminar</span>
+              </>
             )}
-            <span>Eliminar</span>
           </button>
         </div>
       )}

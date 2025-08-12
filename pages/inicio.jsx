@@ -135,6 +135,19 @@ export default function Inicio() {
           </div>
         </Link>
 
+        {/* ✅ RUTAS - NUEVO */}
+        <Link href="/rutas" className="block">
+          <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-8 border-indigo-500 min-h-[200px] flex flex-col justify-center items-center text-center cursor-pointer group">
+            <div className="bg-gradient-to-r from-indigo-100 to-indigo-200 p-6 rounded-full mb-6 group-hover:scale-110 transition-transform">
+              <svg className="w-16 h-16 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-1.447-.894L15 4m0 13V4m-6 3l6-3"/>
+              </svg>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-3">MIS RUTAS</h2>
+            <p className="text-gray-600 text-lg">Crear y gestionar rutas de viaje</p>
+          </div>
+        </Link>
+
         {/* DINERO (INGRESOS Y GASTOS) */}
         <Link href="/dinero" className="block">
           <div className="bg-white rounded-2xl shadow-xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border-l-8 border-purple-500 min-h-[200px] flex flex-col justify-center items-center text-center cursor-pointer group">

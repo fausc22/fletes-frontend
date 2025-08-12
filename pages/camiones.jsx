@@ -1,4 +1,4 @@
-// pages/camiones.jsx - PÁGINA PRINCIPAL DE CAMIONES CON MANTENIMIENTOS INTEGRADOS
+// pages/camiones.jsx - PÁGINA PRINCIPAL DE CAMIONES 100% RESPONSIVA
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
@@ -7,11 +7,14 @@ import { useCamiones } from '../hooks/useCamiones';
 import { useMantenimientos } from '../hooks/useMantenimientos';
 import CamionList from '../components/camiones/CamionList';
 import CamionForm from '../components/camiones/CamionForm';
+import CamionDetailsModal from '../components/camiones/CamionDetailsModal';
 
 export default function Camiones() {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingCamion, setEditingCamion] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedCamionForDetails, setSelectedCamionForDetails] = useState(null);
   const [mounted, setMounted] = useState(false);
 
   // Hooks
@@ -82,6 +85,18 @@ export default function Camiones() {
     return result;
   };
 
+  // Manejar visualización de detalles
+  const handleViewDetails = (camion) => {
+    setSelectedCamionForDetails(camion);
+    setShowDetailsModal(true);
+  };
+
+  // Cerrar modal de detalles
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedCamionForDetails(null);
+  };
+
   // Abrir formulario para crear
   const openCreateForm = () => {
     setEditingCamion(null);
@@ -114,35 +129,35 @@ export default function Camiones() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-2 sm:p-4 lg:p-6">
       <Head>
         <title>MIS CAMIONES | SISTEMA DE FLETES</title>
         <meta name="description" content="Gestión de camiones y flota" />
       </Head>
 
       <div className="max-w-7xl mx-auto">
-        {/* Header de la sección */}
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6 mb-8 shadow-xl">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center space-x-4 mb-4 md:mb-0">
-              <div className="bg-white bg-opacity-20 p-3 rounded-full">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Header de la sección - RESPONSIVO */}
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 shadow-xl">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-full flex-shrink-0">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H7a2 2 0 01-2-2V8z"/>
                   <circle cx="7" cy="19" r="2"/>
                   <circle cx="17" cy="19" r="2"/>
                 </svg>
               </div>
-              <div>
-                <h1 className="text-3xl font-bold mb-2">MIS CAMIONES</h1>
-                <p className="text-blue-100">Gestione su flota de camiones</p>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">MIS CAMIONES</h1>
+                <p className="text-blue-100 text-sm sm:text-base">Gestione su flota de camiones</p>
               </div>
             </div>
             
             <button
               onClick={openCreateForm}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center space-x-2"
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 text-sm sm:text-base"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
               </svg>
               <span>Agregar Camión</span>
@@ -150,17 +165,17 @@ export default function Camiones() {
           </div>
         </div>
 
-        {/* Estadísticas rápidas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Estadísticas rápidas - GRID RESPONSIVO */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
           {/* Total camiones */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+          <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 border-l-4 border-blue-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Camiones</p>
-                <p className="text-3xl font-bold text-blue-600">{totalCamiones}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Camiones</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-600">{totalCamiones}</p>
               </div>
-              <div className="bg-blue-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-blue-100 p-2 sm:p-3 rounded-full flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-6 sm:w-8 lg:h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                 </svg>
               </div>
@@ -168,14 +183,14 @@ export default function Camiones() {
           </div>
 
           {/* Camiones disponibles */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+          <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 border-l-4 border-green-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Disponibles</p>
-                <p className="text-3xl font-bold text-green-600">{camionesDisponibles}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Disponibles</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-600">{camionesDisponibles}</p>
               </div>
-              <div className="bg-green-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-green-100 p-2 sm:p-3 rounded-full flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-6 sm:w-8 lg:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
               </div>
@@ -183,14 +198,14 @@ export default function Camiones() {
           </div>
 
           {/* En viaje */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-yellow-500">
+          <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 border-l-4 border-yellow-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">En Viaje</p>
-                <p className="text-3xl font-bold text-yellow-600">{camionesEnViaje}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">En Viaje</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-yellow-600">{camionesEnViaje}</p>
               </div>
-              <div className="bg-yellow-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-yellow-100 p-2 sm:p-3 rounded-full flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-6 sm:w-8 lg:h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
               </div>
@@ -198,15 +213,15 @@ export default function Camiones() {
           </div>
 
           {/* Alertas de mantenimiento */}
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
+          <div className="bg-white rounded-xl shadow-lg p-3 sm:p-4 lg:p-6 border-l-4 border-red-500">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Alertas Mantenim.</p>
-                <p className="text-3xl font-bold text-red-600">{alertasUrgentes + alertasProximas}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 mb-1">Alertas Mantenim.</p>
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-600">{alertasUrgentes + alertasProximas}</p>
                 <p className="text-xs text-red-500">{alertasUrgentes} urgentes</p>
               </div>
-              <div className="bg-red-100 p-3 rounded-full">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="bg-red-100 p-2 sm:p-3 rounded-full flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-6 sm:w-8 lg:h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                 </svg>
               </div>
@@ -214,16 +229,17 @@ export default function Camiones() {
           </div>
         </div>
 
-        {/* Alertas de mantenimiento */}
+        {/* Alertas de mantenimiento - RESPONSIVO */}
         {alertas.length > 0 && (
-          <div className="mb-8">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center">
-                  <svg className="w-6 h-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mb-6 sm:mb-8">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-800 flex items-center">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                   </svg>
-                  Alertas de Mantenimiento
+                  <span className="hidden sm:inline">Alertas de Mantenimiento</span>
+                  <span className="sm:hidden">Alertas</span>
                 </h2>
                 <Link href="/camiones/mantenimientos" className="text-orange-600 hover:text-orange-800 text-sm font-medium">
                   Ver todos →
@@ -232,19 +248,19 @@ export default function Camiones() {
               
               <div className="space-y-3">
                 {alertas.slice(0, 3).map((alerta) => (
-                  <div key={alerta.camion_id} className={`p-4 rounded-lg border-l-4 ${
+                  <div key={alerta.camion_id} className={`p-3 sm:p-4 rounded-lg border-l-4 ${
                     alerta.prioridad === 'URGENTE' 
                       ? 'bg-red-50 border-red-500' 
                       : alerta.prioridad === 'VENCIDO'
                       ? 'bg-orange-50 border-orange-500'
                       : 'bg-yellow-50 border-yellow-500'
                   }`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-semibold text-gray-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-gray-800 text-sm sm:text-base">
                           {alerta.patente} - {alerta.marca} {alerta.modelo}
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-xs sm:text-sm text-gray-600">
                           {alerta.prioridad === 'URGENTE' && alerta.km_restantes <= 1000 && (
                             `Mantenimiento en ${alerta.km_restantes} km`
                           )}
@@ -256,7 +272,7 @@ export default function Camiones() {
                           )}
                         </p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium self-start sm:self-center ${
                         alerta.prioridad === 'URGENTE'
                           ? 'bg-red-100 text-red-800'
                           : alerta.prioridad === 'VENCIDO'
@@ -273,63 +289,63 @@ export default function Camiones() {
           </div>
         )}
 
-        {/* Opciones principales */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Opciones principales - GRID RESPONSIVO */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Agregar camión */}
           <button 
             onClick={openCreateForm}
-            className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-green-500 text-left group"
+            className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-green-500 text-left group"
           >
-            <div className="flex items-center mb-4">
-              <div className="bg-gradient-to-r from-green-100 to-green-200 p-3 rounded-xl group-hover:scale-110 transition-transform">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="flex items-center mb-3 sm:mb-4">
+              <div className="bg-gradient-to-r from-green-100 to-green-200 p-2 sm:p-3 rounded-xl group-hover:scale-110 transition-transform">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
               </div>
-              <h3 className="text-xl font-bold text-gray-800 ml-3">AGREGAR CAMIÓN</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800 ml-3">AGREGAR CAMIÓN</h3>
             </div>
-            <p className="text-gray-600">Registrar un nuevo camión en la flota</p>
+            <p className="text-gray-600 text-sm sm:text-base">Registrar un nuevo camión en la flota</p>
           </button>
 
           {/* Ver mantenimientos */}
           <Link href="/camiones/mantenimientos" className="block">
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-orange-500 cursor-pointer group">
-              <div className="flex items-center mb-4">
-                <div className="bg-gradient-to-r from-orange-100 to-orange-200 p-3 rounded-xl group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-orange-500 cursor-pointer group h-full">
+              <div className="flex items-center mb-3 sm:mb-4">
+                <div className="bg-gradient-to-r from-orange-100 to-orange-200 p-2 sm:p-3 rounded-xl group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 ml-3">MANTENIMIENTOS</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800 ml-3">MANTENIMIENTOS</h3>
               </div>
-              <p className="text-gray-600">Ver y registrar mantenimientos</p>
+              <p className="text-gray-600 text-sm sm:text-base">Ver y registrar mantenimientos</p>
             </div>
           </Link>
 
           {/* Ver reportes */}
-          <Link href="/reportes/por-camion" className="block">
-            <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-purple-500 cursor-pointer group">
-              <div className="flex items-center mb-4">
-                <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-3 rounded-xl group-hover:scale-110 transition-transform">
-                  <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Link href="/reportes/por-camion" className="block sm:col-span-2 lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all duration-300 hover:scale-105 border-l-4 border-purple-500 cursor-pointer group h-full">
+              <div className="flex items-center mb-3 sm:mb-4">
+                <div className="bg-gradient-to-r from-purple-100 to-purple-200 p-2 sm:p-3 rounded-xl group-hover:scale-110 transition-transform">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-800 ml-3">VER REPORTES</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800 ml-3">VER REPORTES</h3>
               </div>
-              <p className="text-gray-600">Estadísticas por camión</p>
+              <p className="text-gray-600 text-sm sm:text-base">Estadísticas por camión</p>
             </div>
           </Link>
         </div>
 
         {/* Lista de camiones */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">Todos los camiones</h2>
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">Todos los camiones</h2>
             <button
               onClick={refresh}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1"
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center space-x-1 self-start sm:self-center"
               disabled={loading}
             >
               <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -345,64 +361,65 @@ export default function Camiones() {
             error={error}
             onEdit={openEditForm}
             onDelete={handleDeleteCamion}
+            onViewDetails={handleViewDetails}
             onRefresh={refresh}
             showFilters={true}
             showActions={true}
           />
         </div>
 
-        {/* Acciones rápidas */}
-        <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Acciones Rápidas</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Acciones rápidas - GRID RESPONSIVO */}
+        <div className="mt-6 sm:mt-8 bg-white rounded-xl shadow-lg p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Acciones Rápidas</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <button
               onClick={openCreateForm}
-              className="bg-green-50 border border-green-200 rounded-lg p-4 hover:bg-green-100 transition-colors text-left"
+              className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 hover:bg-green-100 transition-colors text-left"
             >
-              <div className="flex items-center space-x-3">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
-                <span className="font-medium text-green-800">Agregar Camión</span>
+                <span className="font-medium text-green-800 text-sm sm:text-base">Agregar Camión</span>
               </div>
             </button>
 
-            <Link href="/camiones/mantenimientos" className="bg-orange-50 border border-orange-200 rounded-lg p-4 hover:bg-orange-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Link href="/camiones/mantenimientos" className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 hover:bg-orange-100 transition-colors">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
-                <span className="font-medium text-orange-800">Mantenimientos</span>
+                <span className="font-medium text-orange-800 text-sm sm:text-base">Mantenimientos</span>
               </div>
             </Link>
 
-            <Link href="/dinero/gasto" className="bg-red-50 border border-red-200 rounded-lg p-4 hover:bg-red-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Link href="/dinero/gasto" className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4 hover:bg-red-100 transition-colors">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
-                <span className="font-medium text-red-800">Registrar Gasto</span>
+                <span className="font-medium text-red-800 text-sm sm:text-base">Registrar Gasto</span>
               </div>
             </Link>
 
-            <Link href="/reportes" className="bg-purple-50 border border-purple-200 rounded-lg p-4 hover:bg-purple-100 transition-colors">
-              <div className="flex items-center space-x-3">
-                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <Link href="/reportes" className="bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4 hover:bg-purple-100 transition-colors">
+              <div className="flex items-center space-x-2 sm:space-x-3">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
-                <span className="font-medium text-purple-800">Ver Reportes</span>
+                <span className="font-medium text-purple-800 text-sm sm:text-base">Ver Reportes</span>
               </div>
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Modal del formulario */}
+      {/* Modal del formulario - RESPONSIVO */}
       {showForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto mx-2 sm:mx-4">
+            <div className="p-4 sm:p-6">
               <CamionForm
                 camion={editingCamion}
                 onSave={editingCamion ? handleUpdateCamion : handleCreateCamion}
@@ -413,6 +430,13 @@ export default function Camiones() {
           </div>
         </div>
       )}
+
+      {/* Modal de detalles */}
+      <CamionDetailsModal
+        camion={selectedCamionForDetails}
+        isOpen={showDetailsModal}
+        onClose={closeDetailsModal}
+      />
     </div>
   );
 }
