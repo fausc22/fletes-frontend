@@ -40,9 +40,7 @@ export default function NuevoGasto() {
       newErrors.total = 'El monto debe ser mayor a 0';
     }
 
-    if (parseFloat(formData.total) > 500000) {
-      newErrors.total = 'El monto no puede superar $500,000';
-    }
+    
 
     const fechaGasto = new Date(formData.fecha);
     const hoy = new Date();
@@ -211,9 +209,7 @@ export default function NuevoGasto() {
                 {errors.total}
               </p>
             )}
-            <p className="mt-1 text-sm text-gray-500">
-              Límite máximo: $500,000
-            </p>
+            
           </div>
 
           {/* Grid de 2 columnas para Camión y Categoría */}
