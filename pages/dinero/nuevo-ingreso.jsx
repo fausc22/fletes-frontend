@@ -39,9 +39,7 @@ export default function NuevoIngreso() {
       newErrors.total = 'El monto debe ser mayor a 0';
     }
 
-    if (parseFloat(formData.total) > 1000000) {
-      newErrors.total = 'El monto no puede superar $1,000,000';
-    }
+    
 
     const fechaIngreso = new Date(formData.fecha);
     const hoy = new Date();
